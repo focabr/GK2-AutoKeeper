@@ -13,6 +13,15 @@ namespace AutoKeeper.Config
         Grave,
     }
 
+    /// <summary>Canto da tela onde fica o painel de status.</summary>
+    public enum OverlayCorner
+    {
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight,
+    }
+
     /// <summary>Abas da tela de configurações (e seções no menu Mods do GK2 Mod Framework).</summary>
     public enum SettingTab
     {
@@ -94,6 +103,8 @@ namespace AutoKeeper.Config
         // [Overlay]
         public ConfigEntry<bool> ShowOverlay { get; }
         public ConfigEntry<int> OverlayLogLines { get; }
+        public ConfigEntry<OverlayCorner> OverlayPosition { get; }
+        public ConfigEntry<bool> OverlayDetailed { get; }
 
         // [Safety] (reservado, fora da UI)
         public ConfigEntry<bool> AllowCheats { get; }
@@ -169,7 +180,15 @@ namespace AutoKeeper.Config
             ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,
                 "Mostrar painel de status", "Show status panel",
                 "Painel no canto superior esquerdo com o estado do bot.", "Top-left panel with the bot state.");
-            OverlayLogLines = SliderInt(config, SettingTab.Overlay, "Overlay", "LogLines", 6, 0, 20,
+            OverlayPosition = Bind(config, SettingTab.Overlay, "Overlay", "Position", OverlayCorner.TopLeft,
+                "Posição do painel", "Panel position",
+                "Canto da tela onde o painel aparece (para não cobrir o HUD do jogo).",
+                "Screen corner for the panel (so it does not cover the game HUD).");
+            OverlayDetailed = Toggle(config, SettingTab.Overlay, "Overlay", "Detailed", false,
+                "Painel detalhado", "Detailed panel",
+                "Mostra também posição, sanidade, dinheiro e ids técnicos (útil para depurar).",
+                "Also shows position, sanity, money and technical ids (debugging).");
+            OverlayLogLines = SliderInt(config, SettingTab.Overlay, "Overlay", "LogLines", 3, 0, 20,
                 "Linhas de log no painel", "Log lines in panel",
                 "Quantas mensagens recentes aparecem no painel.", "How many recent messages the panel shows.");
 
