@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-28
+
+### Alterado
+- **Tela de configurações com o visual nativo do jogo**: agora é montada com peças clonadas da janela de
+  Configurações do próprio GK2 (moldura, cabeçalho, linhas "◀ valor ▶", sliders, botões, fontes, cores e sons).
+  É uma janela do jogo de verdade: pausa o jogo, trava o personagem e fecha com Esc. Categorias (Bot, Corpos,
+  Teclas, Painel, Avançado) num seletor igual aos do jogo; a descrição da opção aparece ao passar o mouse.
+  Técnica de captura do visual inspirada no GK2 Mod Framework (SuperMan4eg, licença MIT).
+- A tela simples antiga (IMGUI) continua como reserva automática se o jogo mudar e a nativa não puder ser montada,
+  agora com a paleta do jogo.
+- **Painel de status** redesenhado com a paleta do jogo (marrom escuro com moldura, rótulos bege, valores dourados),
+  fonte do jogo quando disponível, mais compacto (detalhes técnicos opcionais em "Painel detalhado").
+- Novas opções: posição do painel (4 cantos) e painel detalhado. Linhas de log no painel: padrão 3.
+
 ## [0.2.1] - 2026-09-28
 
 ### Adicionado
