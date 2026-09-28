@@ -49,7 +49,7 @@ namespace AutoKeeper.Core
 
         private static string cachedGameVersion;
 
-        /// <summary>Versão do jogo (GameInfo.Version, ex.: "1.006").</summary>
+        /// <summary>Versão do jogo (GameInfo.Version, ex.: "1.007").</summary>
         public static string GetGameVersion()
         {
             if (cachedGameVersion == null)

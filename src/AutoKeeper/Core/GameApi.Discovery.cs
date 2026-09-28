@@ -102,6 +102,7 @@ namespace AutoKeeper.Core
             };
             root["bodyRelatedCraftDefs"] = BodyRelatedCraftDefs();
             root["bodyItemDefs"] = BodyItemDefs();
+            root["defsOfInterest"] = DefsOfInterest();
 
             string dir = Path.Combine(Paths.ConfigPath, "AutoKeeper", "dumps");
             Directory.CreateDirectory(dir);
@@ -219,6 +220,55 @@ namespace AutoKeeper.Core
                 }
             }
             return arr;
+        }
+
+        private static readonly string[] DefKeywords =
+            { "grave", "pallet", "cremat", "morgue", "tp_", "embalm", "autopsy", "river_body" };
+
+        /// <summary>Definições de WGO relevantes (mesmo as que não existem na cena), com interações e receitas.</summary>
+        private static JArray DefsOfInterest()
+        {
+            var arr = new JArray();
+            foreach (WGODef d in GameBalance.Me.GetDataCollection<WGODef>())
+            {
+                if (d?.id == null || !DefKeywords.Any(k => d.id.IndexOf(k, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    continue;
+                }
+                var crafts = new JArray();
+                if (GameBalance.Me.craftsInCache.TryGetValue(d.id, out List<CraftDefBase> list))
+                {
+                    foreach (CraftDefBase c in list)
+                    {
+                        crafts.Add(CraftToJson(c));
+                    }
+                }
+                arr.Add(new JObject
+                {
+                    ["id"] = d.id,
+                    ["interactionType"] = d.interactionType.ToString(),
+                    ["wgoGroup"] = d.wgoGroup,
+                    ["toolAction"] = d.toolAction?.actionableTool.ToString(),
+                    ["customInteraction"] = CustomInteractionToJson(d.customInteraction),
+                    ["customInteraction2"] = CustomInteractionToJson(d.customInteraction2),
+                    ["crafts"] = crafts,
+                });
+            }
+            return arr;
+        }
+
+        private static JToken CustomInteractionToJson(CustomInteraction ci)
+        {
+            if (ci == null)
+            {
+                return null;
+            }
+            return new JObject
+            {
+                ["hint"] = ci.hint,
+                ["condition"] = ci.condition?.ToString(),
+                ["execution"] = new JArray((ci.execution ?? new List<LazyExpression>()).Select(e => (object)e?.ToString())),
+            };
         }
 
         private static JArray BodyItemDefs()
