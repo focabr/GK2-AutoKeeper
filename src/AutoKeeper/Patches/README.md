@@ -10,6 +10,6 @@ Convenções deste projeto:
   (`com.focabr.gk2.autokeeper`) e removidos com `UnpatchSelf()`.
 - Patch nunca altera save nem cria itens; só observa ou injeta "input virtual" equivalente ao do jogador.
 
-Planejado (Etapa 5.3): `VirtualInputPatch` — Postfix em `LazyBearTechnology.LazyInput.Update()` que
+Implementado (0.2.0): `VirtualInputPatch` — Postfix em `LazyBearTechnology.LazyInput.Update()` que
 acrescenta teclas virtuais do bot (Interaction/Action) às listas `pressedKeys`/`holdedKeys`,
 somente enquanto o input do jogo está ativo. Veja `docs/game-api-notes.md`.
