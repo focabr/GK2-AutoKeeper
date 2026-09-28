@@ -43,6 +43,8 @@ namespace AutoKeeper.Core
                 ["player"] = new JObject
                 {
                     ["sceneId"] = sceneId,
+                    ["zoneId"] = GetZoneId(),
+                    ["zoneName"] = GetZoneName(),
                     ["position"] = Vec(playerPos),
                     ["energy"] = GetEnergy(),
                     ["energyMax"] = GetEnergyMax(),

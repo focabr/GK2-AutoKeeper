@@ -10,6 +10,8 @@ namespace AutoKeeper.Core
         public string BlockReason;
         public string GameVersion;
         public string SceneId;
+        public string ZoneId;
+        public string ZoneName;
         public Vector3 Position;
         public float Energy;
         public float EnergyMax;
@@ -50,6 +52,8 @@ namespace AutoKeeper.Core
                 return s;
             }
             s.SceneId = GameApi.GetSceneId();
+            s.ZoneId = GameApi.GetZoneId();
+            s.ZoneName = GameApi.GetZoneName();
             s.Position = GameApi.GetPlayerPosition();
             s.Energy = GameApi.GetEnergy();
             s.EnergyMax = GameApi.GetEnergyMax();
