@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using LazyBearTechnology;
+using UnityEngine;
 
 namespace AutoKeeper.Core
 {
@@ -17,6 +19,14 @@ namespace AutoKeeper.Core
         private static int pendingActionFrames;
         private static bool holdAction;
         private static bool actionDownSent;
+
+        // Janela/painel do mod: bloqueiam o input do jogo para um clique não virar ataque/interação.
+        private static bool modWindowOpen;
+        private static bool mouseOverModUi;
+        private static AccessTools.FieldRef<LazyInput, List<GameKey>> pressedKeysRef;
+        private static AccessTools.FieldRef<LazyInput, List<GameKey>> holdedKeysRef;
+        private static AccessTools.FieldRef<LazyInput, Vector2> directionRef;
+        private static AccessTools.FieldRef<LazyInput, Vector2> direction2Ref;
 
         private static MethodInfo addPressedMethod;
         private static MethodInfo addHoldedMethod;
@@ -57,10 +67,20 @@ namespace AutoKeeper.Core
             actionDownSent = false;
         }
 
+        /// <summary>A janela de configurações do mod está aberta (bot pausa e o jogo não recebe teclas).</summary>
+        public static bool ModWindowOpen => modWindowOpen;
+
+        /// <summary>Informado pela UI do mod a cada frame.</summary>
+        public static void SetModUiState(bool windowOpen, bool mouseOverUi)
+        {
+            modWindowOpen = windowOpen;
+            mouseOverModUi = mouseOverUi;
+        }
+
         /// <summary>Chamado pelo Postfix de LazyInput.Update. Não faz nada se o jogo desativou o input.</summary>
         internal static void InjectVirtualKeys(object lazyInputInstance)
         {
-            if (pendingInteractFrames <= 0 && pendingActionFrames <= 0 && !holdAction)
+            if (pendingInteractFrames <= 0 && pendingActionFrames <= 0 && !holdAction && !modWindowOpen && !mouseOverModUi)
             {
                 return;
             }
@@ -69,6 +89,25 @@ namespace AutoKeeper.Core
                 if (!LazyInput.IsInputActive() || !EnsureInputReflection())
                 {
                     return;
+                }
+                var input = (LazyInput)lazyInputInstance;
+                if (modWindowOpen)
+                {
+                    // Janela aberta: o jogo não recebe nenhuma tecla/movimento (como uma janela modal do próprio jogo).
+                    pressedKeysRef(input).Clear();
+                    holdedKeysRef(input).Clear();
+                    directionRef(input) = Vector2.zero;
+                    direction2Ref(input) = Vector2.zero;
+                    return;
+                }
+                if (mouseOverModUi)
+                {
+                    // Clique no painel do mod não pode virar ataque/mira no jogo.
+                    foreach (GameKey k in new[] { GameKey.LeftClick, GameKey.RightClick, GameKey.DoubleClick, GameKey.Attack, GameKey.AttackFocus })
+                    {
+                        pressedKeysRef(input).Remove(k);
+                        holdedKeysRef(input).Remove(k);
+                    }
                 }
                 if (pendingInteractFrames > 0)
                 {
@@ -112,6 +151,19 @@ namespace AutoKeeper.Core
             // Métodos privados do LazyInput que já aplicam as regras do jogo (ignora GameKey.None, duplicadas, "esperar soltar").
             addPressedMethod = AccessTools.Method(typeof(LazyInput), "AddPressed", new[] { typeof(GameKey) });
             addHoldedMethod = AccessTools.Method(typeof(LazyInput), "AddHolded", new[] { typeof(GameKey) });
+            try
+            {
+                pressedKeysRef = AccessTools.FieldRefAccess<LazyInput, List<GameKey>>("pressedKeys");
+                holdedKeysRef = AccessTools.FieldRefAccess<LazyInput, List<GameKey>>("holdedKeys");
+                directionRef = AccessTools.FieldRefAccess<LazyInput, Vector2>("direction");
+                direction2Ref = AccessTools.FieldRefAccess<LazyInput, Vector2>("direction2");
+            }
+            catch (Exception e)
+            {
+                ModLog.Error($"Campos internos do LazyInput não encontrados ({e.Message}) — input virtual desativado.");
+                inputReflectionFailed = true;
+                return false;
+            }
             if (addPressedMethod == null || addHoldedMethod == null)
             {
                 inputReflectionFailed = true;

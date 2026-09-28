@@ -20,24 +20,45 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.2.0";
+        public const string Version = "0.2.1";
 
         /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007";
 
-        internal static Plugin Instance { get; private set; }
+        /// <summary>Instância ativa (usada pela ponte opcional do GK2 Mod Framework).</summary>
+        public static Plugin Instance { get; private set; }
 
-        internal Settings Settings { get; private set; }
+        /// <summary>Opções do mod (mesma fonte para a janela própria e para o menu Mods do Framework).</summary>
+        public Settings Settings { get; private set; }
+
         internal BotController Bot { get; private set; }
 
         private Harmony harmony;
         private Overlay overlay;
+        private SettingsWindow settingsWindow;
         private bool compatibilityChecked;
+        private bool configDirty;
+        private float configDirtySince;
+
+        /// <summary>Estado do bot em texto (para a ponte do Framework).</summary>
+        public string BotStatusText => Bot == null ? "-" : $"{Bot.State} — {Bot.StateDetail}";
+
+        public bool IsBotOn => Bot != null && Bot.State != BotController.BotState.Off;
+
+        /// <summary>Liga/desliga o bot (mesmo efeito da hotkey).</summary>
+        public void ToggleBot() => Bot?.Toggle();
+
+        /// <summary>Abre/fecha a janela de configurações própria.</summary>
+        public void ToggleSettingsWindow() => settingsWindow?.Toggle();
 
         private void Awake()
         {
             Instance = this;
+            // Salvar o .cfg a cada movimento de slider seria desperdício: salvamos com atraso (ver SaveConfigIfDirty).
+            Config.SaveOnConfigSet = false;
             Settings = new Settings(Config);
+            Config.SettingChanged += (_, __) => { configDirty = true; configDirtySince = Time.unscaledTime; };
+            Config.Save(); // grava opções novas/descrições atualizadas
             ModLog.Init(Logger, Settings);
 
             // Um único Harmony com ID = GUID, para que UnpatchSelf remova só os nossos patches.
@@ -55,8 +76,10 @@ namespace AutoKeeper
             Bot = new BotController(Settings);
             Bot.Register(new ProcessBodiesTask(Settings)); // ordem = prioridade
             overlay = new Overlay(Settings, Bot);
+            settingsWindow = new SettingsWindow(Settings, Bot);
+            overlay.OnSettingsClicked = settingsWindow.Toggle;
 
-            ModLog.Info($"{Name} {Version} carregado. F8 = bot liga/desliga, F9 = overlay, F10 = dump de descoberta (teclas configuráveis).");
+            ModLog.Info($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.");
         }
 
         private void Update()
@@ -64,17 +87,50 @@ namespace AutoKeeper
             CheckCompatibilityOnce();
             HandleHotkeys();
             Bot.Update(Time.unscaledDeltaTime);
+            SaveConfigIfDirty(force: !settingsWindow.IsOpen);
         }
 
         private void OnGUI()
         {
             overlay.Draw();
+            settingsWindow.Draw();
+
+            // Informa a GameApi se o mouse está sobre a UI do mod (clique não vira ataque) e se a janela está aberta.
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                Vector2 m = Event.current.mousePosition;
+                bool over = overlay.Rect.Contains(m) || (settingsWindow.IsOpen && settingsWindow.Rect.Contains(m));
+                GameApi.SetModUiState(settingsWindow.IsOpen, over);
+            }
         }
 
         private void OnDestroy()
         {
             Bot?.Stop("plugin descarregado");
+            GameApi.SetModUiState(false, false);
+            SaveConfigIfDirty(force: true);
             harmony?.UnpatchSelf();
+        }
+
+        /// <summary>Grava o .cfg 1 s depois da última alteração (ou na hora ao fechar a janela/sair).</summary>
+        private void SaveConfigIfDirty(bool force)
+        {
+            if (!configDirty)
+            {
+                return;
+            }
+            if (force || Time.unscaledTime - configDirtySince > 1f)
+            {
+                configDirty = false;
+                try
+                {
+                    Config.Save();
+                }
+                catch (Exception e)
+                {
+                    ModLog.Warn($"Não consegui salvar o .cfg: {e.Message}");
+                }
+            }
         }
 
         /// <summary>Compara a versão do jogo com a testada, uma única vez, quando o jogo já inicializou.</summary>
@@ -116,6 +172,14 @@ namespace AutoKeeper
 
         private void HandleHotkeysUnsafe()
         {
+            if (settingsWindow.IsCapturingKey)
+            {
+                return; // o jogador está escolhendo uma tecla nova na tela de configurações
+            }
+            if (Settings.OpenSettingsKey.Value.IsDown())
+            {
+                settingsWindow.Toggle();
+            }
             if (Settings.ToggleBotKey.Value.IsDown())
             {
                 Bot.Toggle();

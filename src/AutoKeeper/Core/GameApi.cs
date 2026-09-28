@@ -71,6 +71,10 @@ namespace AutoKeeper.Core
             {
                 return "fora do jogo (menu/carregando)";
             }
+            if (ModWindowOpen)
+            {
+                return "configurações do AutoKeeper abertas";
+            }
             if (MainGame.IsGamePaused)
             {
                 return "jogo pausado";
@@ -95,9 +99,34 @@ namespace AutoKeeper.Core
             return null;
         }
 
+        /// <summary>O jogo está em português (pt-br)? Usado para escolher os textos da UI do mod.</summary>
+        public static bool IsGameLanguagePortuguese() => Safe(() =>
+        {
+            string lang = (LLBase.CurrentLang ?? "en").ToLowerInvariant();
+            return lang.StartsWith("pt") || lang == "br";
+        }, false, nameof(IsGameLanguagePortuguese));
+
         // ------------------------------------------------------------------ jogador
 
         public static string GetSceneId() => Safe(() => MainGame.PlayerData.currentGameSceneId, null, nameof(GetSceneId));
+
+        /// <summary>
+        /// Id da zona do mundo onde o jogador está (ex.: "morgue"). A "cena" do Unity quase nunca muda no GK2
+        /// (o mapa todo é RuinedTemple); o que muda ao andar/teleportar é a zona — a mesma que o jogo mostra no canto.
+        /// </summary>
+        public static string GetZoneId() => Safe(() => MainGame.PlayerData.CurrentWorldZoneData?.id, null, nameof(GetZoneId));
+
+        /// <summary>Nome da zona no idioma do jogo, igual ao rótulo do canto superior direito (ex.: "Pátio").</summary>
+        public static string GetZoneName() => Safe(() =>
+        {
+            PlayerData pd = MainGame.PlayerData;
+            if (pd.insideTownZones.Count > 0)
+            {
+                return LLBase.L("town_zone");
+            }
+            string id = pd.CurrentWorldZoneData?.id;
+            return string.IsNullOrEmpty(id) ? null : LLBase.L("wz_" + id);
+        }, null, nameof(GetZoneName));
 
         public static Vector3 GetPlayerPosition() => Safe(() => MainGame.PlayerData.position.Value, Vector3.zero, nameof(GetPlayerPosition));
 

@@ -29,15 +29,22 @@ namespace AutoKeeper.UI
             this.bot = bot;
         }
 
+        /// <summary>Área ocupada pelo painel (GUI), para o clique nele não virar ataque no jogo.</summary>
+        public Rect Rect { get; private set; }
+
+        /// <summary>Chamado quando o jogador clica no botão de configurações do painel.</summary>
+        public System.Action OnSettingsClicked;
+
         public void Draw()
         {
-            if (!settings.ShowOverlay.Value || Event.current == null || Event.current.type != EventType.Repaint)
+            if (!settings.ShowOverlay.Value || Event.current == null)
             {
+                Rect = Rect.zero;
                 return;
             }
 
             EnsureStyle();
-            if (Time.unscaledTime >= nextRefresh)
+            if (Event.current.type == EventType.Repaint && Time.unscaledTime >= nextRefresh)
             {
                 nextRefresh = Time.unscaledTime + RefreshSeconds;
                 cachedText = BuildText();
@@ -46,13 +53,25 @@ namespace AutoKeeper.UI
             var content = new GUIContent(cachedText);
             float width = Mathf.Min(Screen.width * 0.45f, style.fontSize * 38f);
             float height = style.CalcHeight(content, width);
-            var rect = new Rect(10f, 10f, width, height);
+            float buttonHeight = style.fontSize * 1.9f;
+            var textRect = new Rect(10f, 10f, width, height);
+            var buttonRect = new Rect(18f, 10f + height, Mathf.Min(width - 16f, style.fontSize * 16f), buttonHeight);
+            Rect = new Rect(10f, 10f, width, height + buttonHeight + 8f);
 
-            Color old = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.6f);
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = old;
-            GUI.Label(rect, content, style);
+            if (Event.current.type == EventType.Repaint)
+            {
+                Color old = GUI.color;
+                GUI.color = new Color(0f, 0f, 0f, 0.6f);
+                GUI.DrawTexture(Rect, Texture2D.whiteTexture);
+                GUI.color = old;
+                GUI.Label(textRect, content, style);
+            }
+
+            string label = (GameApi.IsGameLanguagePortuguese() ? "Configurações (" : "Settings (") + settings.OpenSettingsKey.Value + ")";
+            if (GUI.Button(buttonRect, label, buttonStyle))
+            {
+                OnSettingsClicked?.Invoke();
+            }
         }
 
         private string BuildText()
@@ -73,7 +92,8 @@ namespace AutoKeeper.UI
             }
             else
             {
-                sb.Append("  |  cena: ").Append(s.SceneId).Append('\n');
+                sb.Append("  |  local: ").Append(string.IsNullOrEmpty(s.ZoneName) ? "?" : s.ZoneName)
+                  .Append(" <color=#aaa>(").Append(s.ZoneId ?? "-").Append(" · cena ").Append(s.SceneId).Append(")</color>\n");
                 sb.Append("Controle: ").Append(s.BlockReason == null ? "<color=#9f9>livre</color>" : "<color=#fc6>" + s.BlockReason + "</color>").Append('\n');
                 sb.AppendFormat("Pos: {0:0.0}, {1:0.0}, {2:0.0}\n", s.Position.x, s.Position.y, s.Position.z);
                 sb.AppendFormat("Energia: {0:0}/{1:0}   Sanidade(insanity): {2:0}   Dinheiro: {3:0}\n", s.Energy, s.EnergyMax, s.Insanity, s.Money);
@@ -85,6 +105,7 @@ namespace AutoKeeper.UI
             sb.Append("<size=").Append(Mathf.Max(10, style.fontSize - 2)).Append("><color=#aaa>")
               .Append(settings.ToggleBotKey.Value).Append(" bot  ·  ")
               .Append(settings.ToggleOverlayKey.Value).Append(" overlay  ·  ")
+              .Append(settings.OpenSettingsKey.Value).Append(" config  ·  ")
               .Append(settings.DumpKey.Value).Append(" dump</color></size>");
 
             int n = settings.OverlayLogLines.Value;
@@ -115,6 +136,8 @@ namespace AutoKeeper.UI
         /// <summary>Evita que "&lt;" em mensagens de log quebre o rich text.</summary>
         private static string Escape(string s) => s.Replace("<", "‹").Replace(">", "›");
 
+        private GUIStyle buttonStyle;
+
         private void EnsureStyle()
         {
             int fontSize = Mathf.Clamp(Screen.height / 60, 12, 24);
@@ -131,6 +154,7 @@ namespace AutoKeeper.UI
                 padding = new RectOffset(8, 8, 6, 6),
             };
             style.normal.textColor = Color.white;
+            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = Mathf.Max(11, fontSize - 2) };
         }
     }
 }
