@@ -1,0 +1,19 @@
+# Build
+bin/
+obj/
+dist/
+*.user
+.vs/
+.idea/
+.vscode/
+
+# Configuração local (caminho do jogo)
+GamePath.props
+
+# DLLs do jogo / BepInEx NUNCA vão para o repositório
+lib/*.dll
+*.dll
+
+# Dumps de descoberta e logs copiados do jogo
+dumps/
+*.log

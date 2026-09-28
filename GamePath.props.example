@@ -1,0 +1,6 @@
+<Project>
+  <!-- Copie este arquivo para GamePath.props e ajuste o caminho. GamePath.props NÃO vai para o git. -->
+  <PropertyGroup>
+    <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Graveyard Keeper 2</GamePath>
+  </PropertyGroup>
+</Project>

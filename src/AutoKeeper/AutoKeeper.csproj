@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- GK2 roda Mono (Unity 6000.3) com perfil .NET Standard 2.1 — mesmo alvo do GK2 Mod Framework. -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>AutoKeeper</AssemblyName>
+    <RootNamespace>AutoKeeper</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>embedded</DebugType>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=AutoKeeper/</PathMap>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <!-- Assembly-CSharp referencia System.IO.Compression 4.2; o conflito com o facade do netstandard é inofensivo. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+
+    <!--
+      UseNuGetRefs=true: BepInEx/Harmony/UnityEngine vêm dos pacotes NuGet (BepInEx.Core, UnityEngine.Modules),
+      útil em CI. Padrão (false): usa as DLLs da SUA instalação do jogo, que batem exatamente com a versão em uso.
+      As DLLs do jogo (Assembly-CSharp etc.) sempre vêm da instalação local e nunca são copiadas/redistribuídas.
+    -->
+    <UseNuGetRefs Condition="'$(UseNuGetRefs)' == ''">false</UseNuGetRefs>
+    <RestoreAdditionalProjectSources Condition="'$(UseNuGetRefs)' == 'true'">https://nuget.bepinex.dev/v3/index.json</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <!-- Opção A: pacotes NuGet (somente compilação, nada é copiado para a saída). -->
+  <ItemGroup Condition="'$(UseNuGetRefs)' == 'true'">
+    <PackageReference Include="BepInEx.Core" Version="5.4.*" PrivateAssets="all" />
+    <PackageReference Include="UnityEngine.Modules" Version="6000.3.9" IncludeAssets="compile" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Opção B (padrão): DLLs da instalação local. Private=false => nunca copiadas para bin/. -->
+  <ItemGroup Condition="'$(UseNuGetRefs)' != 'true'">
+    <Reference Include="BepInEx"><HintPath>$(BepInExDir)/core/BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(BepInExDir)/core/0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManagedDir)/UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameManagedDir)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GameManagedDir)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GameManagedDir)/UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GameManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <!-- Assemblies do jogo: só referência de compilação (Private=false). -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp"><HintPath>$(GameManagedDir)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="LazyBearTechnology"><HintPath>$(GameManagedDir)/LazyBearTechnology.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(GameManagedDir)/Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UniTask"><HintPath>$(GameManagedDir)/UniTask.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <!-- Mensagem clara quando o caminho do jogo não foi configurado. -->
+  <Target Name="ValidateGamePath" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(GamePath)' == ''" Text="GamePath não definido. Crie GamePath.props (veja GamePath.props.example), defina a variável GK2_GAME_PATH ou use -p:GamePath=..." />
+    <Error Condition="!Exists('$(GameManagedDir)/Assembly-CSharp.dll')" Text="Assembly-CSharp.dll não encontrado em '$(GameManagedDir)'. Confira o GamePath." />
+    <Error Condition="'$(UseNuGetRefs)' != 'true' and !Exists('$(BepInExDir)/core/BepInEx.dll')" Text="BepInEx não encontrado em '$(BepInExDir)/core'. Instale o BepInEx 5.4.23.x no jogo ou use -p:UseNuGetRefs=true." />
+  </Target>
+
+</Project>
