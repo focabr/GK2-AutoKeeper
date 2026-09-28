@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ponte OPCIONAL para o GK2 Mod Framework (SuperMan4eg, Nexus Mods).
+    Mostra as opções do AutoKeeper no botão "Mods" nativo do jogo (menu principal e pausa).
+    O AutoKeeper.dll não referencia o Framework: sem ele instalado, o BepInEx apenas pula esta DLL.
+    Compilar requer o GK2.Framework.dll: por padrão <jogo>/BepInEx/plugins/GK2.Framework.dll,
+    ou -p:FrameworkDll=caminho\GK2.Framework.dll.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>AutoKeeper.FrameworkBridge</AssemblyName>
+    <RootNamespace>AutoKeeper.FrameworkBridge</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>embedded</DebugType>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=AutoKeeper.FrameworkBridge/</PathMap>
+    <IsPackable>false</IsPackable>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+    <FrameworkDll Condition="'$(FrameworkDll)' == ''">$(BepInExDir)/plugins/GK2.Framework.dll</FrameworkDll>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoKeeper\AutoKeeper.csproj" Private="false" />
+    <Reference Include="BepInEx"><HintPath>$(BepInExDir)/core/BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManagedDir)/UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameManagedDir)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="GK2.Framework"><HintPath>$(FrameworkDll)</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateFrameworkDll" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(FrameworkDll)')" Text="GK2.Framework.dll não encontrado em '$(FrameworkDll)'. Instale o GK2 Mod Framework no jogo ou use -p:FrameworkDll=... (a ponte é opcional)." />
+  </Target>
+
+</Project>

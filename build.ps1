@@ -12,6 +12,10 @@
     .\build.ps1 -Package             # idem + gera dist\AutoKeeper-x.y.z.zip
 .EXAMPLE
     .\build.ps1 -NoDeploy -GamePath "D:\SteamLibrary\steamapps\common\Graveyard Keeper 2"
+
+.NOTES
+    A ponte opcional do menu "Mods" (AutoKeeper.FrameworkBridge.dll) só é compilada se o GK2.Framework.dll
+    for encontrado (padrão: <jogo>\BepInEx\plugins\GK2.Framework.dll, ou -FrameworkDll caminho).
 #>
 [CmdletBinding()]
 param(
@@ -20,12 +24,14 @@ param(
     [string]$Configuration = 'Release',
     [switch]$NoDeploy,
     [switch]$Package,
-    [switch]$UseNuGetRefs
+    [switch]$UseNuGetRefs,
+    [string]$FrameworkDll
 )
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $project = Join-Path $root 'src\AutoKeeper\AutoKeeper.csproj'
+$bridgeProject = Join-Path $root 'src\AutoKeeper.FrameworkBridge\AutoKeeper.FrameworkBridge.csproj'
 $pluginFolderName = 'AutoKeeper'
 
 # ---------------------------------------------------------------- caminho do jogo
@@ -64,6 +70,19 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet build falhou (código $LASTEXITCODE)." 
 $dll = Join-Path $root "src\AutoKeeper\bin\$Configuration\AutoKeeper.dll"
 if (-not (Test-Path $dll)) { throw "DLL não encontrada: $dll" }
 
+# ---------------------------------------------------------------- ponte opcional (menu Mods do GK2 Mod Framework)
+if (-not $FrameworkDll) { $FrameworkDll = Join-Path $GamePath 'BepInEx\plugins\GK2.Framework.dll' }
+$bridgeDll = $null
+if (Test-Path $FrameworkDll) {
+    $bridgeArgs = @('build', $bridgeProject, '-c', $Configuration, "-p:GamePath=$GamePath", "-p:FrameworkDll=$FrameworkDll", '-nologo')
+    & dotnet @bridgeArgs
+    if ($LASTEXITCODE -ne 0) { throw "dotnet build da ponte falhou (código $LASTEXITCODE)." }
+    $bridgeDll = Join-Path $root "src\AutoKeeper.FrameworkBridge\bin\$Configuration\AutoKeeper.FrameworkBridge.dll"
+}
+else {
+    Write-Warning "GK2.Framework.dll não encontrado ($FrameworkDll): ponte do menu Mods não compilada (é opcional)."
+}
+
 # ---------------------------------------------------------------- deploy
 if (-not $NoDeploy) {
     if (Get-Process -Name 'GraveyardKeeper2' -ErrorAction SilentlyContinue) {
@@ -73,6 +92,7 @@ if (-not $NoDeploy) {
         $dest = Join-Path $GamePath "BepInEx\plugins\$pluginFolderName"
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         Copy-Item $dll -Destination $dest -Force
+        if ($bridgeDll) { Copy-Item $bridgeDll -Destination $dest -Force }
         Write-Host "   Instalado em: $dest" -ForegroundColor Green
     }
 }
@@ -100,6 +120,7 @@ if ($Package) {
         'LICENSE'                               = Join-Path $root 'LICENSE'
         "plugins/$pluginFolderName/AutoKeeper.dll" = $dll
     }
+    if ($bridgeDll) { $entries["plugins/$pluginFolderName/AutoKeeper.FrameworkBridge.dll"] = $bridgeDll }
 
     $zip = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
