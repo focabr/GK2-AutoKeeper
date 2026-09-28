@@ -1,0 +1,9 @@
+{
+  "name": "AutoKeeper",
+  "version_number": "0.1.0",
+  "website_url": "",
+  "description": "Automation bot for Graveyard Keeper 2. Runs routine chores using only actions the player could do. F8 toggles the bot, F9 the status overlay. Pauses in menus, dialogues and cutscenes.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2305"
+  ]
+}
