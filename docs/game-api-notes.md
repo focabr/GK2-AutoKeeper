@@ -1,6 +1,6 @@
 # Notas de engenharia reversa — Graveyard Keeper 2
 
-> Jogo **1.006** · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
+> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
 > Fonte: descompilação local de `Assembly-CSharp.dll` e `LazyBearTechnology.dll` (ILSpy). Nada foi alterado em disco.
 > Tudo que está aqui só é usado através de `Core/GameApi*.cs`.
 
@@ -159,8 +159,28 @@ bool StartCraft(string uid, string craftId, int count = 1);           // = janel
 Regras que valem para todos os métodos: checam `GetBlockReason()==null` antes de agir, validam distância
 (ação só perto do alvo, como o jogador), nunca criam itens nem mexem no save, e logam uma vez se o jogo mudou.
 
+## 7b. O que o dump F10 mostrou (save do usuário, jogo 1.007)
+- Cena `RuinedTemple` contém a área externa **e** o interior do necrotério; eles são ligados por portas
+  (`tp_RT_morgue_exit` dentro / `tp_RT_morgue_enter` fora, CustomInteraction = teleporte).
+- **Corpos chegam em paletes** `pallet_corpse_1/2` (grupo `morgue_pallets`, CustomInteraction, até 2 corpos),
+  não no chão. Pegar = E no palete com as mãos livres.
+- Corpo = item `body_corpse`, grupos `body, corpse, overhead`, tamanho Big. Filhos: `body_certificate:N`
+  (grupo `burial_reward`), órgãos `skin_*, bones_*, skull_*, heart_*, brain_*, guts_*` e `flesh/blood/fat`.
+  Zumbis: `body_zombie` / `body_wild_zombie` (sem `corpse`).
+- Mesas `autopsy_table_1/2`: receitas `extract_<órgão>` **sem itens exigidos**, ferramenta padrão da mesa (kit cirúrgico).
+- `crematorium_1` (a ~12 m das mesas): E com corpo na cabeça insere e inicia `burn_crematorium_1` (auto, sem trabalho);
+  quando termina fica `ReadyToFinishAutoCraft` e a tecla **Ação** recolhe o resultado.
+- `embalm_table_1`: receitas `embalm_*` automáticas.
+- Cemitério fica fora do necrotério; as 12 covas do save são `grave_ground` (ocupadas, com tampa/cerca). Nenhuma
+  `grave_empty` no momento → enterro fica para a 0.3 (atravessar a porta + receita da cova vazia; o dump agora
+  inclui `defsOfInterest` com as definições de `grave_*`, paletes e portas).
+
 ## 11. Plano do MVP "processar corpos" (v1)
 Loop por corpo, com fim seguro (energia < `MinEnergy`, sem corpo, sem mesa livre, sem ferramenta → para):
+**Implementado na 0.2.0 (destino padrão = crematório, escolhido pelo usuário):**
+palete → mesa livre → extrair órgãos → tirar corpo → crematório (E) → recolher cinzas (Ação) quando pronto.
+O plano original abaixo continua valendo para a cova (0.3).
+
 1. Se não está carregando corpo: achar corpo no chão mais próximo → andar → **E** (pega).
 2. Achar mesa de autópsia vazia → andar → **E** (insere o corpo).
 3. Para cada órgão marcado na config (ex.: `ExtractOrgans = all | none | lista`) → iniciar extração →

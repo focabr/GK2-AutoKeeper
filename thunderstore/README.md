@@ -3,10 +3,12 @@
 Automation bot for **Graveyard Keeper 2** (BepInEx 5). It performs routine chores using only actions
 the player could do — no item spawning, no save editing.
 
-> **Status: early development (0.1.x).** This version only shows a status overlay and a read-only
-> discovery dump. The first routine (body processing) is in progress.
+> **Status: early development (0.2.x).** First routine: body processing in the morgue
+> (pallet → autopsy table → extract organs → crematorium). Burial in graves is planned for 0.3.
 
 ## Features
+- **Body processing** (morgue): takes bodies from the pallets, puts them on a free autopsy table, extracts organs
+  (configurable), then takes the body to the crematorium and collects the result when it is done
 - **F8** – turn the bot on/off (kill switch)
 - **F9** – show/hide the status overlay
 - **F10** – write a read-only discovery dump (JSON) of the current scene to `BepInEx/config/AutoKeeper/dumps`
@@ -14,7 +16,7 @@ the player could do — no item spawning, no save editing.
 - Stops when energy is below a configurable threshold
 
 ## Requirements
-- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.006**
+- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007**
 - [BepInExPack 5.4.2305](https://thunderstore.io/c/graveyard-keeper-2/p/BepInEx/BepInExPack/) (BepInEx 5.4.23.x)
 
 ## Installation

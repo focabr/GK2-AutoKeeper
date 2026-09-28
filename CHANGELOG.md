@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
+### Adicionado
+- **Primeira rotina do bot — "Processar corpos"**: palete (ou chão) → mesa de autópsia livre → extrai órgãos
+  (config `ExtractOrgans`, padrão `all`) → tira o corpo → **crematório** (padrão) → recolhe o resultado quando pronto.
+  Destinos: `Crematorium`, `LeaveOnTable`, `Grave` (experimental).
+- Input virtual (`Patches/VirtualInputPatch`, Postfix em `LazyInput.Update`): o bot aperta E / segura Ação pelo próprio jogo.
+- Movimento com o pathfinding do jogo (grafo Recast), mira no alvo e passo curto de ajuste.
+- Ações equivalentes à UI (extrair órgão, tirar corpo, iniciar enterro) usando as classes de dados das janelas, sem abri-las.
+- Novas opções: `[Bot] MoveTimeoutSeconds`, `WorkStallSeconds`; seção `[Bodies]`.
+- Dump F10 inclui `defsOfInterest` (definições de covas, paletes, portas, crematório).
+
+### Alterado
+- Versão testada do jogo: **1.007** (diff 1.006→1.007 revisado).
+- Proteção nas hotkeys (erro não se repete a cada frame).
+
 ## [0.1.0] - 2026-09-28
 
 ### Adicionado

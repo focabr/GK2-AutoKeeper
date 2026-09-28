@@ -4,7 +4,7 @@ Mod de automação (bot) para **Graveyard Keeper 2** — BepInEx 5 + HarmonyX, U
 O bot só executa ações que o jogador poderia fazer; nunca altera o save nem cria itens.
 
 - GUID: `com.focabr.gk2.autokeeper` · Versão: ver `Directory.Build.props` (SemVer)
-- Jogo testado: **1.006** (Unity 6000.3.9f1) · BepInEx **5.4.23.5**
+- Jogo testado: **1.007** (Unity 6000.3.9f1) · BepInEx **5.4.23.5**
 
 ## Estado atual
 | Etapa | Situação |
@@ -12,7 +12,8 @@ O bot só executa ações que o jogador poderia fazer; nunca altera o save nem c
 | Plugin carrega, loga versão, overlay (F9) | ✅ 0.1.0 |
 | StateReader no overlay (posição, energia, dia/hora, item carregado) | ✅ 0.1.0 |
 | Dump de descoberta somente leitura (F10) | ✅ 0.1.0 |
-| Primeira rotina: **processar corpos** | 🔜 aguardando aprovação da GameApi (`docs/game-api-notes.md`) |
+| Primeira rotina: **processar corpos** (palete → autópsia → crematório) | 🧪 0.2.0 em teste |
+| Enterro em cova (atravessar porta do necrotério) | 🔜 0.3 |
 
 ## Estrutura
 ```
@@ -51,6 +52,17 @@ Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instala
 | F8 | liga/desliga o bot (kill switch) |
 | F9 | mostra/esconde overlay |
 | F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
+
+### Rotina "Processar corpos" (`[Bodies]` no .cfg)
+| Opção | Padrão | O que faz |
+|---|---|---|
+| `Enabled` | `true` | liga a rotina |
+| `ExtractOrgans` | `all` | `all`, `none` ou lista (`Heart, Brain` ou ids como `heart_0_1:1`) |
+| `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
+| `GraveCraftId` | vazio | força a receita de enterro |
+| `SearchRadius` | `80` | alcance da busca (m) |
+
+O bot para sozinho com energia abaixo de `[Bot] MinEnergy`, se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
 
 ## Boas práticas seguidas
 - Nada de editar `Assembly-CSharp.dll` em disco: só patches em runtime (Harmony ID = GUID, `UnpatchSelf`).
