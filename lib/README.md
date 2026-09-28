@@ -11,6 +11,7 @@ As referências de compilação vêm da sua instalação (via `GamePath`, veja `
 | `Assembly-CSharp.dll` | idem | Classes do jogo (`MainGame`, `PlayerController`, `WgoData`...) |
 | `LazyBearTechnology.dll` | idem | Engine interna da Lazy Bear (`LazyInput`, `LazyUI`...) |
 | `Newtonsoft.Json.dll`, `UniTask.dll` | idem | JSON do dump de descoberta / tipos usados em assinaturas do jogo |
+| `AstarPathfindingProject.dll`, `Sirenix.Serialization.dll` | idem | tipos que aparecem em assinaturas usadas (Seeker, MonoBehaviours serializados) |
 
 Todas usam `<Private>false</Private>`: servem só para compilar e **nunca** vão para `bin/` nem para o zip de release.
 

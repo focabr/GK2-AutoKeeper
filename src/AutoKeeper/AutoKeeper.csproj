@@ -49,6 +49,8 @@
     <Reference Include="LazyBearTechnology"><HintPath>$(GameManagedDir)/LazyBearTechnology.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Newtonsoft.Json"><HintPath>$(GameManagedDir)/Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UniTask"><HintPath>$(GameManagedDir)/UniTask.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AstarPathfindingProject"><HintPath>$(GameManagedDir)/AstarPathfindingProject.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sirenix.Serialization"><HintPath>$(GameManagedDir)/Sirenix.Serialization.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
   <!-- Mensagem clara quando o caminho do jogo não foi configurado. -->
