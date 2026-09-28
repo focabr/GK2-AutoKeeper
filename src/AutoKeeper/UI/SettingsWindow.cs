@@ -118,8 +118,8 @@ namespace AutoKeeper.UI
             // Estado do bot + atalho para ligar/desligar.
             GUILayout.BeginHorizontal(boxStyle);
             string state = bot.State == BotController.BotState.Off
-                ? T(pt, "<color=#f88>DESLIGADO</color>", "<color=#f88>OFF</color>")
-                : T(pt, "<color=#6f6>LIGADO</color>", "<color=#6f6>ON</color>");
+                ? T(pt, "<color=#E07A5F>DESLIGADO</color>", "<color=#E07A5F>OFF</color>")
+                : T(pt, "<color=#A6D05A>LIGADO</color>", "<color=#A6D05A>ON</color>");
             GUILayout.Label($"{T(pt, "Bot", "Bot")}: {state}   <i>{bot.StateDetail}</i>", labelStyle);
             GUILayout.FlexibleSpace();
             if (GUILayout.Button(bot.State == BotController.BotState.Off ? T(pt, "Ligar bot", "Start bot") : T(pt, "Desligar bot", "Stop bot"),
@@ -321,6 +321,16 @@ namespace AutoKeeper.UI
                     case BodyDestination.Grave: return T(pt, "Cova (exp.)", "Grave (exp.)");
                 }
             }
+            if (v is OverlayCorner c)
+            {
+                switch (c)
+                {
+                    case OverlayCorner.TopLeft: return T(pt, "Superior esquerdo", "Top left");
+                    case OverlayCorner.TopRight: return T(pt, "Superior direito", "Top right");
+                    case OverlayCorner.BottomLeft: return T(pt, "Inferior esquerdo", "Bottom left");
+                    case OverlayCorner.BottomRight: return T(pt, "Inferior direito", "Bottom right");
+                }
+            }
             return v.ToString();
         }
 
@@ -335,58 +345,74 @@ namespace AutoKeeper.UI
         private void EnsureStyles()
         {
             int key = Screen.height;
-            if (stylesFor == key && windowStyle != null)
+            Font gameFont = GameUiTheme.Font;
+            if (stylesFor == key && windowStyle != null && (gameFont == null || titleStyle.font == gameFont))
             {
                 return;
             }
             stylesFor = key;
             scale = Mathf.Clamp(Screen.height / 1080f, 0.8f, 2f);
-            int font = Mathf.RoundToInt(17 * scale);
+            int font = Mathf.RoundToInt(16 * scale);
 
-            bgTex = MakeTex(new Color(0.09f, 0.08f, 0.12f, 0.97f));
-            rowTex = MakeTex(new Color(1f, 1f, 1f, 0.05f));
-            accentTex = MakeTex(new Color(0.33f, 0.62f, 0.42f, 1f));
-            tabTex = MakeTex(new Color(1f, 1f, 1f, 0.08f));
-            buttonTex = MakeTex(new Color(1f, 1f, 1f, 0.14f));
+            // Paleta da janela de Configurações do jogo (tela de reserva, usada só se a nativa falhar).
+            bgTex = MakeTex(GameUiTheme.PanelInner);
+            rowTex = MakeTex(GameUiTheme.Row);
+            accentTex = MakeTex(GameUiTheme.ButtonActive);
+            tabTex = MakeTex(GameUiTheme.Button);
+            buttonTex = MakeTex(GameUiTheme.Button);
+            Texture2D hoverTex = MakeTex(GameUiTheme.ButtonHover);
 
             windowStyle = new GUIStyle(GUI.skin.window) { padding = new RectOffset(14, 14, 12, 12), border = new RectOffset(0, 0, 0, 0) };
             windowStyle.normal.background = bgTex;
             windowStyle.onNormal.background = bgTex;
 
-            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(21 * scale), fontStyle = FontStyle.Bold, richText = true };
-            titleStyle.normal.textColor = new Color(0.85f, 0.95f, 0.85f);
+            titleStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(20 * scale), fontStyle = FontStyle.Bold, richText = true };
+            titleStyle.normal.textColor = GameUiTheme.Title;
 
             labelStyle = new GUIStyle(GUI.skin.label) { fontSize = font, richText = true, wordWrap = false };
-            labelStyle.normal.textColor = Color.white;
+            labelStyle.normal.textColor = GameUiTheme.Label;
 
             valueStyle = new GUIStyle(labelStyle) { alignment = TextAnchor.MiddleRight };
+            valueStyle.normal.textColor = GameUiTheme.Value;
 
-            helpStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(14 * scale), wordWrap = true, richText = true };
-            helpStyle.normal.textColor = new Color(0.72f, 0.72f, 0.78f);
+            helpStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(13 * scale), wordWrap = true, richText = true };
+            helpStyle.normal.textColor = new Color(0.49f, 0.45f, 0.43f);
 
-            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = font, padding = new RectOffset(10, 10, 5, 5) };
+            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = font, padding = new RectOffset(10, 10, 5, 5), border = new RectOffset(0, 0, 0, 0) };
             buttonStyle.normal.background = buttonTex;
-            buttonStyle.hover.background = accentTex;
+            buttonStyle.hover.background = hoverTex;
             buttonStyle.active.background = accentTex;
-            buttonStyle.normal.textColor = Color.white;
-            buttonStyle.hover.textColor = Color.white;
+            buttonStyle.normal.textColor = GameUiTheme.Value;
+            buttonStyle.hover.textColor = GameUiTheme.Title;
+            buttonStyle.active.textColor = GameUiTheme.Title;
 
             tabStyle = new GUIStyle(buttonStyle);
             tabStyle.normal.background = tabTex;
             tabStyle.onNormal.background = accentTex;
             tabStyle.onHover.background = accentTex;
+            tabStyle.normal.textColor = GameUiTheme.Label;
+            tabStyle.onNormal.textColor = GameUiTheme.Title;
 
             tabActiveStyle = new GUIStyle(tabStyle);
             tabActiveStyle.normal.background = accentTex;
+            tabActiveStyle.normal.textColor = GameUiTheme.Title;
 
             toggleStyle = new GUIStyle(GUI.skin.toggle) { fontSize = font };
-            toggleStyle.normal.textColor = Color.white;
-            toggleStyle.onNormal.textColor = new Color(0.6f, 1f, 0.6f);
-            toggleStyle.hover.textColor = Color.white;
-            toggleStyle.onHover.textColor = new Color(0.6f, 1f, 0.6f);
+            toggleStyle.normal.textColor = GameUiTheme.Label;
+            toggleStyle.onNormal.textColor = GameUiTheme.Value;
+            toggleStyle.hover.textColor = GameUiTheme.Title;
+            toggleStyle.onHover.textColor = GameUiTheme.Value;
 
             boxStyle = new GUIStyle(GUI.skin.box) { padding = new RectOffset(10, 10, 6, 6), margin = new RectOffset(0, 0, 3, 3) };
             boxStyle.normal.background = rowTex;
+
+            if (gameFont != null)
+            {
+                foreach (GUIStyle st in new[] { titleStyle, labelStyle, valueStyle, helpStyle, buttonStyle, tabStyle, tabActiveStyle, toggleStyle })
+                {
+                    st.font = gameFont;
+                }
+            }
         }
 
         private static Texture2D MakeTex(Color c)

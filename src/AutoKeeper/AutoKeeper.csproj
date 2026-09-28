@@ -41,6 +41,7 @@
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GameManagedDir)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GameManagedDir)/UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GameManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>$(GameManagedDir)/UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
   <!-- Assemblies do jogo: só referência de compilação (Private=false). -->
@@ -51,6 +52,9 @@
     <Reference Include="UniTask"><HintPath>$(GameManagedDir)/UniTask.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="AstarPathfindingProject"><HintPath>$(GameManagedDir)/AstarPathfindingProject.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Sirenix.Serialization"><HintPath>$(GameManagedDir)/Sirenix.Serialization.dll</HintPath><Private>false</Private></Reference>
+    <!-- UI nativa: uGUI e TextMeshPro do próprio jogo (tela de configurações com o visual do jogo). -->
+    <Reference Include="UnityEngine.UI"><HintPath>$(GameManagedDir)/UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(GameManagedDir)/Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
   <!-- Mensagem clara quando o caminho do jogo não foi configurado. -->

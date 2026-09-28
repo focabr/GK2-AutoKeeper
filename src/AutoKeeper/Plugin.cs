@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.2.1";
+        public const string Version = "0.2.2";
 
         /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007";
@@ -35,7 +35,8 @@ namespace AutoKeeper
 
         private Harmony harmony;
         private Overlay overlay;
-        private SettingsWindow settingsWindow;
+        private SettingsWindow settingsWindow;          // tela simples (IMGUI), usada só se a nativa falhar
+        private NativeSettingsWindow nativeWindow;      // tela com o visual do jogo
         private bool compatibilityChecked;
         private bool configDirty;
         private float configDirtySince;
@@ -48,8 +49,50 @@ namespace AutoKeeper
         /// <summary>Liga/desliga o bot (mesmo efeito da hotkey).</summary>
         public void ToggleBot() => Bot?.Toggle();
 
-        /// <summary>Abre/fecha a janela de configurações própria.</summary>
-        public void ToggleSettingsWindow() => settingsWindow?.Toggle();
+        private bool SettingsOpen => (nativeWindow != null && nativeWindow.IsShown) || (settingsWindow != null && settingsWindow.IsOpen);
+
+        private bool CapturingKey => (nativeWindow != null && nativeWindow.IsCapturingKey) || (settingsWindow != null && settingsWindow.IsCapturingKey);
+
+        /// <summary>
+        /// Abre/fecha a tela de configurações. Preferência: tela NATIVA (peças da janela de Configurações do jogo).
+        /// Se ela não puder ser montada (ex.: jogo mudou), usa a tela simples e avisa no log.
+        /// </summary>
+        public void ToggleSettingsWindow()
+        {
+            if (nativeWindow != null && nativeWindow.IsShown)
+            {
+                nativeWindow.Close();
+                return;
+            }
+            if (settingsWindow.IsOpen)
+            {
+                settingsWindow.Close();
+                return;
+            }
+            if (nativeWindow == null)
+            {
+                nativeWindow = NativeSettingsWindow.TryCreate(Settings, Bot, out string error);
+                if (nativeWindow == null)
+                {
+                    ModLog.WarnOnce("native-ui", $"Tela nativa indisponível ({error}); usando a tela simples.");
+                }
+            }
+            if (nativeWindow != null)
+            {
+                try
+                {
+                    nativeWindow.Open(null);
+                    return;
+                }
+                catch (Exception e)
+                {
+                    ModLog.Error($"Falha ao abrir a tela nativa: {e}");
+                    Destroy(nativeWindow.gameObject);
+                    nativeWindow = null;
+                }
+            }
+            settingsWindow.Toggle();
+        }
 
         private void Awake()
         {
@@ -77,7 +120,7 @@ namespace AutoKeeper
             Bot.Register(new ProcessBodiesTask(Settings)); // ordem = prioridade
             overlay = new Overlay(Settings, Bot);
             settingsWindow = new SettingsWindow(Settings, Bot);
-            overlay.OnSettingsClicked = settingsWindow.Toggle;
+            overlay.OnSettingsClicked = ToggleSettingsWindow;
 
             ModLog.Info($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.");
         }
@@ -87,7 +130,7 @@ namespace AutoKeeper
             CheckCompatibilityOnce();
             HandleHotkeys();
             Bot.Update(Time.unscaledDeltaTime);
-            SaveConfigIfDirty(force: !settingsWindow.IsOpen);
+            SaveConfigIfDirty(force: !SettingsOpen);
         }
 
         private void OnGUI()
@@ -172,13 +215,13 @@ namespace AutoKeeper
 
         private void HandleHotkeysUnsafe()
         {
-            if (settingsWindow.IsCapturingKey)
+            if (CapturingKey)
             {
                 return; // o jogador está escolhendo uma tecla nova na tela de configurações
             }
             if (Settings.OpenSettingsKey.Value.IsDown())
             {
-                settingsWindow.Toggle();
+                ToggleSettingsWindow();
             }
             if (Settings.ToggleBotKey.Value.IsDown())
             {
