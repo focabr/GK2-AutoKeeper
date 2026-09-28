@@ -4,6 +4,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-28
+
+### Adicionado
+- **Tela de configurações dentro do jogo** (F11 ou botão "Configurações" no painel): abas Bot, Corpos, Teclas,
+  Painel e Avançado; interruptores, sliders, seletor de destino, troca de teclas (clique e aperte a nova tecla),
+  "Restaurar padrões", botão Ligar/Desligar bot. Textos em PT ou EN conforme o idioma do jogo.
+  Aplica na hora e salva sozinho no `.cfg` (com atraso de 1 s para não gravar a cada movimento de slider).
+- Enquanto a tela está aberta o bot pausa e o jogo não recebe teclas; clique no painel não vira ataque no jogo.
+- **Integração opcional com o GK2 Mod Framework** (`AutoKeeper.FrameworkBridge.dll`): as mesmas opções aparecem
+  no botão "Mods" nativo do jogo (menu principal e pausa, com suporte a controle). Sem o Framework, a ponte é ignorada.
+- Painel mostra o **local** (zona do mundo, ex.: "Pátio"/"morgue"), que muda ao andar/teleportar; a "cena" do Unity
+  quase nunca muda no GK2.
+
+### Alterado
+- `[Bodies] ExtractOrgans` (texto) virou 6 opções liga/desliga: `ExtractSkin`, `ExtractBones`, `ExtractSkull`,
+  `ExtractHeart`, `ExtractBrain`, `ExtractGuts`.
+- `[Bot] MinEnergy` agora vai de 0 a 100; `GraveCraftId` foi para a aba Avançado.
+
 ## [0.2.0] - 2026-09-28
 
 ### Adicionado

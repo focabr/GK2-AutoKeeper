@@ -11,6 +11,8 @@ the player could do — no item spawning, no save editing.
   (configurable), then takes the body to the crematorium and collects the result when it is done
 - **F8** – turn the bot on/off (kill switch)
 - **F9** – show/hide the status overlay
+- **F11** – in-game settings window (also a button on the status panel); no need to edit the .cfg
+- Optional: with **GK2 Mod Framework** installed, the same settings appear under **Mods** in the main and pause menus
 - **F10** – write a read-only discovery dump (JSON) of the current scene to `BepInEx/config/AutoKeeper/dumps`
 - Automatically pauses in menus, pause screen, UI windows, dialogues, cutscenes and sleep
 - Stops when energy is below a configurable threshold
@@ -25,8 +27,7 @@ the player could do — no item spawning, no save editing.
   `plugins/AutoKeeper/AutoKeeper.dll` to `<game>/BepInEx/plugins/AutoKeeper/`.
 
 ## Configuration
-`BepInEx/config/com.focabr.gk2.autokeeper.cfg` (created on first launch): hotkeys, tick interval,
-minimum energy, overlay options, verbose logging.
+Use the in-game settings window (**F11**). Values are stored in `BepInEx/config/com.focabr.gk2.autokeeper.cfg`.
 
 ## Notes
 - Back up your saves before using any mod: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\`.

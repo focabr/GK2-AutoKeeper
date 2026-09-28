@@ -13,6 +13,7 @@ O bot só executa ações que o jogador poderia fazer; nunca altera o save nem c
 | StateReader no overlay (posição, energia, dia/hora, item carregado) | ✅ 0.1.0 |
 | Dump de descoberta somente leitura (F10) | ✅ 0.1.0 |
 | Primeira rotina: **processar corpos** (palete → autópsia → crematório) | 🧪 0.2.0 em teste |
+| Tela de configurações no jogo (F11) + menu Mods (GK2 Mod Framework, opcional) | 🧪 0.2.1 |
 | Enterro em cova (atravessar porta do necrotério) | 🔜 0.3 |
 
 ## Estrutura
@@ -26,7 +27,9 @@ src/AutoKeeper/
   Bot/BotController.cs máquina de estados / fila de tarefas (ticks, pausa automática)
   Bot/ITask.cs         contrato das rotinas (Bot/Tasks/*.cs)
   Patches/             patches Harmony isolados por feature
-  UI/Overlay.cs        status na tela (OnGUI)
+  UI/Overlay.cs        painel de status na tela (OnGUI)
+  UI/SettingsWindow.cs tela de configurações (F11)
+src/AutoKeeper.FrameworkBridge/  ponte opcional para o menu Mods do GK2 Mod Framework
 docs/game-api-notes.md engenharia reversa + proposta da GameApi
 thunderstore/          manifest.json, icon.png, README.md do pacote
 build.ps1              build + deploy em BepInEx/plugins + zip de release
@@ -46,20 +49,28 @@ Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instala
 
 > Se o PowerShell bloquear o script: `powershell -ExecutionPolicy Bypass -File .\build.ps1`
 
-## Teclas (configuráveis em `BepInEx/config/com.focabr.gk2.autokeeper.cfg`)
+## Configurações pela tela do jogo
+- **F11** (ou o botão **Configurações** no painel) abre a tela do AutoKeeper: tudo é ajustado ali e salvo sozinho.
+- Com o **GK2 Mod Framework** instalado ([Nexus](https://www.nexusmods.com/graveyardkeeper2/mods/42)), as mesmas
+  opções aparecem também em **Mods** no menu principal e no menu de pausa (visual nativo, funciona com controle).
+- O arquivo `BepInEx/config/com.focabr.gk2.autokeeper.cfg` continua existindo (padrão BepInEx / mod managers),
+  mas não precisa ser editado à mão.
+
+## Teclas (configuráveis na tela F11)
 | Tecla | Ação |
 |---|---|
 | F8 | liga/desliga o bot (kill switch) |
 | F9 | mostra/esconde overlay |
 | F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
+| F11 | abre/fecha a tela de configurações |
 
 ### Rotina "Processar corpos" (`[Bodies]` no .cfg)
 | Opção | Padrão | O que faz |
 |---|---|---|
 | `Enabled` | `true` | liga a rotina |
-| `ExtractOrgans` | `all` | `all`, `none` ou lista (`Heart, Brain` ou ids como `heart_0_1:1`) |
+| `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
 | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
-| `GraveCraftId` | vazio | força a receita de enterro |
+| `GraveCraftId` (Avançado) | vazio | força a receita de enterro |
 | `SearchRadius` | `80` | alcance da busca (m) |
 
 O bot para sozinho com energia abaixo de `[Bot] MinEnergy`, se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
