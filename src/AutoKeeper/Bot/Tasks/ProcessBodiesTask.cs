@@ -160,7 +160,7 @@ namespace AutoKeeper.Bot.Tasks
         /// <summary>Escolhe o próximo objetivo a partir do estado do mundo. Em dryRun só responde se há o que fazer.</summary>
         private bool PlanNext(bool dryRun)
         {
-            bool wantsOrgans = !IsExtractNone();
+            bool wantsOrgans = settings.SelectedOrganTypes().Count > 0;
             BodyDestination dest = settings.Destination.Value;
             List<WorldObjectRef> tables = GameApi.FindObjects(ObjectKind.AutopsyTable, Radius)
                 .Where(t => !GameApi.HasOtherWorker(t.Uid)) // mesa com zumbi/NPC trabalhando: não mexer
@@ -323,8 +323,8 @@ namespace AutoKeeper.Bot.Tasks
 
         private string NextOrgan(string tableUid, string body)
         {
-            ParseOrganFilter(out bool all, out HashSet<string> allowed);
-            foreach (string organ in GameApi.GetExtractableOrgans(tableUid, all, allowed))
+            HashSet<string> allowed = settings.SelectedOrganTypes();
+            foreach (string organ in GameApi.GetExtractableOrgans(tableUid, false, allowed))
             {
                 if (!failedOrgans.Contains(body + "|" + organ))
                 {
@@ -332,21 +332,6 @@ namespace AutoKeeper.Bot.Tasks
                 }
             }
             return null;
-        }
-
-        private bool IsExtractNone()
-        {
-            string v = (settings.ExtractOrgans.Value ?? string.Empty).Trim();
-            return v.Equals("none", StringComparison.OrdinalIgnoreCase) || v.Length == 0;
-        }
-
-        private void ParseOrganFilter(out bool all, out HashSet<string> allowed)
-        {
-            string v = (settings.ExtractOrgans.Value ?? string.Empty).Trim();
-            all = v.Equals("all", StringComparison.OrdinalIgnoreCase);
-            allowed = new HashSet<string>(
-                v.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()),
-                StringComparer.OrdinalIgnoreCase);
         }
 
         private bool Begin(bool dryRun, Goal g, string uid, Vector3 pos, bool ground, string body, string organ = null)

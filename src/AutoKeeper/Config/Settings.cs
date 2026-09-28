@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -11,87 +13,241 @@ namespace AutoKeeper.Config
         Grave,
     }
 
-    /// <summary>
-    /// Todas as opções do mod. Arquivo gerado em BepInEx/config/com.focabr.gk2.autokeeper.cfg.
-    /// As mesmas seções/chaves serão reaproveitadas pela ponte opcional do GK2 Mod Framework.
-    /// </summary>
-    internal sealed class Settings
+    /// <summary>Abas da tela de configurações (e seções no menu Mods do GK2 Mod Framework).</summary>
+    public enum SettingTab
     {
+        Bot,
+        Bodies,
+        Hotkeys,
+        Overlay,
+        Advanced,
+    }
+
+    /// <summary>
+    /// Metadados de UI de uma opção: rótulo/ajuda em PT e EN, aba, faixa do slider.
+    /// É a ÚNICA fonte usada tanto pela janela própria (UI/SettingsWindow) quanto pela ponte do
+    /// GK2 Mod Framework — assim as duas telas mostram sempre as mesmas opções.
+    /// </summary>
+    public sealed class SettingInfo
+    {
+        internal SettingInfo(ConfigEntryBase entry, SettingTab tab, int order, string labelPt, string labelEn, string helpPt, string helpEn)
+        {
+            Entry = entry;
+            Tab = tab;
+            Order = order;
+            LabelPt = labelPt;
+            LabelEn = labelEn;
+            HelpPt = helpPt;
+            HelpEn = helpEn;
+        }
+
+        public ConfigEntryBase Entry { get; }
+        public SettingTab Tab { get; }
+        public int Order { get; }
+        public string LabelPt { get; }
+        public string LabelEn { get; }
+        public string HelpPt { get; }
+        public string HelpEn { get; }
+
+        /// <summary>Faixa e passo para sliders (float/int).</summary>
+        public float Min { get; internal set; }
+        public float Max { get; internal set; }
+        public float Step { get; internal set; } = 1f;
+
+        public string Label(bool pt) => pt ? LabelPt : LabelEn;
+        public string Help(bool pt) => pt ? HelpPt : HelpEn;
+    }
+
+    /// <summary>
+    /// Todas as opções do mod. Persistidas em BepInEx/config/com.focabr.gk2.autokeeper.cfg (padrão BepInEx,
+    /// compatível com mod managers), mas o jogador edita pela tela de configurações (F11) ou pelo menu Mods.
+    /// </summary>
+    public sealed class Settings
+    {
+        private readonly List<SettingInfo> ui = new List<SettingInfo>();
+        private int order;
+
         // [Hotkeys]
         public ConfigEntry<KeyboardShortcut> ToggleBotKey { get; }
         public ConfigEntry<KeyboardShortcut> ToggleOverlayKey { get; }
+        public ConfigEntry<KeyboardShortcut> OpenSettingsKey { get; }
         public ConfigEntry<KeyboardShortcut> DumpKey { get; }
 
         // [Bot]
-        public ConfigEntry<float> TickIntervalSeconds { get; }
         public ConfigEntry<float> MinEnergy { get; }
-
+        public ConfigEntry<float> TickIntervalSeconds { get; }
         public ConfigEntry<float> MoveTimeoutSeconds { get; }
         public ConfigEntry<float> WorkStallSeconds { get; }
 
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
-        public ConfigEntry<string> ExtractOrgans { get; }
         public ConfigEntry<BodyDestination> Destination { get; }
-        public ConfigEntry<string> GraveCraftId { get; }
+        public ConfigEntry<bool> ExtractSkin { get; }
+        public ConfigEntry<bool> ExtractBones { get; }
+        public ConfigEntry<bool> ExtractSkull { get; }
+        public ConfigEntry<bool> ExtractHeart { get; }
+        public ConfigEntry<bool> ExtractBrain { get; }
+        public ConfigEntry<bool> ExtractGuts { get; }
         public ConfigEntry<float> SearchRadius { get; }
+        public ConfigEntry<string> GraveCraftId { get; }
 
         // [Overlay]
         public ConfigEntry<bool> ShowOverlay { get; }
         public ConfigEntry<int> OverlayLogLines { get; }
 
-        // [Safety]
+        // [Safety] (reservado, fora da UI)
         public ConfigEntry<bool> AllowCheats { get; }
 
         // [Debug]
         public ConfigEntry<bool> VerboseLogging { get; }
 
+        /// <summary>Opções visíveis nas telas de configuração, na ordem de exibição.</summary>
+        public IReadOnlyList<SettingInfo> UiSettings => ui;
+
         public Settings(ConfigFile config)
         {
-            ToggleBotKey = config.Bind("Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
-                "Liga/desliga o bot (kill switch).");
-            ToggleOverlayKey = config.Bind("Hotkeys", "ToggleOverlay", new KeyboardShortcut(KeyCode.F9),
-                "Mostra/esconde o overlay de status.");
-            DumpKey = config.Bind("Hotkeys", "DiscoveryDump", new KeyboardShortcut(KeyCode.F10),
-                "Salva um JSON (somente leitura) com objetos/itens da cena atual em BepInEx/config/AutoKeeper/dumps.");
+            // ---------------------------------------------------------------- Bot
+            MinEnergy = Slider(config, SettingTab.Bot, "Bot", "MinEnergy", 10f, 0f, 100f, 1f,
+                "Energia mínima", "Minimum energy",
+                "O bot desliga sozinho quando a energia fica abaixo deste valor.",
+                "The bot turns itself off when energy drops below this value.");
+            TickIntervalSeconds = Slider(config, SettingTab.Bot, "Bot", "TickIntervalSeconds", 0.25f, 0.05f, 2f, 0.05f,
+                "Intervalo de decisão (s)", "Decision interval (s)",
+                "De quanto em quanto tempo o bot decide o próximo passo. Menor = mais rápido, mais CPU.",
+                "How often the bot decides its next step. Lower = faster, more CPU.");
+            MoveTimeoutSeconds = Slider(config, SettingTab.Bot, "Bot", "MoveTimeoutSeconds", 45f, 5f, 300f, 5f,
+                "Tempo máximo andando (s)", "Max walking time (s)",
+                "Desiste de um alvo se não chegar nele neste tempo.",
+                "Gives up on a target if it cannot reach it within this time.");
+            WorkStallSeconds = Slider(config, SettingTab.Bot, "Bot", "WorkStallSeconds", 20f, 5f, 120f, 5f,
+                "Parar se o trabalho travar (s)", "Stop if work stalls (s)",
+                "Se a receita não avançar por este tempo, o bot para e mostra o motivo.",
+                "If a craft makes no progress for this long, the bot stops and shows why.");
 
-            TickIntervalSeconds = config.Bind("Bot", "TickIntervalSeconds", 0.25f,
-                new ConfigDescription("Intervalo entre decisões do bot, em segundos (tempo real).",
-                    new AcceptableValueRange<float>(0.05f, 5f)));
-            MinEnergy = config.Bind("Bot", "MinEnergy", 10f,
-                new ConfigDescription("O bot para sozinho quando a energia do jogador fica abaixo deste valor.",
-                    new AcceptableValueRange<float>(0f, 1000f)));
+            // ---------------------------------------------------------------- Corpos
+            BodiesEnabled = Toggle(config, SettingTab.Bodies, "Bodies", "Enabled", true,
+                "Rotina Processar corpos", "Body processing routine",
+                "Palete → mesa de autópsia → extrair órgãos → destino.",
+                "Pallet → autopsy table → extract organs → destination.");
+            Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
+                "Destino do corpo", "Body destination",
+                "Crematório (no necrotério), deixar na mesa, ou cova vazia (experimental, mesma área).",
+                "Crematorium (inside the morgue), leave on the table, or empty grave (experimental, same area).");
+            ExtractSkin = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractSkin", true, "Extrair pele", "Extract skin",
+                "Extrai a pele na autópsia.", "Extract skin during autopsy.");
+            ExtractBones = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractBones", true, "Extrair ossos", "Extract bones",
+                "Extrai os ossos na autópsia.", "Extract bones during autopsy.");
+            ExtractSkull = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractSkull", true, "Extrair crânio", "Extract skull",
+                "Extrai o crânio na autópsia.", "Extract the skull during autopsy.");
+            ExtractHeart = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractHeart", true, "Extrair coração", "Extract heart",
+                "Extrai o coração na autópsia.", "Extract the heart during autopsy.");
+            ExtractBrain = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractBrain", true, "Extrair cérebro", "Extract brain",
+                "Extrai o cérebro na autópsia.", "Extract the brain during autopsy.");
+            ExtractGuts = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractGuts", true, "Extrair vísceras", "Extract guts",
+                "Extrai as vísceras na autópsia.", "Extract guts during autopsy.");
+            SearchRadius = Slider(config, SettingTab.Bodies, "Bodies", "SearchRadius", 80f, 5f, 300f, 5f,
+                "Raio de busca (m)", "Search radius (m)",
+                "Distância máxima para procurar paletes, mesas e crematório na cena atual.",
+                "Maximum distance to look for pallets, tables and crematorium in the current scene.");
 
-            MoveTimeoutSeconds = config.Bind("Bot", "MoveTimeoutSeconds", 45f,
-                new ConfigDescription("Tempo máximo andando até um alvo antes de desistir.",
-                    new AcceptableValueRange<float>(5f, 300f)));
-            WorkStallSeconds = config.Bind("Bot", "WorkStallSeconds", 20f,
-                new ConfigDescription("Se o progresso de uma receita não mudar por este tempo segurando a ação, o bot para.",
-                    new AcceptableValueRange<float>(5f, 300f)));
+            // ---------------------------------------------------------------- Teclas
+            ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
+                "Ligar/desligar o bot", "Toggle bot",
+                "Kill switch: liga ou desliga o bot na hora.", "Kill switch: turns the bot on or off immediately.");
+            OpenSettingsKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "OpenSettings", new KeyboardShortcut(KeyCode.F11),
+                "Abrir configurações", "Open settings",
+                "Abre/fecha esta tela.", "Opens/closes this window.");
+            ToggleOverlayKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleOverlay", new KeyboardShortcut(KeyCode.F9),
+                "Mostrar/esconder painel", "Toggle status panel",
+                "Mostra ou esconde o painel de status no canto da tela.", "Shows or hides the status panel.");
+            DumpKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "DiscoveryDump", new KeyboardShortcut(KeyCode.F10),
+                "Dump de descoberta", "Discovery dump",
+                "Salva um JSON (somente leitura) da cena atual em BepInEx/config/AutoKeeper/dumps.",
+                "Writes a read-only JSON of the current scene to BepInEx/config/AutoKeeper/dumps.");
 
-            BodiesEnabled = config.Bind("Bodies", "Enabled", true,
-                "Rotina 'processar corpos': palete/chão -> mesa de autópsia -> extrair órgãos -> destino.");
-            ExtractOrgans = config.Bind("Bodies", "ExtractOrgans", "all",
-                "Órgãos a extrair: 'all', 'none' ou lista separada por vírgula de tipos (Bones, Brain, Heart, Guts, Skin, Skull) ou ids de item.");
-            Destination = config.Bind("Bodies", "Destination", BodyDestination.Crematorium,
-                "Destino do corpo após a autópsia: Crematorium (crematório do necrotério), LeaveOnTable (deixar na mesa) ou Grave (EXPERIMENTAL: cova vazia 'grave_empty' na mesma área; ainda não atravessa portas).");
-            GraveCraftId = config.Bind("Bodies", "GraveCraftId", "",
-                "Opcional: id da receita de enterro em grave_empty. Vazio = detectar a receita que exige um corpo.");
-            SearchRadius = config.Bind("Bodies", "SearchRadius", 80f,
-                new ConfigDescription("Distância máxima (m) para procurar corpos, mesas e covas na cena atual.",
-                    new AcceptableValueRange<float>(5f, 500f)));
+            // ---------------------------------------------------------------- Painel
+            ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,
+                "Mostrar painel de status", "Show status panel",
+                "Painel no canto superior esquerdo com o estado do bot.", "Top-left panel with the bot state.");
+            OverlayLogLines = SliderInt(config, SettingTab.Overlay, "Overlay", "LogLines", 6, 0, 20,
+                "Linhas de log no painel", "Log lines in panel",
+                "Quantas mensagens recentes aparecem no painel.", "How many recent messages the panel shows.");
 
-            ShowOverlay = config.Bind("Overlay", "ShowOverlay", true,
-                "Mostrar o overlay de status na tela.");
-            OverlayLogLines = config.Bind("Overlay", "LogLines", 6,
-                new ConfigDescription("Quantas linhas recentes de log aparecem no overlay.",
-                    new AcceptableValueRange<int>(0, 20)));
+            // ---------------------------------------------------------------- Avançado
+            VerboseLogging = Toggle(config, SettingTab.Advanced, "Debug", "VerboseLogging", false,
+                "Log detalhado", "Verbose logging",
+                "Grava mensagens de depuração no BepInEx/LogOutput.log.", "Writes debug messages to BepInEx/LogOutput.log.");
+            GraveCraftId = Bind(config, SettingTab.Advanced, "Bodies", "GraveCraftId", "",
+                "Receita de enterro (id)", "Burial craft id",
+                "Opcional. Vazio = detectar a receita da cova vazia que exige um corpo.",
+                "Optional. Empty = detect the empty-grave craft that requires a body.");
 
+            // Reservado: não aparece na UI.
             AllowCheats = config.Bind("Safety", "AllowCheats", false,
                 "Reservado. O bot só executa ações que o jogador poderia fazer; nenhuma função de cheat existe hoje.");
+        }
 
-            VerboseLogging = config.Bind("Debug", "VerboseLogging", false,
-                "Log detalhado (nível Debug) no BepInEx/LogOutput.log.");
+        /// <summary>Tipos de órgão marcados para extração (nomes do enum ItemType do jogo).</summary>
+        public HashSet<string> SelectedOrganTypes()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (ExtractSkin.Value) set.Add("Skin");
+            if (ExtractBones.Value) set.Add("Bones");
+            if (ExtractSkull.Value) set.Add("Skull");
+            if (ExtractHeart.Value) set.Add("Heart");
+            if (ExtractBrain.Value) set.Add("Brain");
+            if (ExtractGuts.Value) set.Add("Guts");
+            return set;
+        }
+
+        /// <summary>Volta todas as opções de uma aba ao padrão.</summary>
+        public void ResetTab(SettingTab tab)
+        {
+            foreach (SettingInfo s in ui)
+            {
+                if (s.Tab == tab)
+                {
+                    s.Entry.BoxedValue = s.Entry.DefaultValue;
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------ helpers de registro
+
+        private ConfigEntry<T> Bind<T>(ConfigFile config, SettingTab tab, string section, string key, T value,
+            string labelPt, string labelEn, string helpPt, string helpEn, AcceptableValueBase range = null)
+        {
+            ConfigEntry<T> entry = config.Bind(section, key, value, new ConfigDescription($"{helpPt} / {helpEn}", range));
+            ui.Add(new SettingInfo(entry, tab, order++, labelPt, labelEn, helpPt, helpEn));
+            return entry;
+        }
+
+        private ConfigEntry<bool> Toggle(ConfigFile config, SettingTab tab, string section, string key, bool value,
+            string labelPt, string labelEn, string helpPt, string helpEn)
+            => Bind(config, tab, section, key, value, labelPt, labelEn, helpPt, helpEn);
+
+        private ConfigEntry<float> Slider(ConfigFile config, SettingTab tab, string section, string key, float value,
+            float min, float max, float step, string labelPt, string labelEn, string helpPt, string helpEn)
+        {
+            ConfigEntry<float> e = Bind(config, tab, section, key, value, labelPt, labelEn, helpPt, helpEn,
+                new AcceptableValueRange<float>(min, max));
+            SettingInfo info = ui[ui.Count - 1];
+            info.Min = min;
+            info.Max = max;
+            info.Step = step;
+            return e;
+        }
+
+        private ConfigEntry<int> SliderInt(ConfigFile config, SettingTab tab, string section, string key, int value,
+            int min, int max, string labelPt, string labelEn, string helpPt, string helpEn)
+        {
+            ConfigEntry<int> e = Bind(config, tab, section, key, value, labelPt, labelEn, helpPt, helpEn,
+                new AcceptableValueRange<int>(min, max));
+            SettingInfo info = ui[ui.Count - 1];
+            info.Min = min;
+            info.Max = max;
+            info.Step = 1f;
+            return e;
         }
     }
 }
