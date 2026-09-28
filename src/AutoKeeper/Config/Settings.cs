@@ -3,6 +3,14 @@ using UnityEngine;
 
 namespace AutoKeeper.Config
 {
+    /// <summary>Para onde o corpo vai depois da autópsia.</summary>
+    public enum BodyDestination
+    {
+        Crematorium,
+        LeaveOnTable,
+        Grave,
+    }
+
     /// <summary>
     /// Todas as opções do mod. Arquivo gerado em BepInEx/config/com.focabr.gk2.autokeeper.cfg.
     /// As mesmas seções/chaves serão reaproveitadas pela ponte opcional do GK2 Mod Framework.
@@ -17,6 +25,16 @@ namespace AutoKeeper.Config
         // [Bot]
         public ConfigEntry<float> TickIntervalSeconds { get; }
         public ConfigEntry<float> MinEnergy { get; }
+
+        public ConfigEntry<float> MoveTimeoutSeconds { get; }
+        public ConfigEntry<float> WorkStallSeconds { get; }
+
+        // [Bodies]
+        public ConfigEntry<bool> BodiesEnabled { get; }
+        public ConfigEntry<string> ExtractOrgans { get; }
+        public ConfigEntry<BodyDestination> Destination { get; }
+        public ConfigEntry<string> GraveCraftId { get; }
+        public ConfigEntry<float> SearchRadius { get; }
 
         // [Overlay]
         public ConfigEntry<bool> ShowOverlay { get; }
@@ -43,6 +61,25 @@ namespace AutoKeeper.Config
             MinEnergy = config.Bind("Bot", "MinEnergy", 10f,
                 new ConfigDescription("O bot para sozinho quando a energia do jogador fica abaixo deste valor.",
                     new AcceptableValueRange<float>(0f, 1000f)));
+
+            MoveTimeoutSeconds = config.Bind("Bot", "MoveTimeoutSeconds", 45f,
+                new ConfigDescription("Tempo máximo andando até um alvo antes de desistir.",
+                    new AcceptableValueRange<float>(5f, 300f)));
+            WorkStallSeconds = config.Bind("Bot", "WorkStallSeconds", 20f,
+                new ConfigDescription("Se o progresso de uma receita não mudar por este tempo segurando a ação, o bot para.",
+                    new AcceptableValueRange<float>(5f, 300f)));
+
+            BodiesEnabled = config.Bind("Bodies", "Enabled", true,
+                "Rotina 'processar corpos': palete/chão -> mesa de autópsia -> extrair órgãos -> destino.");
+            ExtractOrgans = config.Bind("Bodies", "ExtractOrgans", "all",
+                "Órgãos a extrair: 'all', 'none' ou lista separada por vírgula de tipos (Bones, Brain, Heart, Guts, Skin, Skull) ou ids de item.");
+            Destination = config.Bind("Bodies", "Destination", BodyDestination.Crematorium,
+                "Destino do corpo após a autópsia: Crematorium (crematório do necrotério), LeaveOnTable (deixar na mesa) ou Grave (EXPERIMENTAL: cova vazia 'grave_empty' na mesma área; ainda não atravessa portas).");
+            GraveCraftId = config.Bind("Bodies", "GraveCraftId", "",
+                "Opcional: id da receita de enterro em grave_empty. Vazio = detectar a receita que exige um corpo.");
+            SearchRadius = config.Bind("Bodies", "SearchRadius", 80f,
+                new ConfigDescription("Distância máxima (m) para procurar corpos, mesas e covas na cena atual.",
+                    new AcceptableValueRange<float>(5f, 500f)));
 
             ShowOverlay = config.Bind("Overlay", "ShowOverlay", true,
                 "Mostrar o overlay de status na tela.");

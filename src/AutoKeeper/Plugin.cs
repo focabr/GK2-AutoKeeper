@@ -1,5 +1,6 @@
 using System;
 using AutoKeeper.Bot;
+using AutoKeeper.Bot.Tasks;
 using AutoKeeper.Config;
 using AutoKeeper.Core;
 using AutoKeeper.UI;
@@ -19,10 +20,10 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
 
         /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
-        public const string TestedGameVersion = "1.006";
+        public const string TestedGameVersion = "1.007";
 
         internal static Plugin Instance { get; private set; }
 
@@ -52,6 +53,7 @@ namespace AutoKeeper
             }
 
             Bot = new BotController(Settings);
+            Bot.Register(new ProcessBodiesTask(Settings)); // ordem = prioridade
             overlay = new Overlay(Settings, Bot);
 
             ModLog.Info($"{Name} {Version} carregado. F8 = bot liga/desliga, F9 = overlay, F10 = dump de descoberta (teclas configuráveis).");
