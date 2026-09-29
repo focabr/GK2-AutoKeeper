@@ -27,6 +27,8 @@ namespace AutoKeeper.Config
     {
         Bot,
         Bodies,
+        Autopsy,
+        AutopsyOthers,
         Hotkeys,
         Overlay,
         Advanced,
@@ -87,16 +89,25 @@ namespace AutoKeeper.Config
         public ConfigEntry<float> TickIntervalSeconds { get; }
         public ConfigEntry<float> MoveTimeoutSeconds { get; }
         public ConfigEntry<float> WorkStallSeconds { get; }
+        public ConfigEntry<bool> TravelEnabled { get; }
+        public ConfigEntry<bool> AutoEat { get; }
+        public ConfigEntry<float> EatBelowEnergy { get; }
 
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
         public ConfigEntry<BodyDestination> Destination { get; }
+        public ConfigEntry<bool> RequireMastery { get; }
+        public ConfigEntry<int> MinMasteryChance { get; }
         public ConfigEntry<bool> ExtractSkin { get; }
         public ConfigEntry<bool> ExtractBones { get; }
         public ConfigEntry<bool> ExtractSkull { get; }
         public ConfigEntry<bool> ExtractHeart { get; }
         public ConfigEntry<bool> ExtractBrain { get; }
         public ConfigEntry<bool> ExtractGuts { get; }
+        public ConfigEntry<bool> ExtractFlesh { get; }
+        public ConfigEntry<bool> ExtractFat { get; }
+        public ConfigEntry<bool> ExtractBlood { get; }
+        public ConfigEntry<bool> ExtractOtherPocket { get; }
         public ConfigEntry<float> SearchRadius { get; }
         public ConfigEntry<string> GraveCraftId { get; }
 
@@ -120,8 +131,20 @@ namespace AutoKeeper.Config
             // ---------------------------------------------------------------- Bot
             MinEnergy = Slider(config, SettingTab.Bot, "Bot", "MinEnergy", 10f, 0f, 100f, 1f,
                 "Energia mínima", "Minimum energy",
-                "O bot desliga sozinho quando a energia fica abaixo deste valor.",
-                "The bot turns itself off when energy drops below this value.");
+                "O bot desliga sozinho quando a energia fica abaixo deste valor (e não há comida na barra rápida).",
+                "The bot turns itself off when energy drops below this value (and there is no food in the hotbar).");
+            AutoEat = Toggle(config, SettingTab.Bot, "Bot", "AutoEat", true,
+                "Comer da barra rápida", "Eat from the hotbar",
+                "Com energia baixa, usa um item que recupera energia da barra rápida (teclas 1–4), como o jogador faria. Pula itens que aumentam a insanidade.",
+                "When energy is low, uses an energy item from the hotbar (keys 1–4), like the player would. Skips items that raise insanity.");
+            EatBelowEnergy = Slider(config, SettingTab.Bot, "Bot", "EatBelowEnergy", 20f, 1f, 100f, 1f,
+                "Comer abaixo de (energia)", "Eat below (energy)",
+                "Come quando a energia fica abaixo deste valor. Deixe maior que a energia mínima.",
+                "Eats when energy drops below this value. Keep it above the minimum energy.");
+            TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
+                "Ir sozinho até o trabalho", "Walk to the work area",
+                "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",
+                "Goes through doors (house, morgue…) along the shortest route to where there is work, pressing E on the door like the player.");
             TickIntervalSeconds = Slider(config, SettingTab.Bot, "Bot", "TickIntervalSeconds", 0.25f, 0.05f, 2f, 0.05f,
                 "Intervalo de decisão (s)", "Decision interval (s)",
                 "De quanto em quanto tempo o bot decide o próximo passo. Menor = mais rápido, mais CPU.",
@@ -144,22 +167,39 @@ namespace AutoKeeper.Config
                 "Destino do corpo", "Body destination",
                 "Crematório (no necrotério), deixar na mesa, ou cova vazia (experimental, mesma área).",
                 "Crematorium (inside the morgue), leave on the table, or empty grave (experimental, same area).");
-            ExtractSkin = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractSkin", true, "Extrair pele", "Extract skin",
+            RequireMastery = Toggle(config, SettingTab.Autopsy, "Bodies", "RequireMastery", true,
+                "Só extrair com maestria", "Only extract with mastery",
+                "Vale por cima das opções abaixo: confere a maestria item por item (como na janela \"Remover …\") e pula o que ficar abaixo da chance mínima.",
+                "Overrides the options below: checks mastery item by item (like the \"Remove …\" window) and skips anything below the minimum chance.");
+            MinMasteryChance = SliderInt(config, SettingTab.Autopsy, "Bodies", "MinMasteryChance", 100, 1, 100,
+                "Chance mínima (%)", "Minimum chance (%)",
+                "100 = só com maestria total (sem %). Ex.: 60 aceita o cérebro a 62% mas pula as entranhas a 38%.",
+                "100 = full mastery only (no %). E.g. 60 accepts the brain at 62% but skips guts at 38%.");
+            ExtractSkin = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractSkin", true, "Extrair pele", "Extract skin",
                 "Extrai a pele na autópsia.", "Extract skin during autopsy.");
-            ExtractBones = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractBones", true, "Extrair ossos", "Extract bones",
+            ExtractBones = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBones", true, "Extrair ossos", "Extract bones",
                 "Extrai os ossos na autópsia.", "Extract bones during autopsy.");
-            ExtractSkull = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractSkull", true, "Extrair crânio", "Extract skull",
+            ExtractSkull = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractSkull", true, "Extrair crânio", "Extract skull",
                 "Extrai o crânio na autópsia.", "Extract the skull during autopsy.");
-            ExtractHeart = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractHeart", true, "Extrair coração", "Extract heart",
+            ExtractHeart = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractHeart", true, "Extrair coração", "Extract heart",
                 "Extrai o coração na autópsia.", "Extract the heart during autopsy.");
-            ExtractBrain = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractBrain", true, "Extrair cérebro", "Extract brain",
+            ExtractBrain = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBrain", true, "Extrair cérebro", "Extract brain",
                 "Extrai o cérebro na autópsia.", "Extract the brain during autopsy.");
-            ExtractGuts = Toggle(config, SettingTab.Bodies, "Bodies", "ExtractGuts", true, "Extrair vísceras", "Extract guts",
+            ExtractGuts = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractGuts", true, "Extrair vísceras", "Extract guts",
                 "Extrai as vísceras na autópsia.", "Extract guts during autopsy.");
+            ExtractFlesh = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractFlesh", true, "Extrair carne", "Extract flesh",
+                "Tira a carne (seção \"Outros\" da mesa de autópsia).", "Takes out the flesh (\"Others\" section of the autopsy table).");
+            ExtractFat = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractFat", true, "Extrair gordura", "Extract fat",
+                "Tira a gordura (seção \"Outros\").", "Takes out the fat (\"Others\" section).");
+            ExtractBlood = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractBlood", true, "Extrair sangue", "Extract blood",
+                "Tira o sangue (seção \"Outros\").", "Takes out the blood (\"Others\" section).");
+            ExtractOtherPocket = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractOtherPocket", false, "Extrair outros itens", "Extract other items",
+                "Tira qualquer outro item da seção \"Outros\" que não seja carne, gordura ou sangue.",
+                "Takes out any other item of the \"Others\" section that is not flesh, fat or blood.");
             SearchRadius = Slider(config, SettingTab.Bodies, "Bodies", "SearchRadius", 80f, 5f, 300f, 5f,
-                "Raio de busca (m)", "Search radius (m)",
-                "Distância máxima para procurar paletes, mesas e crematório na cena atual.",
-                "Maximum distance to look for pallets, tables and crematorium in the current scene.");
+                "Raio para corpos no chão (m)", "Ground body radius (m)",
+                "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
+                "Maximum distance to pick up loose bodies from the ground. Pallets, tables and crematorium are found anywhere reachable.");
 
             // ---------------------------------------------------------------- Teclas
             ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
@@ -216,6 +256,17 @@ namespace AutoKeeper.Config
             if (ExtractHeart.Value) set.Add("Heart");
             if (ExtractBrain.Value) set.Add("Brain");
             if (ExtractGuts.Value) set.Add("Guts");
+            return set;
+        }
+
+        /// <summary>Tipos da seção "Outros" (bolso do corpo) marcados para extração.</summary>
+        public HashSet<string> SelectedPocketKinds()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (ExtractFlesh.Value) set.Add("Flesh");
+            if (ExtractFat.Value) set.Add("Fat");
+            if (ExtractBlood.Value) set.Add("Blood");
+            if (ExtractOtherPocket.Value) set.Add("Other");
             return set;
         }
 

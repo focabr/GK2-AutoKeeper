@@ -304,6 +304,8 @@ namespace AutoKeeper.UI
             {
                 case SettingTab.Bot: return "Bot";
                 case SettingTab.Bodies: return T(pt, "Corpos", "Bodies");
+                case SettingTab.Autopsy: return T(pt, "Órgãos", "Organs");
+                case SettingTab.AutopsyOthers: return T(pt, "Outros itens", "Other items");
                 case SettingTab.Hotkeys: return T(pt, "Teclas", "Hotkeys");
                 case SettingTab.Overlay: return T(pt, "Painel", "Panel");
                 default: return T(pt, "Avançado", "Advanced");

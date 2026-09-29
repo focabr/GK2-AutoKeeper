@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.2.2";
+        public const string Version = "0.2.3";
 
         /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007";
@@ -117,7 +117,7 @@ namespace AutoKeeper
             }
 
             Bot = new BotController(Settings);
-            Bot.Register(new ProcessBodiesTask(Settings)); // ordem = prioridade
+            Bot.Register(new ProcessBodiesTask(Settings, Bot.Navigator)); // ordem = prioridade
             overlay = new Overlay(Settings, Bot);
             settingsWindow = new SettingsWindow(Settings, Bot);
             overlay.OnSettingsClicked = ToggleSettingsWindow;

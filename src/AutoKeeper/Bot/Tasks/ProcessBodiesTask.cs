@@ -8,12 +8,13 @@ using UnityEngine;
 namespace AutoKeeper.Bot.Tasks
 {
     /// <summary>
-    /// Rotina MVP "processar corpos" (layout real do necrotério, dump do jogo 1.007):
-    ///   palete (pallet_corpse) ou chão → mesa de autópsia livre → extrair órgãos (config) → tirar corpo →
-    ///   destino: crematório (padrão), deixar na mesa, ou cova vazia (experimental, mesma área).
+    /// Rotina "processar corpos" (layout real do necrotério, dump do jogo 1.007):
+    ///   palete (pallet_corpse) ou chão → mesa de autópsia livre → extrair órgãos e "Outros" (config) → tirar corpo →
+    ///   destino: crematório (padrão), deixar na mesa, ou cova vazia (experimental).
     /// Cada Tick decide UM objetivo a partir do estado do mundo (replaneja sozinho depois de pausa/abort)
     /// e o executa em passos curtos: andar → mirar → apertar E / iniciar receita → segurar Ação até terminar.
-    /// Usa só a GameApi; nada de teleporte, spawn ou edição de save.
+    /// Se o objetivo está em outra área (atrás de portas), o objetivo vira "usar a próxima porta" do caminho.
+    /// Usa só a GameApi; nada de teleporte do mod, spawn ou edição de save.
     /// </summary>
     internal sealed class ProcessBodiesTask : ITask
     {
@@ -23,11 +24,13 @@ namespace AutoKeeper.Bot.Tasks
             PickUpBody,
             PutOnTable,
             ExtractOrgan,
+            ExtractPocket,
             TakeBody,
             Bury,
             PickUpFromPallet,
             Cremate,
             CollectCrematorium,
+            UseDoor,
         }
 
         private enum Step
@@ -40,16 +43,70 @@ namespace AutoKeeper.Bot.Tasks
             Work,
         }
 
+        private enum DecisionKind
+        {
+            None,
+            Act,
+            Wait,
+            Fail,
+        }
+
+        /// <summary>Objeto candidato com a região e o custo (m) para chegar nele a partir do jogador.</summary>
+        private readonly struct Candidate
+        {
+            public readonly WorldObjectRef Obj;
+            public readonly uint Area;
+            public readonly float Cost;
+
+            public Candidate(WorldObjectRef obj, uint area, float cost)
+            {
+                Obj = obj;
+                Area = area;
+                Cost = cost;
+            }
+        }
+
+        /// <summary>Foto do mundo usada numa decisão (só dados copiados da GameApi).</summary>
+        private sealed class WorldView
+        {
+            public uint Here;
+            public Dictionary<uint, AreaRoute> Routes;
+            public List<Candidate> Tables;
+            public List<Candidate> Pallets;
+            public List<Candidate> Crematoriums;
+            public List<Candidate> Graves;
+            public List<GroundItemRef> GroundBodies;
+        }
+
+        /// <summary>O que fazer agora (sem efeitos colaterais; PlanNext aplica).</summary>
+        private struct Decision
+        {
+            public DecisionKind Kind;
+            public Goal Goal;
+            public string Uid;
+            public Vector3 Pos;
+            public uint Area;
+            public bool Ground;
+            public string Body;
+            public string Part;
+            public string Text;   // motivo (Wait/Fail)
+        }
+
         private const float NearEnough = 2.2f;        // distância do ponto de parada considerada "cheguei"
         private const float AimTimeout = 2.5f;
         private const float InteractTimeout = 3f;
+        private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
+        private const float SameRoomDistance = 20f;  // objeto sem região conhecida mas perto = mesma sala
+        private const float IdleRecheckSeconds = 2f;
 
         private readonly Settings settings;
+        private readonly Navigator nav;
 
         // Memória entre objetivos (não depende de tipos do jogo).
         private readonly HashSet<string> autopsyDone = new HashSet<string>();        // corpos que já passaram pela mesa
-        private readonly HashSet<string> failedOrgans = new HashSet<string>();       // "corpo|órgão" que o jogo recusou
+        private readonly HashSet<string> failedParts = new HashSet<string>();         // "corpo|item" que o jogo recusou
+        private readonly HashSet<string> masterySkipLogged = new HashSet<string>();   // "corpo|item" pulado por maestria (log 1x)
         private int bodiesFinished;
 
         // Objetivo atual.
@@ -60,18 +117,27 @@ namespace AutoKeeper.Bot.Tasks
         private Vector3 targetPos;
         private Vector3 standSpot;
         private Vector2 standFacing;
-        private string organId;
+        private string partId;
         private string bodyUid;
         private float stepStartedAt;
+        private float moveTimeout;
         private int moveRetries;
         private int lastProgress;
         private float lastProgressAt;
         private bool planFailed;
         private bool nudged;
+        private uint doorFromArea;
+        private string travelPurpose;   // para o painel: o que o bot vai fazer do outro lado
+        private int travelDoors;
 
-        public ProcessBodiesTask(Settings settings)
+        // Ociosidade: não refazer o planejamento completo a cada tick.
+        private float idleCheckedAt = -999f;
+        private string idleReason;
+
+        public ProcessBodiesTask(Settings settings, Navigator nav)
         {
             this.settings = settings;
+            this.nav = nav;
         }
 
         public string Name => "Processar corpos";
@@ -91,27 +157,32 @@ namespace AutoKeeper.Bot.Tasks
                 reason = "desativada na config";
                 return false;
             }
-            if (GameApi.IsCarryingBody())
+            if (GameApi.IsCarryingBody() && !GameApi.CarriedBodyIsPlain())
             {
-                if (!GameApi.CarriedBodyIsPlain())
-                {
-                    reason = "carregando corpo de zumbi/demônio (fora do MVP)";
-                    return false;
-                }
-                reason = null;
-                return true;
+                reason = "carregando corpo de zumbi/demônio (fora do MVP)";
+                return false;
             }
-            if (GameApi.IsCarryingAnything())
+            if (!GameApi.IsCarryingBody() && GameApi.IsCarryingAnything())
             {
                 reason = "mãos ocupadas com outro item";
                 return false;
             }
+            if (idleReason != null && Now - idleCheckedAt < IdleRecheckSeconds)
+            {
+                reason = idleReason;
+                return false;
+            }
             if (PlanNext(dryRun: true))
             {
+                idleReason = null;
                 reason = null;
                 return true;
             }
-            reason = "sem corpos para processar por perto";
+            idleCheckedAt = Now;
+            idleReason = settings.TravelEnabled.Value
+                ? "sem corpos para processar (nem atrás das portas)"
+                : "sem corpos para processar nesta área (\"Ir sozinho até o trabalho\" está desligado)";
+            reason = idleReason;
             return false;
         }
 
@@ -155,121 +226,241 @@ namespace AutoKeeper.Bot.Tasks
             Status = "interrompido";
         }
 
-        // ------------------------------------------------------------------ planejamento
+        // ------------------------------------------------------------------ foto do mundo
+
+        private WorldView Look()
+        {
+            var w = new WorldView
+            {
+                Here = GameApi.GetPlayerNavArea(),
+            };
+            w.Routes = w.Here != 0 ? nav.ReachableAreas(settings.TravelEnabled.Value) : new Dictionary<uint, AreaRoute>();
+            w.Tables = Collect(ObjectKind.AutopsyTable, w);
+            w.Pallets = Collect(ObjectKind.MorguePallet, w);
+            w.Crematoriums = Collect(ObjectKind.Crematorium, w);
+            w.Graves = settings.Destination.Value == BodyDestination.Grave ? Collect(ObjectKind.EmptyGrave, w) : new List<Candidate>();
+            w.GroundBodies = GameApi.FindGroundBodies(Radius)
+                .Where(b => w.Here == 0 || GameApi.GetNavArea(b.Position) == w.Here)
+                .ToList();
+            return w;
+        }
+
+        /// <summary>Objetos do tipo alcançáveis (nesta área ou atrás de portas), do mais barato ao mais caro.</summary>
+        private List<Candidate> Collect(ObjectKind kind, WorldView w)
+        {
+            var list = new List<Candidate>();
+            foreach (WorldObjectRef o in GameApi.FindObjects(kind, float.MaxValue))
+            {
+                float straight = GameApi.DistanceTo(o.Position);
+                uint area = w.Here == 0 ? 0 : nav.AreaOf(o.Uid, o.Position);
+                if (area != 0 && w.Routes.TryGetValue(area, out AreaRoute route))
+                {
+                    list.Add(new Candidate(o, area, area == w.Here ? straight : Navigator.CostTo(route, o.Position)));
+                }
+                else if (straight <= SameRoomDistance || (w.Here == 0 && straight <= Radius))
+                {
+                    // Região desconhecida mas perto: mesma sala (comportamento da 0.2.x).
+                    list.Add(new Candidate(o, w.Here, straight));
+                }
+            }
+            list.Sort((a, b) => a.Cost.CompareTo(b.Cost));
+            return list;
+        }
+
+        // ------------------------------------------------------------------ decisão
 
         /// <summary>Escolhe o próximo objetivo a partir do estado do mundo. Em dryRun só responde se há o que fazer.</summary>
         private bool PlanNext(bool dryRun)
         {
-            bool wantsOrgans = settings.SelectedOrganTypes().Count > 0;
+            WorldView w = Look();
+            Decision d = Decide(w);
+            switch (d.Kind)
+            {
+                case DecisionKind.None:
+                    return false;
+                case DecisionKind.Fail:
+                    return dryRun || Fail(d.Text) != TaskResult.Failed;
+                case DecisionKind.Wait:
+                    if (IsRemote(w, d.Area))
+                    {
+                        return BeginTravel(dryRun, w, d, "esperar: " + d.Text);
+                    }
+                    return Wait(dryRun, d.Text);
+                default:
+                    if (IsRemote(w, d.Area))
+                    {
+                        return BeginTravel(dryRun, w, d, GoalText(d.Goal, d.Part));
+                    }
+                    return Begin(dryRun, d.Goal, d.Uid, d.Pos, d.Ground, d.Body, d.Part);
+            }
+        }
+
+        private static bool IsRemote(WorldView w, uint area) => w.Here != 0 && area != 0 && area != w.Here && w.Routes.ContainsKey(area);
+
+        private Decision Decide(WorldView w)
+        {
+            HashSet<string> organs = settings.SelectedOrganTypes();
+            HashSet<string> pockets = settings.SelectedPocketKinds();
+            bool wantsParts = organs.Count > 0 || pockets.Count > 0;
             BodyDestination dest = settings.Destination.Value;
-            List<WorldObjectRef> tables = GameApi.FindObjects(ObjectKind.AutopsyTable, Radius)
-                .Where(t => !GameApi.HasOtherWorker(t.Uid)) // mesa com zumbi/NPC trabalhando: não mexer
-                .ToList();
-            WorldObjectRef? crem = dest == BodyDestination.Crematorium ? FirstCrematorium() : null;
-            CraftState cremState = crem.HasValue ? GameApi.GetCraftState(crem.Value.Uid) : CraftState.Unknown;
-            bool cremFree = crem.HasValue && cremState == CraftState.Idle && !GameApi.ObjectHasBody(crem.Value.Uid);
+            List<Candidate> tables = w.Tables.Where(t => !GameApi.HasOtherWorker(t.Obj.Uid)).ToList(); // zumbi/NPC trabalhando: não mexer
+            Candidate? crem = dest == BodyDestination.Crematorium ? FirstFree(w.Crematoriums, c => !GameApi.HasOtherWorker(c.Obj.Uid)) : null;
+            CraftState cremState = crem.HasValue ? GameApi.GetCraftState(crem.Value.Obj.Uid) : CraftState.Unknown;
+            bool cremFree = crem.HasValue && cremState == CraftState.Idle && !GameApi.ObjectHasBody(crem.Value.Obj.Uid);
+            Candidate? grave = dest == BodyDestination.Grave
+                ? FirstFree(w.Graves, g => !GameApi.ObjectHasBody(g.Obj.Uid) && !GameApi.IsCraftActive(g.Obj.Uid) && !GameApi.HasOtherWorker(g.Obj.Uid))
+                : null;
+            Candidate? freeTable = FirstFree(tables, t => !GameApi.ObjectHasBody(t.Obj.Uid) && !GameApi.IsCraftActive(t.Obj.Uid));
 
             // 1) Carregando um corpo: mesa (se ainda não fez autópsia) ou destino.
             if (GameApi.IsCarryingBody())
             {
                 string carried = GameApi.GetCarriedBodyUid();
-                WorldObjectRef? freeTable = FirstFreeTable(tables);
-                if (wantsOrgans && carried != null && !autopsyDone.Contains(carried) && freeTable.HasValue)
+                if (wantsParts && carried != null && !autopsyDone.Contains(carried) && freeTable.HasValue)
                 {
-                    return Begin(dryRun, Goal.PutOnTable, freeTable.Value.Uid, freeTable.Value.Position, false, carried);
+                    return Act(Goal.PutOnTable, freeTable.Value, carried);
                 }
                 switch (dest)
                 {
                     case BodyDestination.Crematorium:
                         if (!crem.HasValue)
                         {
-                            return dryRun || Fail("carregando corpo, mas não há crematório nesta área") != TaskResult.Failed;
+                            return FailWith("carregando corpo, mas não achei crematório alcançável");
                         }
                         if (cremFree)
                         {
-                            return Begin(dryRun, Goal.Cremate, crem.Value.Uid, crem.Value.Position, false, carried);
+                            return Act(Goal.Cremate, crem.Value, carried);
                         }
-                        return Wait(dryRun, "aguardando o crematório ficar livre");
+                        return WaitAt(crem.Value.Area, "aguardando o crematório ficar livre");
                     case BodyDestination.Grave:
-                        WorldObjectRef? grave = FirstFreeGrave();
                         if (grave.HasValue)
                         {
-                            return Begin(dryRun, Goal.Bury, grave.Value.Uid, grave.Value.Position, false, carried);
+                            return Act(Goal.Bury, grave.Value, carried);
                         }
-                        return dryRun || Fail("carregando corpo, mas não há cova vazia (grave_empty) livre nesta área") != TaskResult.Failed;
+                        return FailWith("carregando corpo, mas não há cova vazia (grave_empty) livre alcançável");
                     default:
                         if (freeTable.HasValue)
                         {
-                            return Begin(dryRun, Goal.PutOnTable, freeTable.Value.Uid, freeTable.Value.Position, false, carried);
+                            return Act(Goal.PutOnTable, freeTable.Value, carried);
                         }
-                        return dryRun || Fail("carregando corpo, mas não há mesa de autópsia livre") != TaskResult.Failed;
+                        return FailWith("carregando corpo, mas não há mesa de autópsia livre");
                 }
             }
 
             // 2) Crematório terminou: recolher o resultado antes de qualquer coisa (libera para o próximo corpo).
             if (crem.HasValue && cremState == CraftState.ReadyToCollect)
             {
-                return Begin(dryRun, Goal.CollectCrematorium, crem.Value.Uid, crem.Value.Position, false, null);
+                return Act(Goal.CollectCrematorium, crem.Value, null);
             }
 
             // 3) Mesas com corpo comum.
-            foreach (WorldObjectRef t in tables)
+            foreach (Candidate t in tables)
             {
-                if (!GameApi.ObjectHasPlainBody(t.Uid))
+                string uid = t.Obj.Uid;
+                if (!GameApi.ObjectHasPlainBody(uid))
                 {
                     continue;
                 }
-                string body = GameApi.GetBodyUidInObject(t.Uid);
+                string body = GameApi.GetBodyUidInObject(uid);
 
                 // 3a) Receita em andamento (extração): trabalhar nela.
-                if (GameApi.IsCraftActive(t.Uid))
+                if (GameApi.IsCraftActive(uid))
                 {
-                    return Begin(dryRun, Goal.ExtractOrgan, t.Uid, t.Position, false, body, organ: null);
+                    return Act(Goal.ExtractOrgan, t, body);
                 }
 
-                // 3b) Ainda há órgão desejado para extrair.
-                if (wantsOrgans && body != null && !autopsyDone.Contains(body))
+                // 3b) Ainda há órgão / item de "Outros" desejado para extrair.
+                if (wantsParts && body != null && !autopsyDone.Contains(body))
                 {
-                    string organ = NextOrgan(t.Uid, body);
+                    string organ = NextPart(uid, GameApi.GetExtractableOrgans(uid, false, organs), body, pocket: false);
                     if (organ != null)
                     {
-                        return Begin(dryRun, Goal.ExtractOrgan, t.Uid, t.Position, false, body, organ);
+                        return Act(Goal.ExtractOrgan, t, body, organ);
+                    }
+                    string pocket = NextPart(uid, GameApi.GetExtractablePocketItems(uid, pockets), body, pocket: true);
+                    if (pocket != null)
+                    {
+                        return Act(Goal.ExtractPocket, t, body, pocket);
                     }
                 }
 
                 // 3c) Autópsia concluída: tirar da mesa só se o destino estiver disponível agora.
-                bool destReady = (dest == BodyDestination.Crematorium && cremFree)
-                    || (dest == BodyDestination.Grave && FirstFreeGrave().HasValue);
+                bool destReady = (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
                 if (destReady)
                 {
-                    return Begin(dryRun, Goal.TakeBody, t.Uid, t.Position, false, body);
+                    return Act(Goal.TakeBody, t, body);
                 }
             }
 
             // 4) Buscar um corpo novo (palete primeiro, depois chão) se houver mesa livre
             //    ou, sem autópsia, se o destino estiver disponível.
-            bool canReceive = wantsOrgans
-                ? FirstFreeTable(tables).HasValue
-                : (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && FirstFreeGrave().HasValue);
+            bool canReceive = wantsParts
+                ? freeTable.HasValue
+                : (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
             if (!canReceive)
             {
-                return false;
+                return default;
             }
-            foreach (WorldObjectRef pallet in GameApi.FindObjects(ObjectKind.MorguePallet, Radius))
+            foreach (Candidate pallet in w.Pallets)
             {
-                if (GameApi.ObjectHasPlainBody(pallet.Uid))
+                if (GameApi.ObjectHasPlainBody(pallet.Obj.Uid))
                 {
-                    return Begin(dryRun, Goal.PickUpFromPallet, pallet.Uid, pallet.Position, false, null);
+                    return Act(Goal.PickUpFromPallet, pallet, null);
                 }
             }
-            List<GroundItemRef> bodies = GameApi.FindGroundBodies(Radius);
-            if (bodies.Count > 0)
+            if (w.GroundBodies.Count > 0)
             {
-                GroundItemRef b = bodies[0];
-                return Begin(dryRun, Goal.PickUpBody, b.Uid, b.Position, true, null);
+                GroundItemRef b = w.GroundBodies[0];
+                return new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = w.Here, Ground = true };
             }
-            return false;
+            return default;
         }
+
+        private static Candidate? FirstFree(List<Candidate> list, Func<Candidate, bool> ok)
+        {
+            foreach (Candidate c in list)
+            {
+                if (ok(c))
+                {
+                    return c;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>Próximo item a extrair: pula os que o jogo recusou e, com "Só extrair com maestria", os de chance baixa.</summary>
+        private string NextPart(string tableUid, List<string> candidates, string body, bool pocket)
+        {
+            foreach (string id in candidates)
+            {
+                string key = body + "|" + id;
+                if (failedParts.Contains(key))
+                {
+                    continue;
+                }
+                if (settings.RequireMastery.Value)
+                {
+                    ExtractMastery m = GameApi.GetExtractMastery(tableUid, id, pocket);
+                    if (m.ChancePercent < settings.MinMasteryChance.Value)
+                    {
+                        if (masterySkipLogged.Add(key))
+                        {
+                            ModLog.Info($"Corpos: pulando {id} — {m}, abaixo do mínimo de {settings.MinMasteryChance.Value}%");
+                        }
+                        continue;
+                    }
+                }
+                return id;
+            }
+            return null;
+        }
+
+        private static Decision Act(Goal g, Candidate c, string body, string part = null)
+            => new Decision { Kind = DecisionKind.Act, Goal = g, Uid = c.Obj.Uid, Pos = c.Obj.Position, Area = c.Area, Body = body, Part = part };
+
+        private static Decision WaitAt(uint area, string why) => new Decision { Kind = DecisionKind.Wait, Area = area, Text = why };
+
+        private static Decision FailWith(string why) => new Decision { Kind = DecisionKind.Fail, Text = why };
 
         /// <summary>Nada a fazer agora, mas a tarefa continua ativa (ex.: esperando o crematório).</summary>
         private bool Wait(bool dryRun, string why)
@@ -285,56 +476,29 @@ namespace AutoKeeper.Bot.Tasks
             return true;
         }
 
-        private WorldObjectRef? FirstCrematorium()
+        // ------------------------------------------------------------------ início de objetivo
+
+        /// <summary>O alvo fica em outra área: o objetivo agora é usar a primeira porta do caminho.</summary>
+        private bool BeginTravel(bool dryRun, WorldView w, Decision d, string purpose)
         {
-            foreach (WorldObjectRef c in GameApi.FindObjects(ObjectKind.Crematorium, Radius))
+            AreaRoute route = w.Routes[d.Area];
+            if (!route.HasDoor)
             {
-                if (!GameApi.HasOtherWorker(c.Uid))
-                {
-                    return c;
-                }
+                return false;
             }
-            return null;
+            if (dryRun)
+            {
+                return true;
+            }
+            DoorRef door = route.FirstDoor;
+            travelPurpose = purpose;
+            travelDoors = route.Doors;
+            doorFromArea = w.Here;
+            ModLog.Info($"Corpos: \"{purpose}\" fica em outra área — indo pela porta \"{door.Label}\" ({route.Doors} porta(s) no caminho, ~{route.Cost:0} m)");
+            return Begin(false, Goal.UseDoor, door.Uid, door.Position, false, null, null);
         }
 
-        private static WorldObjectRef? FirstFreeTable(List<WorldObjectRef> tables)
-        {
-            foreach (WorldObjectRef t in tables)
-            {
-                if (!GameApi.ObjectHasBody(t.Uid) && !GameApi.IsCraftActive(t.Uid))
-                {
-                    return t;
-                }
-            }
-            return null;
-        }
-
-        private WorldObjectRef? FirstFreeGrave()
-        {
-            foreach (WorldObjectRef g in GameApi.FindObjects(ObjectKind.EmptyGrave, Radius))
-            {
-                if (!GameApi.ObjectHasBody(g.Uid) && !GameApi.IsCraftActive(g.Uid) && !GameApi.HasOtherWorker(g.Uid))
-                {
-                    return g;
-                }
-            }
-            return null;
-        }
-
-        private string NextOrgan(string tableUid, string body)
-        {
-            HashSet<string> allowed = settings.SelectedOrganTypes();
-            foreach (string organ in GameApi.GetExtractableOrgans(tableUid, false, allowed))
-            {
-                if (!failedOrgans.Contains(body + "|" + organ))
-                {
-                    return organ;
-                }
-            }
-            return null;
-        }
-
-        private bool Begin(bool dryRun, Goal g, string uid, Vector3 pos, bool ground, string body, string organ = null)
+        private bool Begin(bool dryRun, Goal g, string uid, Vector3 pos, bool ground, string body, string part)
         {
             if (dryRun)
             {
@@ -345,8 +509,12 @@ namespace AutoKeeper.Bot.Tasks
             targetPos = pos;
             targetIsGround = ground;
             bodyUid = body;
-            organId = organ;
+            partId = part;
             moveRetries = 0;
+            if (g != Goal.UseDoor)
+            {
+                travelPurpose = null;
+            }
 
             if (ground)
             {
@@ -357,16 +525,22 @@ namespace AutoKeeper.Bot.Tasks
             {
                 return Fail($"alvo {WorldObjectRef.ShortUid(uid)} sumiu") != TaskResult.Failed;
             }
+            if (g == Goal.UseDoor && standFacing == Vector2.zero)
+            {
+                standSpot = GameApi.GetNearestWalkablePoint(standSpot); // a porta fica na parede, fora do navmesh
+            }
 
             ModLog.Info($"Corpos: objetivo {GoalText()}");
             GoTo(Step.Move);
-            if (GameApi.DistanceTo(standSpot) <= NearEnough)
+            float dist = GameApi.DistanceTo(standSpot);
+            moveTimeout = Mathf.Max(settings.MoveTimeoutSeconds.Value, dist / 3.3f * 2f + 10f);
+            if (dist <= NearEnough)
             {
                 GoTo(Step.Aim); // já está perto
             }
             else if (!GameApi.StartMoveTo(standSpot))
             {
-                return Fail("o jogo recusou o caminho até o alvo") != TaskResult.Failed;
+                return FailOrSkipDoor("o jogo recusou o caminho até o alvo");
             }
             return true;
         }
@@ -380,9 +554,9 @@ namespace AutoKeeper.Bot.Tasks
                 GameApi.StopMoving();
                 return Replan(gone);
             }
-            Status = $"{GoalText()}: andando ({GameApi.DistanceTo(standSpot):0.0} m)";
-            MoveState ms = GameApi.GetMoveState();
             float dist = GameApi.DistanceTo(standSpot);
+            Status = $"{GoalText()}: andando ({dist:0.0} m)";
+            MoveState ms = GameApi.GetMoveState();
 
             if (ms == MoveState.Arrived || dist <= 0.35f)
             {
@@ -401,18 +575,18 @@ namespace AutoKeeper.Bot.Tasks
                 if (moveRetries++ < MaxMoveRetries)
                 {
                     // Tenta de novo; na 2ª vez mira direto no objeto em vez do ponto de parada.
-                    Vector3 dest = moveRetries == 2 ? targetPos : standSpot;
+                    Vector3 dest = moveRetries == 2 && goal != Goal.UseDoor ? targetPos : standSpot;
                     ModLog.Debug($"Movimento falhou; nova tentativa {moveRetries} para {dest}");
                     GameApi.StartMoveTo(dest);
                     stepStartedAt = Now;
                     return TaskResult.Running;
                 }
-                return Fail("não achei caminho até o alvo");
+                return FailOrSkipDoorResult("não achei caminho até o alvo");
             }
-            if (Now - stepStartedAt > settings.MoveTimeoutSeconds.Value)
+            if (Now - stepStartedAt > moveTimeout)
             {
                 GameApi.StopMoving();
-                return Fail("demorei demais andando até o alvo");
+                return FailOrSkipDoorResult("demorei demais andando até o alvo");
             }
             return TaskResult.Running;
         }
@@ -425,7 +599,7 @@ namespace AutoKeeper.Bot.Tasks
             }
 
             // Objetivos sem tecla: autópsia/tirar corpo/enterro usam a ação de UI direto (perto do objeto).
-            if (goal == Goal.ExtractOrgan || goal == Goal.TakeBody || goal == Goal.Bury)
+            if (goal == Goal.ExtractOrgan || goal == Goal.ExtractPocket || goal == Goal.TakeBody || goal == Goal.Bury)
             {
                 FaceTarget();
                 GoTo(Step.Act);
@@ -459,7 +633,7 @@ namespace AutoKeeper.Bot.Tasks
             if (Now - stepStartedAt > AimTimeout)
             {
                 GameApi.StopMoving();
-                return Fail($"não consegui mirar no alvo (o jogo mira em: {GameApi.DescribeInteractionTarget()})");
+                return FailOrSkipDoorResult($"não consegui mirar no alvo (o jogo mira em: {GameApi.DescribeInteractionTarget()})");
             }
             return TaskResult.Running;
         }
@@ -470,8 +644,6 @@ namespace AutoKeeper.Bot.Tasks
             switch (goal)
             {
                 case Goal.PickUpBody:
-                    done = GameApi.IsCarryingBody();
-                    break;
                 case Goal.PickUpFromPallet:
                     done = GameApi.IsCarryingBody();
                     break;
@@ -492,6 +664,15 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.CollectCrematorium:
                     done = GameApi.GetCraftState(targetUid) != CraftState.ReadyToCollect;
                     break;
+                case Goal.UseDoor:
+                    // Normalmente o jogo tira o controle (fade) e o bot pausa antes disso; aqui é o caso sem fade.
+                    uint now = GameApi.GetPlayerNavArea();
+                    done = (now != 0 && now != doorFromArea) || GameApi.DistanceTo(targetPos) > 10f;
+                    if (!done && Now - stepStartedAt > DoorTimeout)
+                    {
+                        return SkipDoor("a porta não levou a lugar nenhum");
+                    }
+                    break;
                 default:
                     done = true;
                     break;
@@ -501,7 +682,7 @@ namespace AutoKeeper.Bot.Tasks
                 ModLog.Info($"Corpos: {GoalText()} — ok");
                 return Replan(null);
             }
-            if (Now - stepStartedAt > InteractTimeout)
+            if (goal != Goal.UseDoor && Now - stepStartedAt > InteractTimeout)
             {
                 return Fail($"a interação não teve efeito (alvo: {GameApi.DescribeInteractionTarget()})");
             }
@@ -514,20 +695,31 @@ namespace AutoKeeper.Bot.Tasks
             switch (goal)
             {
                 case Goal.ExtractOrgan:
-                    if (organId == null)
+                    if (partId == null)
                     {
                         // Receita já estava em andamento: só trabalhar.
                         StartWork();
                         return TaskResult.Running;
                     }
-                    if (GameApi.StartAutopsyExtract(targetUid, organId, out reason))
+                    if (GameApi.StartAutopsyExtract(targetUid, partId, out reason))
                     {
-                        ModLog.Info($"Corpos: extraindo {organId}");
+                        ModLog.Info($"Corpos: extraindo {partId}");
                         StartWork();
                         return TaskResult.Running;
                     }
-                    failedOrgans.Add(bodyUid + "|" + organId);
-                    ModLog.Warn($"Corpos: não deu para extrair {organId}: {reason}. Pulando esse órgão.");
+                    failedParts.Add(bodyUid + "|" + partId);
+                    ModLog.Warn($"Corpos: não deu para extrair {partId}: {reason}. Pulando esse órgão.");
+                    return Replan(null);
+
+                case Goal.ExtractPocket:
+                    if (GameApi.StartPocketExtract(targetUid, partId, out reason))
+                    {
+                        ModLog.Info($"Corpos: tirando {partId} (Outros)");
+                        StartWork();
+                        return TaskResult.Running;
+                    }
+                    failedParts.Add(bodyUid + "|" + partId);
+                    ModLog.Warn($"Corpos: não deu para tirar {partId}: {reason}. Pulando esse item.");
                     return Replan(null);
 
                 case Goal.TakeBody:
@@ -636,6 +828,18 @@ namespace AutoKeeper.Bot.Tasks
             return reason == null;
         }
 
+        /// <summary>Porta que não funcionou: marca como quebrada e tenta outra rota, em vez de desligar o bot.</summary>
+        private TaskResult SkipDoor(string why)
+        {
+            ModLog.Warn($"Corpos: porta {WorldObjectRef.ShortUid(targetUid)} ignorada nesta sessão — {why}");
+            nav.MarkDoorBroken(targetUid);
+            return Replan(null);
+        }
+
+        private TaskResult FailOrSkipDoorResult(string why) => goal == Goal.UseDoor ? SkipDoor(why) : Fail(why);
+
+        private bool FailOrSkipDoor(string why) => FailOrSkipDoorResult(why) != TaskResult.Failed;
+
         private TaskResult Replan(string why)
         {
             if (why != null)
@@ -651,7 +855,6 @@ namespace AutoKeeper.Bot.Tasks
         {
             planFailed = true;
             GameApi.ReleaseAllVirtualKeys();
-            Status = why;
             ModLog.Warn($"Corpos: {GoalText()} falhou — {why}");
             ResetGoal();
             Status = why;
@@ -663,7 +866,7 @@ namespace AutoKeeper.Bot.Tasks
             goal = Goal.None;
             step = Step.Plan;
             targetUid = null;
-            organId = null;
+            partId = null;
             bodyUid = null;
         }
 
@@ -674,18 +877,24 @@ namespace AutoKeeper.Bot.Tasks
             nudged = false;
         }
 
-        private string GoalText()
+        private string GoalText() => goal == Goal.UseDoor
+            ? $"atravessar porta ({travelDoors} no caminho) para {travelPurpose}"
+            : GoalText(goal, partId);
+
+        private static string GoalText(Goal g, string part)
         {
-            switch (goal)
+            switch (g)
             {
                 case Goal.PickUpBody: return "pegar corpo do chão";
                 case Goal.PutOnTable: return "colocar corpo na mesa";
-                case Goal.ExtractOrgan: return organId != null ? $"extrair {organId}" : "continuar autópsia";
+                case Goal.ExtractOrgan: return part != null ? $"extrair {part}" : "continuar autópsia";
+                case Goal.ExtractPocket: return $"tirar {part}";
                 case Goal.TakeBody: return "tirar corpo da mesa";
                 case Goal.Bury: return "enterrar corpo";
                 case Goal.PickUpFromPallet: return "pegar corpo do palete";
                 case Goal.Cremate: return "levar corpo ao crematório";
                 case Goal.CollectCrematorium: return "recolher o crematório";
+                case Goal.UseDoor: return "atravessar porta";
                 default: return "-";
             }
         }
