@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-09-29
+
+### Corrigido
+- Divisor da janela de configurações: altura e largura explícitas (antes ocupava espaço demais).
+
 ## [0.2.4] - 2026-09-29
 
 ### Alterado

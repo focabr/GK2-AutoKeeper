@@ -424,14 +424,20 @@ namespace AutoKeeper.UI
             b.Draw(new UIDialogWindowData.ButtonData(onPressed, text, null, false, GameKey.None, text));
         }
 
-        /// <summary>Linha dourada fina com espaço acima e abaixo (cor da barra de título do jogo).</summary>
+        /// <summary>
+        /// Linha dourada fina com um pouco de espaço acima e abaixo. A altura/largura vêm do sizeDelta
+        /// (o layout do jogo não usa LayoutElement); 310 de largura = a mesma das linhas "◀ valor ▶".
+        /// </summary>
         private void AddDivider()
         {
             var go = new GameObject("AK_Divider", typeof(RectTransform));
             go.transform.SetParent(content, false);
+            ((RectTransform)go.transform).sizeDelta = new Vector2(310f, 14f);
             LayoutElement le = go.AddComponent<LayoutElement>();
-            le.minHeight = 26f;
-            le.preferredHeight = 26f;
+            le.minHeight = 14f;
+            le.preferredHeight = 14f;
+            le.minWidth = 310f;
+            le.preferredWidth = 310f;
 
             var line = new GameObject("Line", typeof(RectTransform));
             line.transform.SetParent(go.transform, false);
@@ -439,11 +445,11 @@ namespace AutoKeeper.UI
             img.color = new Color(0.72f, 0.55f, 0.24f, 0.85f);
             img.raycastTarget = false;
             var rt = (RectTransform)line.transform;
-            rt.anchorMin = new Vector2(0.06f, 0.5f);
-            rt.anchorMax = new Vector2(0.94f, 0.5f);
+            rt.anchorMin = new Vector2(0f, 0.5f);
+            rt.anchorMax = new Vector2(1f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(0f, 2f);
+            rt.sizeDelta = new Vector2(0f, 1.5f);
             built.Add(go);
         }
 
