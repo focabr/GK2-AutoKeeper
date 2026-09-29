@@ -109,6 +109,9 @@ namespace AutoKeeper.Config
         public ConfigEntry<bool> ExtractBlood { get; }
         public ConfigEntry<bool> ExtractOtherPocket { get; }
         public ConfigEntry<float> SearchRadius { get; }
+        public ConfigEntry<bool> CheckCrematoriumFirst { get; }
+        public ConfigEntry<bool> UseChest { get; }
+        public ConfigEntry<int> ChestFreeSlots { get; }
         public ConfigEntry<string> GraveCraftId { get; }
 
         // [Overlay]
@@ -200,6 +203,18 @@ namespace AutoKeeper.Config
                 "Raio para corpos no chão (m)", "Ground body radius (m)",
                 "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
                 "Maximum distance to pick up loose bodies from the ground. Pallets, tables and crematorium are found anywhere reachable.");
+            CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
+                "Checar o crematório primeiro", "Check crematorium first",
+                "Ao chegar no necrotério, o bot vai ao crematório antes de começar e recolhe o que estiver pronto.",
+                "On arriving at the morgue, the bot visits the crematorium before starting and collects anything ready.");
+            UseChest = Toggle(config, SettingTab.Bodies, "Bodies", "UseChest", true,
+                "Guardar no baú se encher", "Store in chest when full",
+                "Com o inventário quase cheio, leva ao baú mais próximo SÓ o que o bot recolheu (extrações e crematório). O resto do inventário nunca é mexido.",
+                "When the inventory is nearly full, moves ONLY what the bot collected (extractions and crematorium) to the nearest chest. The rest of your inventory is never touched.");
+            ChestFreeSlots = SliderInt(config, SettingTab.Bodies, "Bodies", "ChestFreeSlots", 3, 1, 10,
+                "Guardar com menos de (espaços)", "Store when free slots below",
+                "Vai ao baú quando sobrarem menos espaços livres que isso no inventário.",
+                "Goes to the chest when fewer free inventory slots than this remain.");
 
             // ---------------------------------------------------------------- Teclas
             ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),

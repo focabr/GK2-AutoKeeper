@@ -47,9 +47,13 @@ namespace AutoKeeper.Bot
         private float doorsCachedAt = -999f;
         private string cachedScene;
 
+        /// <summary>Aumenta a cada religada do bot; tarefas usam para saber que devem refazer verificações iniciais.</summary>
+        public int Generation { get; private set; }
+
         /// <summary>Esquece caches (ex.: ao religar o bot).</summary>
         public void Reset()
         {
+            Generation++;
             doorsCachedAt = -999f;
             brokenDoors.Clear();
             areaByUid.Clear();

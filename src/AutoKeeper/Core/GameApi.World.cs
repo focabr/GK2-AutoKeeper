@@ -12,6 +12,7 @@ namespace AutoKeeper.Core
         EmptyGrave,
         MorguePallet,
         Crematorium,
+        Chest,
     }
 
     /// <summary>Estado resumido da receita de um objeto (sem expor o enum do jogo ao bot).</summary>
@@ -202,6 +203,12 @@ namespace AutoKeeper.Core
                     return w.Definition.wgoGroup == "morgue_pallets"; // pallet_corpse_1/2 (dump 1.007)
                 case ObjectKind.Crematorium:
                     return w.Definition.interactionType == WGODef.InteractionType.Crematorium;
+                case ObjectKind.Chest:
+                    return w.Definition.interactionType == WGODef.InteractionType.Chest
+                        && w.Definition.inventorySize > 0
+                        && w.Definition.conveyorType == ConveyorElementType.None // baús de esteira/jardim/vinho são outra coisa
+                        && string.IsNullOrEmpty(w.CustomTag)                    // baús de missão (ex.: chest_resurrection) têm tag
+                        && !w.id.StartsWith("garden_bags_storage");
                 default:
                     return false;
             }

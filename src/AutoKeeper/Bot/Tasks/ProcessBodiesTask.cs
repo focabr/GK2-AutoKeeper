@@ -31,6 +31,8 @@ namespace AutoKeeper.Bot.Tasks
             Cremate,
             CollectCrematorium,
             UseDoor,
+            InspectCrematorium,
+            DepositChest,
         }
 
         private enum Step
@@ -76,6 +78,7 @@ namespace AutoKeeper.Bot.Tasks
             public List<Candidate> Crematoriums;
             public List<Candidate> Graves;
             public List<GroundItemRef> GroundBodies;
+            public List<Candidate> Chests;
         }
 
         /// <summary>O que fazer agora (sem efeitos colaterais; PlanNext aplica).</summary>
@@ -108,6 +111,15 @@ namespace AutoKeeper.Bot.Tasks
         private readonly HashSet<string> failedParts = new HashSet<string>();         // "corpo|item" que o jogo recusou
         private readonly HashSet<string> masterySkipLogged = new HashSet<string>();   // "corpo|item" pulado por maestria (log 1x)
         private int bodiesFinished;
+
+        // Crematório: checar ao chegar; baú: só o que o bot recolheu (extração/crematório).
+        private readonly HashSet<string> checkedCrem = new HashSet<string>();
+        private readonly HashSet<string> failedChests = new HashSet<string>();
+        private readonly Dictionary<string, int> ledger = new Dictionary<string, int>();   // itemId → unidades recolhidas pelo bot
+        private Dictionary<string, int> invBefore;                                          // foto do inventário antes de extrair/recolher
+        private uint prevHere;
+        private int seenGeneration = -1;
+        private bool chestWarned;
 
         // Objetivo atual.
         private Goal goal;
@@ -234,11 +246,28 @@ namespace AutoKeeper.Bot.Tasks
             {
                 Here = GameApi.GetPlayerNavArea(),
             };
+            if (seenGeneration != nav.Generation)
+            {
+                seenGeneration = nav.Generation;
+                checkedCrem.Clear();   // bot religado: checa o crematório de novo
+                failedChests.Clear();
+                chestWarned = false;
+            }
+            if (w.Here != 0 && w.Here != prevHere)
+            {
+                if (prevHere != 0)
+                {
+                    checkedCrem.Clear();   // chegou noutra área: checa o crematório de novo
+                }
+                prevHere = w.Here;
+            }
             w.Routes = w.Here != 0 ? nav.ReachableAreas(settings.TravelEnabled.Value) : new Dictionary<uint, AreaRoute>();
             w.Tables = Collect(ObjectKind.AutopsyTable, w);
             w.Pallets = Collect(ObjectKind.MorguePallet, w);
             w.Crematoriums = Collect(ObjectKind.Crematorium, w);
             w.Graves = settings.Destination.Value == BodyDestination.Grave ? Collect(ObjectKind.EmptyGrave, w) : new List<Candidate>();
+            bool wantsChest = settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value;
+            w.Chests = wantsChest ? Collect(ObjectKind.Chest, w) : new List<Candidate>();
             w.GroundBodies = GameApi.FindGroundBodies(Radius)
                 .Where(b => w.Here == 0 || GameApi.GetNavArea(b.Position) == w.Here)
                 .ToList();
@@ -297,7 +326,56 @@ namespace AutoKeeper.Bot.Tasks
 
         private static bool IsRemote(WorldView w, uint area) => w.Here != 0 && area != 0 && area != w.Here && w.Routes.ContainsKey(area);
 
+        private int LedgerTotal()
+        {
+            int n = 0;
+            foreach (int c in ledger.Values)
+            {
+                n += c;
+            }
+            return n;
+        }
+
+        /// <summary>Regras de "antes de tudo" (checar crematório, guardar no baú) por cima do plano normal.</summary>
         private Decision Decide(WorldView w)
+        {
+            Decision d = DecideCore(w);
+            if (d.Kind == DecisionKind.None || d.Kind == DecisionKind.Fail || GameApi.IsCarryingBody())
+            {
+                return d;
+            }
+
+            // Ao chegar no necrotério: passa no crematório antes de começar (recolhe o que estiver pronto).
+            if (settings.CheckCrematoriumFirst.Value && settings.Destination.Value == BodyDestination.Crematorium
+                && d.Goal != Goal.CollectCrematorium)
+            {
+                Candidate? crem = FirstFree(w.Crematoriums, c => !GameApi.HasOtherWorker(c.Obj.Uid) && !checkedCrem.Contains(c.Obj.Uid));
+                if (crem.HasValue)
+                {
+                    return Act(Goal.InspectCrematorium, crem.Value, null);
+                }
+            }
+
+            // Inventário quase cheio: leva ao baú só o que o bot recolheu.
+            if (settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value)
+            {
+                // Prefere o baú que já guarda esses itens (o "baú de guardar" do necrotério); senão o mais perto que aceite.
+                Func<Candidate, bool> usable = c => !failedChests.Contains(c.Obj.Uid) && GameApi.ChestCanTakeAny(c.Obj.Uid, ledger.Keys);
+                Candidate? chest = FirstFree(w.Chests, c => usable(c) && GameApi.ChestHasAny(c.Obj.Uid, ledger.Keys)) ?? FirstFree(w.Chests, usable);
+                if (chest.HasValue)
+                {
+                    return Act(Goal.DepositChest, chest.Value, null);
+                }
+                if (!chestWarned)
+                {
+                    chestWarned = true;
+                    ModLog.Warn("Baú: inventário quase cheio, mas não achei baú alcançável que aceite os itens do bot.");
+                }
+            }
+            return d;
+        }
+
+        private Decision DecideCore(WorldView w)
         {
             HashSet<string> organs = settings.SelectedOrganTypes();
             HashSet<string> pockets = settings.SelectedPocketKinds();
@@ -515,6 +593,9 @@ namespace AutoKeeper.Bot.Tasks
             {
                 travelPurpose = null;
             }
+            invBefore = g == Goal.ExtractOrgan || g == Goal.ExtractPocket || g == Goal.CollectCrematorium
+                ? GameApi.SnapshotPlayerItems()
+                : null;
 
             if (ground)
             {
@@ -598,8 +679,15 @@ namespace AutoKeeper.Bot.Tasks
                 return Replan(gone);
             }
 
-            // Objetivos sem tecla: autópsia/tirar corpo/enterro usam a ação de UI direto (perto do objeto).
-            if (goal == Goal.ExtractOrgan || goal == Goal.ExtractPocket || goal == Goal.TakeBody || goal == Goal.Bury)
+            if (goal == Goal.InspectCrematorium)
+            {
+                checkedCrem.Add(targetUid);
+                ModLog.Info($"Corpos: crematório checado — estado: {GameApi.GetCraftState(targetUid)}");
+                return Replan(null); // se estiver pronto, o próximo plano recolhe
+            }
+
+            // Objetivos sem tecla: autópsia/tirar corpo/enterro/baú usam a ação de UI direto (perto do objeto).
+            if (goal == Goal.DepositChest || goal == Goal.ExtractOrgan || goal == Goal.ExtractPocket || goal == Goal.TakeBody || goal == Goal.Bury)
             {
                 FaceTarget();
                 GoTo(Step.Act);
@@ -679,6 +767,10 @@ namespace AutoKeeper.Bot.Tasks
             }
             if (done)
             {
+                if (goal == Goal.CollectCrematorium)
+                {
+                    CreditCollected();
+                }
                 ModLog.Info($"Corpos: {GoalText()} — ok");
                 return Replan(null);
             }
@@ -722,6 +814,9 @@ namespace AutoKeeper.Bot.Tasks
                     ModLog.Warn($"Corpos: não deu para tirar {partId}: {reason}. Pulando esse item.");
                     return Replan(null);
 
+                case Goal.DepositChest:
+                    return DepositNow();
+
                 case Goal.TakeBody:
                     if (GameApi.TakeBodyFromTable(targetUid, out reason))
                     {
@@ -753,6 +848,46 @@ namespace AutoKeeper.Bot.Tasks
             }
         }
 
+        private TaskResult DepositNow()
+        {
+            Dictionary<string, int> moved = GameApi.DepositToChest(targetUid, new Dictionary<string, int>(ledger), out string reason);
+            if (moved.Count == 0)
+            {
+                failedChests.Add(targetUid);
+                ModLog.Warn($"Baú: nada foi guardado ({reason}). Não uso esse baú de novo até religar o bot.");
+                return Replan(null);
+            }
+            foreach (KeyValuePair<string, int> kv in moved)
+            {
+                ledger.TryGetValue(kv.Key, out int have);
+                int left = have - kv.Value;
+                if (left > 0) { ledger[kv.Key] = left; } else { ledger.Remove(kv.Key); }
+            }
+            ModLog.Info("Baú: guardado " + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}")) + $" (livres agora: {GameApi.PlayerFreeSlots()})");
+            return Replan(null);
+        }
+
+        /// <summary>Soma ao registro o que entrou no inventário desde a foto (o que o bot recolheu).</summary>
+        private void CreditCollected()
+        {
+            if (invBefore == null)
+            {
+                return;
+            }
+            Dictionary<string, int> after = GameApi.SnapshotPlayerItems();
+            foreach (KeyValuePair<string, int> kv in after)
+            {
+                invBefore.TryGetValue(kv.Key, out int before);
+                int gained = kv.Value - before;
+                if (gained > 0)
+                {
+                    ledger.TryGetValue(kv.Key, out int have);
+                    ledger[kv.Key] = have + gained;
+                }
+            }
+            invBefore = null;
+        }
+
         private void StartWork()
         {
             FaceTarget();
@@ -779,6 +914,7 @@ namespace AutoKeeper.Bot.Tasks
                     return TaskResult.Succeeded; // um ciclo completo
                 }
                 ModLog.Info($"Corpos: {GoalText()} concluído");
+                CreditCollected();
                 return Replan(null);
             }
 
@@ -895,6 +1031,8 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.Cremate: return "levar corpo ao crematório";
                 case Goal.CollectCrematorium: return "recolher o crematório";
                 case Goal.UseDoor: return "atravessar porta";
+                case Goal.InspectCrematorium: return "checar o crematório";
+                case Goal.DepositChest: return "guardar itens no baú";
                 default: return "-";
             }
         }

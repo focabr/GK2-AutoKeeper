@@ -4,6 +4,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-09-29
+
+### Adicionado
+- **Checar o crematório primeiro** (`[Bodies] CheckCrematoriumFirst`, padrão ligado): ao chegar numa área com crematório o bot passa por ele antes de começar e recolhe o que estiver pronto.
+- **Guardar no baú** (`[Bodies] UseChest`, `ChestFreeSlots`): com poucos espaços livres, leva ao baú SÓ o que o bot recolheu (extrações e crematório; registro por diferença do inventário). Prefere o baú que já guarda esses itens; ignora baús de missão, de esteira e de jardim.
+
 ## [0.2.5] - 2026-09-29
 
 ### Corrigido
