@@ -13,6 +13,7 @@ namespace AutoKeeper.Core
         MorguePallet,
         Crematorium,
         Chest,
+        GraveBody,
     }
 
     /// <summary>Estado resumido da receita de um objeto (sem expor o enum do jogo ao bot).</summary>
@@ -203,6 +204,8 @@ namespace AutoKeeper.Core
                     return w.Definition.wgoGroup == "morgue_pallets"; // pallet_corpse_1/2 (dump 1.007)
                 case ObjectKind.Crematorium:
                     return w.Definition.interactionType == WGODef.InteractionType.Crematorium;
+                case ObjectKind.GraveBody:
+                    return w.id == "grave_body"; // cova com corpo ainda por fechar (trabalho com pá)
                 case ObjectKind.Chest:
                     return w.Definition.interactionType == WGODef.InteractionType.Chest
                         && w.Definition.inventorySize > 0

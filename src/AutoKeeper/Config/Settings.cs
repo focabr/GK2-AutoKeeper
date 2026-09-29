@@ -112,7 +112,6 @@ namespace AutoKeeper.Config
         public ConfigEntry<bool> CheckCrematoriumFirst { get; }
         public ConfigEntry<bool> UseChest { get; }
         public ConfigEntry<int> ChestFreeSlots { get; }
-        public ConfigEntry<string> GraveCraftId { get; }
 
         // [Overlay]
         public ConfigEntry<bool> ShowOverlay { get; }
@@ -155,8 +154,8 @@ namespace AutoKeeper.Config
                 "Pallet → autopsy table → extract organs → destination.");
             Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
                 "Destino do corpo depois da autópsia", "Body destination after autopsy",
-                "Crematório (no necrotério), deixar na mesa, ou cova vazia (experimental, mesma área).",
-                "Crematorium (inside the morgue), leave on the table, or empty grave (experimental, same area).");
+                "Crematório (no necrotério), deixar na mesa, ou enterrar numa cova vazia (o bot vai ao cemitério pelas portas, coloca o corpo e fecha a cova com a pá).",
+                "Crematorium (inside the morgue), leave on the table, or bury in an empty grave (the bot goes to the graveyard through the doors, places the body and fills the grave with the shovel).");
             SearchRadius = Slider(config, SettingTab.Bodies, "Bodies", "SearchRadius", 80f, 5f, 300f, 5f,
                 "Buscar corpos no chão até (m)", "Search ground bodies up to (m)",
                 "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
@@ -250,10 +249,6 @@ namespace AutoKeeper.Config
                 "Parar se o trabalho travar (s)", "Stop if work stalls (s)",
                 "Se a receita não avançar por este tempo, o bot para e mostra o motivo.",
                 "If a craft makes no progress for this long, the bot stops and shows why.");
-
-            // Fora da UI (só serve para a cova experimental); editável no .cfg.
-            GraveCraftId = config.Bind("Bodies", "GraveCraftId", "",
-                "Opcional. Vazio = detectar a receita da cova vazia que exige um corpo. (Cova experimental.)");
 
             // Reservado: não aparece na UI.
             AllowCheats = config.Bind("Safety", "AllowCheats", false,

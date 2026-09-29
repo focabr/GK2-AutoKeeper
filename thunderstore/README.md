@@ -4,7 +4,7 @@ Automation bot for **Graveyard Keeper 2** (BepInEx 5). It performs routine chore
 the player could do — no item spawning, no save editing.
 
 > **Status: early release (0.2.x).** First routine: body processing in the morgue
-> (pallet → autopsy table → extract organs → crematorium). Burial in graves is planned for 0.3.
+> (pallet → autopsy table → extract organs → crematorium). Burial in empty graves (destination "Grave") is in 0.3.0 and still being tested.
 
 ## Features
 - **Body processing** (morgue): takes bodies from the pallets or the ground, puts them on a free autopsy table,

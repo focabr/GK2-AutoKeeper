@@ -27,7 +27,7 @@
 
 **Compatibility:** tested on game version 1.007. Back up your saves before using any mod. When reporting bugs to the game developers, disable mods first.
 
-**Planned:** burial in graves (0.3).
+**Burial:** set *Body destination* to *Grave* and the bot walks to the graveyard, places the body in an empty grave and fills it with the shovel (needs an empty grave and a shovel on the belt).
 
 **Uninstall:** delete `BepInEx/plugins/AutoKeeper` (and `BepInEx/config/com.focabr.gk2.autokeeper.cfg` if you want).
 

@@ -17,7 +17,7 @@ O bot só executa ações que o jogador poderia fazer; nunca altera o save nem c
 | Ir sozinho até o trabalho pelas portas, comer da barra rápida, "Outros" da autópsia, maestria | ✅ 0.2.3 (testado) |
 | Checar o crematório ao chegar, guardar no baú o que o bot recolheu | 🧪 0.2.6 |
 | Revisão de nomes/categorias da tela, primeira versão de publicação | ✅ 0.2.8 |
-| Enterro em cova no cemitério | 🔜 0.3 |
+| Enterro em cova no cemitério (colocar corpo com E + fechar com a pá) | 🧪 0.3.0 |
 
 ## Estrutura
 ```
@@ -81,7 +81,7 @@ Categorias da tela (F11): **Geral · Corpos · Órgãos · Outros itens · Tecla
 | Opção (tela) | Chave | Padrão | O que faz |
 |---|---|---|---|
 | Processar corpos | `Enabled` | `true` | liga a rotina |
-| Destino do corpo depois da autópsia | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
+| Destino do corpo depois da autópsia | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (vai ao cemitério, coloca o corpo numa `grave_empty` e fecha a cova com a pá — precisa de uma cova vazia e de pá no cinto) |
 | Buscar corpos no chão até (m) | `SearchRadius` | `80` | alcance para corpos soltos no chão; mesas, paletes e crematório são achados em qualquer lugar alcançável |
 | Checar o crematório primeiro | `CheckCrematoriumFirst` | `true` | ao chegar numa área com crematório, passa por ele e recolhe o que estiver pronto antes de começar |
 | Guardar no baú com inventário cheio | `UseChest` | `true` | leva ao baú SÓ o que o bot recolheu (extrações/crematório); prefere o baú que já guarda esses itens; ignora baús de missão |
@@ -103,7 +103,6 @@ Categorias da tela (F11): **Geral · Corpos · Órgãos · Outros itens · Tecla
 | Intervalo entre decisões (s) | `[Bot] TickIntervalSeconds` | `0,25` | de quanto em quanto tempo o bot decide |
 | Tempo máximo andando (s) | `[Bot] MoveTimeoutSeconds` | `45` | desiste de um alvo se não chegar |
 | Parar se o trabalho travar (s) | `[Bot] WorkStallSeconds` | `20` | para se a receita não avançar |
-| (só no .cfg) | `[Bodies] GraveCraftId` | vazio | força a receita de enterro (cova experimental) |
 
 O bot para sozinho com energia abaixo de `MinEnergy` (se não houver comida), se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
 

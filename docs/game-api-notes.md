@@ -1,6 +1,6 @@
 # Notas de engenharia reversa — Graveyard Keeper 2
 
-> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou; hotfix da Steam de 28/09, build-guid `f7a201b2…`, ainda "1.007": só `SaveSystem`/`EnergySystem` — checagem de espaço em disco do save ficou assíncrona — sem impacto) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
+> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
 > Fonte: descompilação local de `Assembly-CSharp.dll` e `LazyBearTechnology.dll` (ILSpy). Nada foi alterado em disco.
 > Tudo que está aqui só é usado através de `Core/GameApi*.cs`.
 
@@ -192,30 +192,11 @@ O plano original abaixo continua valendo para a cova (0.3).
 **Dados que faltam (virão do dump F10 perto do necrotério/cemitério):** ids das mesas, receita de enterro em
 `grave_empty` e seus itens exigidos, onde os corpos chegam, ferramentas exigidas (`customItemTypeAction`).
 
-## 12. Descobertas da 0.2.3 (teste no necrotério + pedidos do usuário)
-
-### Portas e áreas (navegação)
-- A cena `RuinedTemple` é uma só; cada interior (casa, necrotério, igreja…) fica em outro ponto do mapa
-  (ex.: casa ~(-96,-79), necrotério ~(-75,-380), porta externa do necrotério (24,20)). Ligação = portas `tp_RT_*`.
-- Porta = WGO `CustomInteraction` cuja `customInteraction.execution` é `TeleportTo("tp_RT_<outra>", "<preset>", "door")`
-  (LazyExpression → `PlayerController.Teleport(new WgoTeleportData(...))`, com fade). Destino: `WgoData.GetTeleportPointPosition()`
-  (GD point `tp_point_<id>`). Condição da porta: `CustomInteraction.IsInteractable(wgo)`.
-- O jogador anda pelo grafo Recast `GraphHelper.Instance.SceneGraphsData.GetRecastGraphIndexByWorldId(scene)[0]`
-  (`MovementComponent.FindPathRecastGraph`), e o jogo testa alcance com `PathUtilities.IsPathPossible` = mesmo
-  `GraphNode.Area` (componente conexo). O bot usa `Area` como "região" e faz Dijkstra com as portas como arestas.
-- `PlayerLocalAreaMovement` (grid 4,4 m em volta do jogador, `graphs[3]`) é só para movimentos curtos; não usar para rotas.
-
-### Barra rápida (comida)
-- `PlayerData.pinnedItems[0..3]` + `GameKey.UseHotBarItem1..4` → `PlayerData.TryUseHotBarItem` → `UseItem`
-  (consome 1 unidade e aplica `ItemDef.GetGameResOnUse("energy")` / `"insanity"`). Sementes/adubo na barra = plantar.
-
-### "Outros" da mesa de autópsia (bolso do corpo)
-- Itens do corpo que não são `isMainOrgan` nem `burial_reward` (ex.: `flesh` grupo `gr_flesh`, `blood` `gr_blood`,
-  gordura `gr_fat` = `GameConsts.FAT_ITEM_GROUP`). Extração = `UIAutopsyWindowData.TryExtractItemFromPocket`:
-  receita `GetAutopsyCraftDef(PocketExtract)`, `RemoveItemsFromNestedItemById(def.destinationItemEnd, item,1)`,
-  `CraftElement.SetCustomItems([item])`, `AddToQueue(top)`; 1 unidade por receita.
-
-### Maestria (janela "Remover …")
-- Maestria = `PlayerController.GetMasteryLevelForTalentBranch(mesa.Definition.talent, craftDef)` (talento + ferramentas
-  do cinto + perks); exigida = `craftDef.talentLock`. Abaixo disso a janela mostra `100*maestria/exigida %` (chance de
-  cada golpe avançar); com maestria 0 o jogo recusa (`CraftStatus.NotEnoughMastery`).
+## 13. Cova (0.3.0) — definições reais do jogo 1.007 (dump F10, `defsOfInterest`)
+- `grave_empty`: `CustomInteraction`; hint `hint_place_body`; condição `HasPlayerOvrhdItemByGrp("body") && !wild_zombie && !zombie`;
+  execução `InsertOvrhdItem()` + `ChangeWgo("grave_body")` → **não é receita**: E com corpo na cabeça coloca o corpo.
+- `grave_body`, `grave_exhume`, `grave_empty_test`, `grave_empty_place`: `Work`, ferramenta `Shovel` (segurar Ação).
+- `grave_ground` (as covas fechadas do save): inventário = `body_corpse` + `grave_top_*` / `grave_bot_*`; `interactionType` Grave.
+- Cemitério em ~(30..37, 17..19); o save de teste não tinha `grave_empty` (12 `grave_ground` ocupadas).
+- Bot: Bury = PressInteract com corpo (pronto quando o jogador não carrega mais); FillGrave = SetHoldAction(true) até o
+  id do objeto deixar de ser `grave_body` (timeout 90 s). Cava não implementado (`grave_empty_place` seria o "cavar").

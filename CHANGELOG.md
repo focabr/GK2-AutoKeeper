@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-29
+
+### Adicionado
+- **Destino "Cova"**: o bot leva o corpo até uma `grave_empty` (indo ao cemitério pelas portas), aperta E (o jogo coloca o
+  corpo e troca a cova por `grave_body`) e fecha a cova segurando Ação com a pá, como o jogador. Só fecha covas em que o próprio
+  bot colocou um corpo. Sem cova vazia, o bot para com aviso (não cava sozinho).
+  Definições do jogo (dump 1.007): `grave_empty` = CustomInteraction `InsertOvrhdItem()` + `ChangeWgo("grave_body")`;
+  `grave_body` = trabalho com pá (Shovel).
+
+### Removido
+- Opção `[Bodies] GraveCraftId` e a antiga tentativa de enterro por receita (o jogo não usa receita para enterrar).
+
 ## [0.2.8] - 2026-09-29
 
 Primeira versão de publicação (Thunderstore/Nexus).
