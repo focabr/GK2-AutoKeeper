@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using AutoKeeper.Config;
 using BepInEx;
 using BepInEx.Configuration;
@@ -9,12 +10,13 @@ namespace AutoKeeper.FrameworkBridge
     /// <summary>
     /// Ponte OPCIONAL: registra o AutoKeeper no botão "Mods" nativo do jogo (GK2 Mod Framework).
     /// Padrão recomendado pelo Framework (OPTIONAL_INTEGRATION.md): o AutoKeeper.dll não conhece o Framework;
-    /// esta DLL depende dos dois. Sem o Framework instalado, o BepInEx simplesmente não carrega esta ponte.
+    /// esta DLL depende dos dois. Sem o Framework instalado, a ponte só escreve uma linha de aviso e não faz nada
+    /// (dependência "soft": nada de erro vermelho no log para quem não usa o Framework).
     /// As opções são as MESMAS ConfigEntry do AutoKeeper (mesma seção/chave), lidas de Settings.UiSettings.
     /// </summary>
     [BepInPlugin(Guid, Name, Plugin.Version)]
     [BepInDependency(Plugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
-    [BepInDependency(FrameworkPlugin.PluginGuid, BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency(FrameworkPlugin.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class FrameworkBridgePlugin : BaseUnityPlugin
     {
         public const string Guid = "com.focabr.gk2.autokeeper.framework";
@@ -28,9 +30,14 @@ namespace AutoKeeper.FrameworkBridge
                 Logger.LogError("AutoKeeper principal não está disponível; integração com o menu Mods desativada.");
                 return;
             }
+            if (!BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(FrameworkPlugin.PluginGuid))
+            {
+                Logger.LogInfo("GK2 Mod Framework não instalado — menu Mods desativado (normal; as opções ficam no F11).");
+                return;
+            }
             try
             {
-                FrameworkApi.RegisterMod(new Bridge(main), main.Config);
+                RegisterWithFramework(main);
                 Logger.LogInfo("AutoKeeper registrado no menu Mods do GK2 Mod Framework.");
             }
             catch (Exception e)
@@ -38,6 +45,13 @@ namespace AutoKeeper.FrameworkBridge
                 // O AutoKeeper continua funcionando com a janela própria (F11).
                 Logger.LogError($"Falha ao registrar no GK2 Mod Framework: {e}");
             }
+        }
+
+        /// <summary>Separado do Awake para os tipos do Framework só serem carregados quando ele existe.</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void RegisterWithFramework(Plugin main)
+        {
+            FrameworkApi.RegisterMod(new Bridge(main), main.Config);
         }
 
         private sealed class Bridge : Gk2ModBase
@@ -85,7 +99,7 @@ namespace AutoKeeper.FrameworkBridge
                 // Opções de corpos ficam acinzentadas quando a rotina está desligada.
                 foreach (SettingInfo s in main.Settings.UiSettings)
                 {
-                    if (s.Tab == SettingTab.Bodies && s.Entry != main.Settings.BodiesEnabled)
+                    if ((s.Tab == SettingTab.Bodies || s.Tab == SettingTab.Autopsy || s.Tab == SettingTab.AutopsyOthers) && s.Entry != main.Settings.BodiesEnabled)
                     {
                         ui.SetEnabledCondition(s.Entry.Definition.Section, s.Entry.Definition.Key, () => main.Settings.BodiesEnabled.Value);
                     }
