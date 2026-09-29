@@ -289,6 +289,9 @@ namespace AutoKeeper.UI
                 i => { tab = tabs[i]; rebuildPending = true; },
                 T("Escolha o grupo de opções.", "Choose the group of options."));
 
+            // Divisor: deixa claro que as opções abaixo pertencem à categoria escolhida acima.
+            AddDivider();
+
             // 2) Opções da categoria.
             foreach (SettingInfo s in settings.UiSettings.Where(x => x.Tab == tab).OrderBy(x => x.Order))
             {
@@ -419,6 +422,29 @@ namespace AutoKeeper.UI
             }
             // replaceForGamepad=false e tecla None: o botão não "rouba" teclas do controle.
             b.Draw(new UIDialogWindowData.ButtonData(onPressed, text, null, false, GameKey.None, text));
+        }
+
+        /// <summary>Linha dourada fina com espaço acima e abaixo (cor da barra de título do jogo).</summary>
+        private void AddDivider()
+        {
+            var go = new GameObject("AK_Divider", typeof(RectTransform));
+            go.transform.SetParent(content, false);
+            LayoutElement le = go.AddComponent<LayoutElement>();
+            le.minHeight = 26f;
+            le.preferredHeight = 26f;
+
+            var line = new GameObject("Line", typeof(RectTransform));
+            line.transform.SetParent(go.transform, false);
+            Image img = line.AddComponent<Image>();
+            img.color = new Color(0.72f, 0.55f, 0.24f, 0.85f);
+            img.raycastTarget = false;
+            var rt = (RectTransform)line.transform;
+            rt.anchorMin = new Vector2(0.06f, 0.5f);
+            rt.anchorMax = new Vector2(0.94f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(0f, 2f);
+            built.Add(go);
         }
 
         private TextMeshProUGUI AddHint()

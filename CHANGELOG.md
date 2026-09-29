@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-09-29
+
+### Alterado
+- Janela de configurações: linha divisória dourada entre a "Categoria" e as opções, para deixar claro que trocar a categoria muda a lista abaixo.
+
 ## [0.2.3] - 2026-09-28
 
 ### Adicionado
