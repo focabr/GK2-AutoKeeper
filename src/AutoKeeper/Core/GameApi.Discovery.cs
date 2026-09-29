@@ -105,6 +105,7 @@ namespace AutoKeeper.Core
             root["bodyRelatedCraftDefs"] = BodyRelatedCraftDefs();
             root["bodyItemDefs"] = BodyItemDefs();
             root["defsOfInterest"] = DefsOfInterest();
+            root["navigation"] = NavigationToJson(playerPos);
 
             string dir = Path.Combine(Paths.ConfigPath, "AutoKeeper", "dumps");
             Directory.CreateDirectory(dir);
@@ -344,6 +345,54 @@ namespace AutoKeeper.Core
                 }
             }
             return false;
+        }
+
+        /// <summary>Diagnóstico da navegação por portas: regiões do navmesh do jogador, portas e alvos do bot.</summary>
+        private static JObject NavigationToJson(Vector3 playerPos)
+        {
+            var j = new JObject();
+            try
+            {
+                GraphHelper helper = GraphHelper.Instance;
+                List<int> idx = helper?.SceneGraphsData?.GetRecastGraphIndexByWorldId(MainGame.PlayerData.currentGameSceneId);
+                j["recastGraphs"] = idx == null ? null : new JArray(idx.Select(i => (object)i));
+                uint here = NavAreaCore(playerPos, out Vector3 snapped);
+                j["playerArea"] = here;
+                j["playerSnapDistance"] = Round(Vector3.Distance(playerPos, snapped));
+                var doors = new JArray();
+                foreach (DoorRef d in FindDoors())
+                {
+                    uint a = NavAreaCore(d.Position, out Vector3 ds);
+                    uint b = NavAreaCore(d.Landing, out Vector3 ls);
+                    doors.Add(new JObject
+                    {
+                        ["id"] = d.Id,
+                        ["to"] = d.DestinationId,
+                        ["position"] = Vec(d.Position),
+                        ["area"] = a,
+                        ["snap"] = Round(Vector3.Distance(d.Position, ds)),
+                        ["landing"] = Vec(d.Landing),
+                        ["landingArea"] = b,
+                        ["landingSnap"] = Round(Vector3.Distance(d.Landing, ls)),
+                    });
+                }
+                j["doors"] = doors;
+                var targets = new JArray();
+                foreach (ObjectKind k in new[] { ObjectKind.AutopsyTable, ObjectKind.MorguePallet, ObjectKind.Crematorium, ObjectKind.EmptyGrave })
+                {
+                    foreach (WorldObjectRef o in FindObjects(k, float.MaxValue))
+                    {
+                        uint a = NavAreaCore(o.Position, out Vector3 os);
+                        targets.Add(new JObject { ["kind"] = k.ToString(), ["id"] = o.DefId, ["area"] = a, ["snap"] = Round(Vector3.Distance(o.Position, os)) });
+                    }
+                }
+                j["targets"] = targets;
+            }
+            catch (Exception e)
+            {
+                j["error"] = e.GetType().Name + ": " + e.Message;
+            }
+            return j;
         }
 
         private static JArray Vec(Vector3 v) => new JArray(Round(v.x), Round(v.y), Round(v.z));
