@@ -14,7 +14,9 @@ O bot só executa ações que o jogador poderia fazer; nunca altera o save nem c
 | Dump de descoberta somente leitura (F10) | ✅ 0.1.0 |
 | Primeira rotina: **processar corpos** (palete → autópsia → crematório) | ✅ 0.2.0 (testada no necrotério) |
 | Tela de configurações no jogo (F11) + menu Mods (GK2 Mod Framework, opcional) | ✅ 0.2.2 |
-| Ir sozinho até o trabalho pelas portas, comer da barra rápida, "Outros" da autópsia, maestria | 🧪 0.2.3 |
+| Ir sozinho até o trabalho pelas portas, comer da barra rápida, "Outros" da autópsia, maestria | ✅ 0.2.3 (testado) |
+| Checar o crematório ao chegar, guardar no baú o que o bot recolheu | 🧪 0.2.6 |
+| Revisão de nomes/categorias da tela, primeira versão de publicação | ✅ 0.2.8 |
 | Enterro em cova no cemitério | 🔜 0.3 |
 
 ## Estrutura
@@ -65,28 +67,45 @@ Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instala
 | F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
 | F11 | abre/fecha a tela de configurações |
 
-### Bot (`[Bot]` no .cfg)
-| Opção | Padrão | O que faz |
-|---|---|---|
-| `MinEnergy` | `10` | abaixo disso (e sem comida) o bot desliga |
-| `AutoEat` | `true` | com energia baixa, usa um item de energia da barra rápida (teclas 1–4), como o jogador; pula itens que aumentam a insanidade |
-| `EatBelowEnergy` | `20` | energia em que começa a comer (deixe acima de `MinEnergy`) |
-| `UseDoors` | `true` | vai sozinho até onde há trabalho, atravessando portas (casa → pátio → necrotério) pelo caminho mais curto |
+Categorias da tela (F11): **Geral · Corpos · Órgãos · Outros itens · Teclas · Painel · Avançado** (escolha com ◀ ▶ no topo).
 
-### Rotina "Processar corpos" (`[Bodies]` no .cfg)
-| Opção | Padrão | O que faz |
-|---|---|---|
-| `Enabled` | `true` | liga a rotina |
-| `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
-| `RequireMastery` | `true` | vale por cima das opções de extração: confere a maestria item por item e pula o que ficar abaixo de `MinMasteryChance` |
-| `MinMasteryChance` | `100` | chance mínima (%) mostrada na janela "Remover …" (100 = só com maestria total) |
-| `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
-| `ExtractFlesh`, `ExtractFat`, `ExtractBlood` | `true` | itens da seção "Outros" da mesa (carne, gordura, sangue) |
-| `ExtractOtherPocket` | `false` | qualquer outro item de "Outros" |
-| `GraveCraftId` (Avançado) | vazio | força a receita de enterro |
-| `SearchRadius` | `80` | alcance para pegar corpos soltos no chão (m); mesas, paletes e crematório são achados em qualquer lugar alcançável |
+### Geral (`[Bot]` no .cfg)
+| Opção (tela) | Chave | Padrão | O que faz |
+|---|---|---|---|
+| Comer da barra rápida | `AutoEat` | `true` | com energia baixa, usa um item de energia da barra rápida (teclas 1–4), como o jogador; pula itens que aumentam a insanidade |
+| Comer quando a energia estiver abaixo de | `EatBelowEnergy` | `20` | energia em que começa a comer (deixe acima do valor de desligar) |
+| Desligar o bot com energia abaixo de | `MinEnergy` | `10` | abaixo disso (e sem comida) o bot desliga |
+| Atravessar portas até o trabalho | `UseDoors` | `true` | vai sozinho até onde há trabalho, atravessando portas (casa → pátio → necrotério) pelo caminho mais curto |
 
-O bot para sozinho com energia abaixo de `[Bot] MinEnergy` (se não houver comida), se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
+### Corpos (`[Bodies]`)
+| Opção (tela) | Chave | Padrão | O que faz |
+|---|---|---|---|
+| Processar corpos | `Enabled` | `true` | liga a rotina |
+| Destino do corpo depois da autópsia | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
+| Buscar corpos no chão até (m) | `SearchRadius` | `80` | alcance para corpos soltos no chão; mesas, paletes e crematório são achados em qualquer lugar alcançável |
+| Checar o crematório primeiro | `CheckCrematoriumFirst` | `true` | ao chegar numa área com crematório, passa por ele e recolhe o que estiver pronto antes de começar |
+| Guardar no baú com inventário cheio | `UseChest` | `true` | leva ao baú SÓ o que o bot recolheu (extrações/crematório); prefere o baú que já guarda esses itens; ignora baús de missão |
+| Ir ao baú com menos de (espaços livres) | `ChestFreeSlots` | `3` | quando ir ao baú |
+
+### Órgãos e Outros itens (`[Bodies]`)
+| Opção (tela) | Chave | Padrão | O que faz |
+|---|---|---|---|
+| Respeitar a maestria | `RequireMastery` | `true` | confere a maestria item por item (como na janela "Remover …") e pula o que ficar abaixo da chance mínima |
+| Chance mínima de sucesso (%) | `MinMasteryChance` | `100` | 100 = só com maestria total |
+| Extrair pele … vísceras | `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
+| Extrair carne / gordura / sangue | `ExtractFlesh`, `ExtractFat`, `ExtractBlood` | `true` | itens da seção "Outros" da mesa |
+| Extrair demais itens | `ExtractOtherPocket` | `false` | qualquer outro item de "Outros" |
+
+### Avançado
+| Opção (tela) | Chave | Padrão | O que faz |
+|---|---|---|---|
+| Log detalhado | `[Debug] VerboseLogging` | `false` | mensagens de depuração no `LogOutput.log` |
+| Intervalo entre decisões (s) | `[Bot] TickIntervalSeconds` | `0,25` | de quanto em quanto tempo o bot decide |
+| Tempo máximo andando (s) | `[Bot] MoveTimeoutSeconds` | `45` | desiste de um alvo se não chegar |
+| Parar se o trabalho travar (s) | `[Bot] WorkStallSeconds` | `20` | para se a receita não avançar |
+| (só no .cfg) | `[Bodies] GraveCraftId` | vazio | força a receita de enterro (cova experimental) |
+
+O bot para sozinho com energia abaixo de `MinEnergy` (se não houver comida), se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
 
 ## Boas práticas seguidas
 - Nada de editar `Assembly-CSharp.dll` em disco: só patches em runtime (Harmony ID = GUID, `UnpatchSelf`).

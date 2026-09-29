@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-09-29
+
+Primeira versão de publicação (Thunderstore/Nexus).
+
+### Alterado
+- Revisão de nomes e organização da tela de configurações:
+  - categoria "Bot" virou **Geral**;
+  - textos mais claros ("Desligar o bot com energia abaixo de", "Comer quando a energia estiver abaixo de",
+    "Atravessar portas até o trabalho", "Processar corpos", "Respeitar a maestria", "Extrair demais itens" etc.);
+  - opções técnicas (intervalo entre decisões, tempo máximo andando, parar se o trabalho travar) foram para **Avançado**;
+  - "Receita de enterro (id)" saiu da tela (continua no `.cfg`);
+  - ordem das opções de Corpos: processar, destino, raio, checar crematório, baú.
+- Os nomes das chaves no `.cfg` não mudaram: configurações já salvas continuam valendo (apenas as 3 opções técnicas trocam de categoria na tela).
+
 ## [0.2.7] - 2026-09-29
 
 ### Alterado

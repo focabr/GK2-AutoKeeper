@@ -623,7 +623,7 @@ namespace AutoKeeper.UI
         {
             switch (t)
             {
-                case SettingTab.Bot: return "Bot";
+                case SettingTab.Bot: return T("Geral", "General");
                 case SettingTab.Bodies: return T("Corpos", "Bodies");
                 case SettingTab.Autopsy: return T("Órgãos", "Organs");
                 case SettingTab.AutopsyOthers: return T("Outros itens", "Other items");
