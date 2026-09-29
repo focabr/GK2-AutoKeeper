@@ -1,6 +1,6 @@
 # Notas de engenharia reversa — Graveyard Keeper 2
 
-> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
+> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou; hotfix da Steam de 28/09, build-guid `f7a201b2…`, ainda "1.007": só `SaveSystem`/`EnergySystem` — checagem de espaço em disco do save ficou assíncrona — sem impacto) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
 > Fonte: descompilação local de `Assembly-CSharp.dll` e `LazyBearTechnology.dll` (ILSpy). Nada foi alterado em disco.
 > Tudo que está aqui só é usado através de `Core/GameApi*.cs`.
 
