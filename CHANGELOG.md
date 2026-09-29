@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-09-29
+
+### Alterado
+- Janela de configurações: a "Categoria" fica centralizada e sem rótulo, como um seletor acima das opções.
+
 ## [0.2.6] - 2026-09-29
 
 ### Adicionado

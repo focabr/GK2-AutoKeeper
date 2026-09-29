@@ -31,6 +31,8 @@ namespace AutoKeeper.UI
     internal sealed class NativeSettingsWindow : LazyWindow<LazyWidgetDataBase>
     {
         private static readonly FieldInfo SwitchAmountField = AccessTools.Field(typeof(UISwitchButton), "amountLabel");
+        private static readonly FieldInfo SwitchIncField = AccessTools.Field(typeof(UISwitchButton), "increaseButton");
+        private static readonly FieldInfo SwitchDecField = AccessTools.Field(typeof(UISwitchButton), "decreaseButton");
         private static readonly FieldInfo SwitchHeaderField = AccessTools.Field(typeof(UISwitchButton), "headerLabel");
         private static readonly FieldInfo SliderField = AccessTools.Field(typeof(UISlider), "slider");
         private static readonly FieldInfo SliderIncField = AccessTools.Field(typeof(UISlider), "increaseButton");
@@ -285,9 +287,10 @@ namespace AutoKeeper.UI
 
             // 1) Categoria (◀ Corpos ▶) — igual às opções da janela de Configurações do jogo.
             SettingTab[] tabs = (SettingTab[])Enum.GetValues(typeof(SettingTab));
-            AddSwitch(T("Categoria", "Category"), tabs.Select(TabName).ToArray(), Array.IndexOf(tabs, tab),
+            // Sem rótulo e centralizada: parece um seletor de "páginas" acima de tudo, não mais uma opção da lista.
+            UISwitchButton categorySwitch = AddSwitch("", tabs.Select(TabName).ToArray(), Array.IndexOf(tabs, tab),
                 i => { tab = tabs[i]; rebuildPending = true; },
-                T("Escolha o grupo de opções.", "Choose the group of options."));
+                T("Categoria: escolha o grupo de opções.", "Category: choose the group of options."));
 
             // Divisor: deixa claro que as opções abaixo pertencem à categoria escolhida acima.
             AddDivider();
@@ -312,6 +315,59 @@ namespace AutoKeeper.UI
             AddButton(T("Fechar", "Close"), Close, T("Fecha (Esc). As alterações já estão salvas.", "Closes (Esc). Changes are already saved."));
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            CenterSwitch(categorySwitch);
+        }
+
+        /// <summary>Esconde o rótulo da linha e centraliza o conjunto ◀ valor ▶ na largura da linha.</summary>
+        private static void CenterSwitch(UISwitchButton sw)
+        {
+            try
+            {
+                var inc = (SwitchIncField?.GetValue(sw) as Component)?.transform as RectTransform;
+                var dec = (SwitchDecField?.GetValue(sw) as Component)?.transform as RectTransform;
+                var amount = (SwitchAmountField?.GetValue(sw) as TextMeshProUGUI)?.rectTransform;
+                var header = SwitchHeaderField?.GetValue(sw) as TextMeshProUGUI;
+                var row = sw.transform as RectTransform;
+                if (inc == null || dec == null || amount == null || row == null)
+                {
+                    return;
+                }
+                if (header != null)
+                {
+                    header.text = "";
+                }
+                // O valor do jogo (amountLabel) fica dentro de uma moldura maior; usa o pai dela como "campo" se existir.
+                RectTransform field = amount.parent != null && amount.parent != row && amount.parent is RectTransform pr && pr.parent == inc.parent
+                    ? pr
+                    : amount;
+                RectTransform[] parts = { inc, dec, field };
+                var corners = new Vector3[4];
+                bool first = true;
+                var bounds = new Bounds();
+                foreach (RectTransform rt in parts)
+                {
+                    rt.GetWorldCorners(corners);
+                    foreach (Vector3 c in corners)
+                    {
+                        Vector3 local = row.InverseTransformPoint(c);
+                        if (first) { bounds = new Bounds(local, Vector3.zero); first = false; }
+                        else { bounds.Encapsulate(local); }
+                    }
+                }
+                float shift = row.rect.center.x - bounds.center.x;
+                if (Mathf.Abs(shift) < 0.5f)
+                {
+                    return;
+                }
+                foreach (RectTransform rt in parts)
+                {
+                    rt.anchoredPosition += new Vector2(shift, 0f);
+                }
+            }
+            catch (Exception e)
+            {
+                ModLog.Debug("Não consegui centralizar a categoria: " + e.Message);
+            }
         }
 
         private void AddSettingRow(SettingInfo s)
