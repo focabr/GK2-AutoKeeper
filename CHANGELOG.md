@@ -4,6 +4,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-28
+
+### Adicionado
+- **Ir sozinho até o trabalho** (`[Bot] UseDoors`, padrão ligado): se a mesa/palete/crematório está em outra área,
+  o bot anda até a porta (objetos `tp_*` do jogo) e aperta E, como o jogador, pelo caminho mais curto
+  (ex.: casa → pátio → necrotério). As áreas vêm do navmesh do próprio jogo; portas que não funcionarem são
+  ignoradas no resto da sessão. O dump F10 ganhou a seção `navigation` para diagnóstico.
+- **Comer da barra rápida** (`[Bot] AutoEat`, `EatBelowEnergy`): com energia baixa, aperta a tecla 1–4 de um item
+  que recupera energia (o próprio jogo consome o item). Escolhe o que desperdiça menos, pula itens que aumentam
+  a insanidade e só desliga por energia baixa quando não há mais comida.
+- **Itens de "Outros" da autópsia**: carne, gordura e sangue (liga/desliga cada um) e "outros itens" (desligado),
+  com a mesma sequência do clique na janela de autópsia.
+- **Maestria item por item** (`RequireMastery`, `MinMasteryChance`): por cima das opções de extração, pula o órgão ou
+  item cuja chance na janela "Remover …" fique abaixo do mínimo (padrão 100% = só com maestria total).
+
+### Alterado
+- Tela de configurações: novas categorias "Órgãos" e "Outros itens"; "Raio de busca" agora vale só para corpos no chão.
+- A ponte do menu Mods não gera mais erro vermelho no log quando o GK2 Mod Framework não está instalado.
+- Painel: com nada a fazer, diz se procurou também atrás das portas.
+
 ## [0.2.2] - 2026-09-28
 
 ### Alterado

@@ -12,9 +12,10 @@ O bot só executa ações que o jogador poderia fazer; nunca altera o save nem c
 | Plugin carrega, loga versão, overlay (F9) | ✅ 0.1.0 |
 | StateReader no overlay (posição, energia, dia/hora, item carregado) | ✅ 0.1.0 |
 | Dump de descoberta somente leitura (F10) | ✅ 0.1.0 |
-| Primeira rotina: **processar corpos** (palete → autópsia → crematório) | 🧪 0.2.0 em teste |
-| Tela de configurações no jogo (F11) + menu Mods (GK2 Mod Framework, opcional) | 🧪 0.2.1 |
-| Enterro em cova (atravessar porta do necrotério) | 🔜 0.3 |
+| Primeira rotina: **processar corpos** (palete → autópsia → crematório) | ✅ 0.2.0 (testada no necrotério) |
+| Tela de configurações no jogo (F11) + menu Mods (GK2 Mod Framework, opcional) | ✅ 0.2.2 |
+| Ir sozinho até o trabalho pelas portas, comer da barra rápida, "Outros" da autópsia, maestria | 🧪 0.2.3 |
+| Enterro em cova no cemitério | 🔜 0.3 |
 
 ## Estrutura
 ```
@@ -64,16 +65,28 @@ Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instala
 | F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
 | F11 | abre/fecha a tela de configurações |
 
+### Bot (`[Bot]` no .cfg)
+| Opção | Padrão | O que faz |
+|---|---|---|
+| `MinEnergy` | `10` | abaixo disso (e sem comida) o bot desliga |
+| `AutoEat` | `true` | com energia baixa, usa um item de energia da barra rápida (teclas 1–4), como o jogador; pula itens que aumentam a insanidade |
+| `EatBelowEnergy` | `20` | energia em que começa a comer (deixe acima de `MinEnergy`) |
+| `UseDoors` | `true` | vai sozinho até onde há trabalho, atravessando portas (casa → pátio → necrotério) pelo caminho mais curto |
+
 ### Rotina "Processar corpos" (`[Bodies]` no .cfg)
 | Opção | Padrão | O que faz |
 |---|---|---|
 | `Enabled` | `true` | liga a rotina |
-| `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
 | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (experimental) |
+| `RequireMastery` | `true` | vale por cima das opções de extração: confere a maestria item por item e pula o que ficar abaixo de `MinMasteryChance` |
+| `MinMasteryChance` | `100` | chance mínima (%) mostrada na janela "Remover …" (100 = só com maestria total) |
+| `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
+| `ExtractFlesh`, `ExtractFat`, `ExtractBlood` | `true` | itens da seção "Outros" da mesa (carne, gordura, sangue) |
+| `ExtractOtherPocket` | `false` | qualquer outro item de "Outros" |
 | `GraveCraftId` (Avançado) | vazio | força a receita de enterro |
-| `SearchRadius` | `80` | alcance da busca (m) |
+| `SearchRadius` | `80` | alcance para pegar corpos soltos no chão (m); mesas, paletes e crematório são achados em qualquer lugar alcançável |
 
-O bot para sozinho com energia abaixo de `[Bot] MinEnergy`, se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
+O bot para sozinho com energia abaixo de `[Bot] MinEnergy` (se não houver comida), se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
 
 ## Boas práticas seguidas
 - Nada de editar `Assembly-CSharp.dll` em disco: só patches em runtime (Harmony ID = GUID, `UnpatchSelf`).

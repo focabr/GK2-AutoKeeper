@@ -191,3 +191,31 @@ O plano original abaixo continua valendo para a cova (0.3).
 
 **Dados que faltam (virão do dump F10 perto do necrotério/cemitério):** ids das mesas, receita de enterro em
 `grave_empty` e seus itens exigidos, onde os corpos chegam, ferramentas exigidas (`customItemTypeAction`).
+
+## 12. Descobertas da 0.2.3 (teste no necrotério + pedidos do usuário)
+
+### Portas e áreas (navegação)
+- A cena `RuinedTemple` é uma só; cada interior (casa, necrotério, igreja…) fica em outro ponto do mapa
+  (ex.: casa ~(-96,-79), necrotério ~(-75,-380), porta externa do necrotério (24,20)). Ligação = portas `tp_RT_*`.
+- Porta = WGO `CustomInteraction` cuja `customInteraction.execution` é `TeleportTo("tp_RT_<outra>", "<preset>", "door")`
+  (LazyExpression → `PlayerController.Teleport(new WgoTeleportData(...))`, com fade). Destino: `WgoData.GetTeleportPointPosition()`
+  (GD point `tp_point_<id>`). Condição da porta: `CustomInteraction.IsInteractable(wgo)`.
+- O jogador anda pelo grafo Recast `GraphHelper.Instance.SceneGraphsData.GetRecastGraphIndexByWorldId(scene)[0]`
+  (`MovementComponent.FindPathRecastGraph`), e o jogo testa alcance com `PathUtilities.IsPathPossible` = mesmo
+  `GraphNode.Area` (componente conexo). O bot usa `Area` como "região" e faz Dijkstra com as portas como arestas.
+- `PlayerLocalAreaMovement` (grid 4,4 m em volta do jogador, `graphs[3]`) é só para movimentos curtos; não usar para rotas.
+
+### Barra rápida (comida)
+- `PlayerData.pinnedItems[0..3]` + `GameKey.UseHotBarItem1..4` → `PlayerData.TryUseHotBarItem` → `UseItem`
+  (consome 1 unidade e aplica `ItemDef.GetGameResOnUse("energy")` / `"insanity"`). Sementes/adubo na barra = plantar.
+
+### "Outros" da mesa de autópsia (bolso do corpo)
+- Itens do corpo que não são `isMainOrgan` nem `burial_reward` (ex.: `flesh` grupo `gr_flesh`, `blood` `gr_blood`,
+  gordura `gr_fat` = `GameConsts.FAT_ITEM_GROUP`). Extração = `UIAutopsyWindowData.TryExtractItemFromPocket`:
+  receita `GetAutopsyCraftDef(PocketExtract)`, `RemoveItemsFromNestedItemById(def.destinationItemEnd, item,1)`,
+  `CraftElement.SetCustomItems([item])`, `AddToQueue(top)`; 1 unidade por receita.
+
+### Maestria (janela "Remover …")
+- Maestria = `PlayerController.GetMasteryLevelForTalentBranch(mesa.Definition.talent, craftDef)` (talento + ferramentas
+  do cinto + perks); exigida = `craftDef.talentLock`. Abaixo disso a janela mostra `100*maestria/exigida %` (chance de
+  cada golpe avançar); com maestria 0 o jogo recusa (`CraftStatus.NotEnoughMastery`).
