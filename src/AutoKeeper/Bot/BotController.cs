@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AutoKeeper.Config;
 using AutoKeeper.Core;
+using UnityEngine;
 
 namespace AutoKeeper.Bot
 {
@@ -24,6 +26,24 @@ namespace AutoKeeper.Bot
         private ITask current;
         private float accumulator;
 
+        // Comer da barra rápida (energia baixa).
+        private const float EatTimeout = 3f;
+        private const float EatKeyDelay = 0.6f;     // espera o personagem sair do estado de trabalho antes de apertar a tecla
+        private const int EatKeyAttempts = 2;
+        private bool eatKeySent;
+        private float eatKeySentAt;
+        private int eatKeyTries;
+        private const int MaxEatsInARow = 12;
+        private bool eating;
+        private float eatStartedAt;
+        private float energyBeforeEat;
+        private int countBeforeEat;
+        private HotBarFood eatingFood;
+        private int eatsInARow;
+        private bool eatBroken;             // a tecla não teve efeito: não tenta de novo até religar o bot
+        private float eatRetryAt;           // carregando algo, a tecla pode não funcionar: tenta de novo depois
+        private readonly HashSet<string> skippedFoodLogged = new HashSet<string>();
+
         public BotState State { get; private set; } = BotState.Off;
 
         /// <summary>Motivo do estado atual (pausa, ociosidade, desligamento).</summary>
@@ -32,7 +52,10 @@ namespace AutoKeeper.Bot
         /// <summary>Última leitura do jogo (atualizada a cada tick, mesmo com o bot desligado, para o overlay).</summary>
         public GameSnapshot LastSnapshot { get; private set; } = new GameSnapshot();
 
-        public string CurrentTaskText => current == null ? "-" : $"{current.Name}: {current.Status}";
+        public string CurrentTaskText => eating ? $"comendo {eatingFood.ItemId}" : current == null ? "-" : $"{current.Name}: {current.Status}";
+
+        /// <summary>Rotas entre áreas (portas), compartilhadas pelas tarefas.</summary>
+        public Navigator Navigator { get; } = new Navigator();
 
         public BotController(Settings settings)
         {
@@ -59,6 +82,11 @@ namespace AutoKeeper.Bot
 
         public void Start()
         {
+            eating = false;
+            eatBroken = false;
+            eatRetryAt = 0f;
+            eatsInARow = 0;
+            Navigator.Reset();
             State = BotState.Idle;
             StateDetail = "aguardando";
             ModLog.Info("Bot LIGADO.");
@@ -75,6 +103,7 @@ namespace AutoKeeper.Bot
                 return;
             }
             AbortCurrent();
+            eating = false;
             State = BotState.Off;
             StateDetail = reason;
             ModLog.Info($"Bot DESLIGADO: {reason}");
@@ -104,6 +133,7 @@ namespace AutoKeeper.Bot
                 if (State != BotState.Paused)
                 {
                     AbortCurrent(); // solta teclas/movimento; a tarefa replaneja ao voltar
+                    eating = false;
                     ModLog.Debug($"Bot pausado: {s.BlockReason}");
                 }
                 State = BotState.Paused;
@@ -111,8 +141,22 @@ namespace AutoKeeper.Bot
                 return;
             }
 
-            // 2) Fim de ciclo seguro: energia baixa desliga o bot.
-            if (s.EnergyMax > 0f && s.Energy >= 0f && s.Energy < settings.MinEnergy.Value)
+            // 2) Energia baixa: come da barra rápida (se ativado); sem comida, desliga com segurança.
+            if (eating)
+            {
+                TickEating(s);
+                return;
+            }
+            bool energyKnown = s.EnergyMax > 0f && s.Energy >= 0f;
+            if (energyKnown && s.Energy < settings.EatBelowEnergy.Value && TryStartEating(s))
+            {
+                return;
+            }
+            if (energyKnown && s.Energy >= settings.EatBelowEnergy.Value)
+            {
+                eatsInARow = 0;
+            }
+            if (energyKnown && s.Energy < settings.MinEnergy.Value)
             {
                 Stop($"energia baixa ({s.Energy:0} < {settings.MinEnergy.Value:0})");
                 return;
@@ -166,6 +210,107 @@ namespace AutoKeeper.Bot
                     AbortCurrent();
                     Stop($"falha: {why}");
                     break;
+            }
+        }
+
+        // ------------------------------------------------------------------ comer
+
+        /// <summary>Escolhe a comida da barra rápida e "aperta" a tecla dela. false = não há o que comer.</summary>
+        private bool TryStartEating(GameSnapshot s)
+        {
+            if (!settings.AutoEat.Value || eatBroken || Time.unscaledTime < eatRetryAt)
+            {
+                return false;
+            }
+            if (eatsInARow >= MaxEatsInARow)
+            {
+                ModLog.WarnOnce("EatLoop", $"Comeu {MaxEatsInARow} vezes seguidas e a energia não subiu o bastante — parando de comer.");
+                return false;
+            }
+            List<HotBarFood> foods = new List<HotBarFood>();
+            foreach (HotBarFood f in GameApi.GetHotBarFoods())
+            {
+                if (f.Insanity > 0f)
+                {
+                    if (skippedFoodLogged.Add(f.ItemId))
+                    {
+                        ModLog.Info($"Comida: pulando {f.ItemId} (aumenta a insanidade em {f.Insanity:0}).");
+                    }
+                    continue;
+                }
+                foods.Add(f);
+            }
+            if (foods.Count == 0)
+            {
+                return false;
+            }
+
+            // Menos desperdício: o maior item que cabe na energia que falta; se nenhum cabe, o menor.
+            float missing = Mathf.Max(0f, s.EnergyMax - s.Energy);
+            HotBarFood pick = foods.Where(f => f.Energy <= missing).OrderByDescending(f => f.Energy).FirstOrDefault();
+            if (pick.ItemId == null)
+            {
+                pick = foods.OrderBy(f => f.Energy).First();
+            }
+
+            AbortCurrent(); // solta a tecla de ação/movimento; a tarefa retoma depois (a receita fica em andamento)
+            eating = true;
+            eatingFood = pick;
+            eatStartedAt = Time.unscaledTime;
+            energyBeforeEat = s.Energy;
+            countBeforeEat = pick.Count;
+            eatsInARow++;
+            eatKeySent = false;
+            eatKeyTries = 0;
+            State = BotState.Running;
+            StateDetail = "comendo";
+            ModLog.Info($"Comida: energia {s.Energy:0}/{s.EnergyMax:0} — usando {pick}");
+            return true;
+        }
+
+        private void TickEating(GameSnapshot s)
+        {
+            State = BotState.Running;
+            StateDetail = "comendo";
+            if (!eatKeySent)
+            {
+                if (Time.unscaledTime - eatStartedAt >= EatKeyDelay)
+                {
+                    GameApi.PressHotBar(eatingFood.Slot); // = o jogador apertar a tecla 1–4
+                    eatKeySent = true;
+                    eatKeySentAt = Time.unscaledTime;
+                    eatKeyTries++;
+                }
+                return;
+            }
+            bool energyUp = s.Energy > energyBeforeEat + 0.5f;
+            bool itemUsed = GameApi.CountPlayerItem(eatingFood.ItemId) < countBeforeEat;
+            if (energyUp || itemUsed)
+            {
+                eating = false;
+                ModLog.Info($"Comida: comeu {eatingFood.ItemId} — energia {energyBeforeEat:0} → {s.Energy:0}");
+                return;
+            }
+            if (Time.unscaledTime - eatKeySentAt > EatTimeout)
+            {
+                if (eatKeyTries < EatKeyAttempts)
+                {
+                    eatKeySent = false; // tenta a tecla mais uma vez
+                    eatStartedAt = Time.unscaledTime;
+                    return;
+                }
+                eating = false;
+                eatsInARow--;
+                if (GameApi.IsCarryingAnything())
+                {
+                    eatRetryAt = Time.unscaledTime + 15f;
+                    ModLog.Info($"Comida: a tecla {eatingFood.Slot + 1} não fez efeito com algo nas mãos — tento de novo depois.");
+                }
+                else
+                {
+                    eatBroken = true;
+                    ModLog.Warn($"Comida: apertei a tecla {eatingFood.Slot + 1} mas nada aconteceu — não vou tentar comer de novo até religar o bot.");
+                }
             }
         }
 

@@ -19,6 +19,7 @@ namespace AutoKeeper.Core
         private static int pendingActionFrames;
         private static bool holdAction;
         private static bool actionDownSent;
+        private static int pendingHotBarSlot = -1;
 
         // Janela/painel do mod: bloqueiam o input do jogo para um clique não virar ataque/interação.
         private static bool modWindowOpen;
@@ -48,6 +49,12 @@ namespace AutoKeeper.Core
             pendingActionFrames = 1;
         }
 
+        /// <summary>"Aperta" a tecla da barra rápida (0..3 = teclas 1..4) por um frame: usa o item fixado ali.</summary>
+        public static void PressHotBar(int slot)
+        {
+            pendingHotBarSlot = slot >= 0 && slot < 4 ? slot : -1;
+        }
+
         /// <summary>Segura/solta a tecla de ação (trabalhar no objeto à frente). O primeiro frame também conta como "apertou".</summary>
         public static void SetHoldAction(bool hold)
         {
@@ -63,6 +70,7 @@ namespace AutoKeeper.Core
         {
             pendingInteractFrames = 0;
             pendingActionFrames = 0;
+            pendingHotBarSlot = -1;
             holdAction = false;
             actionDownSent = false;
         }
@@ -80,7 +88,7 @@ namespace AutoKeeper.Core
         /// <summary>Chamado pelo Postfix de LazyInput.Update. Não faz nada se o jogo desativou o input.</summary>
         internal static void InjectVirtualKeys(object lazyInputInstance)
         {
-            if (pendingInteractFrames <= 0 && pendingActionFrames <= 0 && !holdAction && !modWindowOpen && !mouseOverModUi)
+            if (pendingInteractFrames <= 0 && pendingActionFrames <= 0 && pendingHotBarSlot < 0 && !holdAction && !modWindowOpen && !mouseOverModUi)
             {
                 return;
             }
@@ -121,6 +129,13 @@ namespace AutoKeeper.Core
                     addHoldedMethod.Invoke(lazyInputInstance, new object[] { GameKey.Action });
                     pendingActionFrames--;
                 }
+                if (pendingHotBarSlot >= 0 && !holdAction)
+                {
+                    GameKey key = HotBarKey(pendingHotBarSlot);
+                    addPressedMethod.Invoke(lazyInputInstance, new object[] { key });
+                    addHoldedMethod.Invoke(lazyInputInstance, new object[] { key });
+                    pendingHotBarSlot = -1;
+                }
                 if (holdAction)
                 {
                     if (!actionDownSent)
@@ -135,6 +150,17 @@ namespace AutoKeeper.Core
             {
                 ReleaseAllVirtualKeys();
                 ModLog.WarnOnce("VirtualInput", $"Input virtual falhou e foi desativado: {e.GetType().Name}: {e.Message}");
+            }
+        }
+
+        private static GameKey HotBarKey(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return GameKey.UseHotBarItem1;
+                case 1: return GameKey.UseHotBarItem2;
+                case 2: return GameKey.UseHotBarItem3;
+                default: return GameKey.UseHotBarItem4;
             }
         }
 
