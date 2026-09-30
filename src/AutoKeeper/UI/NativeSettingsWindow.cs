@@ -468,31 +468,37 @@ namespace AutoKeeper.UI
             Place(go, help);
         }
 
-        /// <summary>Vários botões lado a lado numa linha (mesmos botões do jogo, largura fixa).</summary>
+        /// <summary>
+        /// Vários botões lado a lado, juntos e centralizados (mesmos botões do jogo). Sem LayoutGroup: cada botão
+        /// é posicionado à mão em torno do centro da linha, para não se espalhar pela largura da janela.
+        /// </summary>
         private void AddButtonRow(params (string text, Action onPressed, string help)[] items)
         {
+            const float width = 150f;
+            const float gap = 8f;
             var row = new GameObject("AK_ButtonRow", typeof(RectTransform));
             row.transform.SetParent(content, false);
-            ((RectTransform)row.transform).sizeDelta = new Vector2(340f, 26f);
-            HorizontalLayoutGroup h = row.AddComponent<HorizontalLayoutGroup>();
-            h.spacing = 8f;
-            h.childAlignment = TextAnchor.MiddleCenter;
-            h.childControlWidth = true;
-            h.childControlHeight = false;
-            h.childForceExpandWidth = false;
-            h.childForceExpandHeight = false;
+            ((RectTransform)row.transform).sizeDelta = new Vector2(2f * width + gap, 26f);
             LayoutElement rowLe = row.AddComponent<LayoutElement>();
             rowLe.minHeight = 26f;
             rowLe.preferredHeight = 26f;
             built.Add(row);
-            foreach ((string text, Action onPressed, string help) in items)
+            for (int i = 0; i < items.Length; i++)
             {
+                (string text, Action onPressed, string help) = items[i];
                 GameObject go = Instantiate(buttonTemplate, staging, false);
                 UIDialogWindowButton b = go.GetComponent<UIDialogWindowButton>();
-                LayoutElement le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
-                le.minWidth = 150f;
-                le.preferredWidth = 150f;
                 Place(go, help, row.transform);
+                var fit = go.GetComponent<ContentSizeFitter>();
+                if (fit != null)
+                {
+                    fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+                    fit.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+                }
+                var rt = (RectTransform)go.transform;
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(width, 26f);
+                rt.anchoredPosition = new Vector2((i - (items.Length - 1) / 2f) * (width + gap), 0f);
                 DrawButton(b, text, onPressed);
             }
         }

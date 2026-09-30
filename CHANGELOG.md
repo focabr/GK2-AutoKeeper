@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-09-29
+
+### Alterado
+- "Restaurar padrões" e "Fechar" ficam juntos e centralizados (antes se espalhavam pelas pontas da janela).
+
 ## [0.3.2] - 2026-09-29
 
 ### Alterado
