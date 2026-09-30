@@ -25,7 +25,7 @@
 2. Extract the `plugins` folder into `<game>/BepInEx/`.
 3. Optional: with *GK2 Mod Framework* installed, the same settings also appear under **Mods**.
 
-**Compatibility:** tested on game version 1.007. Back up your saves before using any mod. When reporting bugs to the game developers, disable mods first.
+**Compatibility:** tested on game version 1.007.1. Back up your saves before using any mod. When reporting bugs to the game developers, disable mods first.
 
 **Burial:** set *Body destination* to *Grave* and the bot walks to the graveyard, places the body in an empty grave and fills it with the shovel (needs an empty grave and a shovel on the belt).
 

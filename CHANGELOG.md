@@ -4,6 +4,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-09-29
+
+### Adicionado
+- **Estacionar corpos no palete**: com as mesas ocupadas por corpos já autopsiados, o crematório ocupado e ainda
+  havendo corpos novos, o bot tira o corpo da mesa, deixa num palete vazio e segue fazendo a autópsia dos outros.
+  Quando o crematório libera, ele busca os corpos estacionados e leva ao crematório. Na hora de pegar corpo novo,
+  os estacionados ficam de fora.
+
+### Corrigido
+- O bot não dá mais a tarefa como concluída enquanto o crematório está queimando e ainda há corpo em mesa ou
+  palete: ele espera o crematório liberar.
+
+### Alterado
+- Versão do jogo testada: **1.007.1** (todas as 388 referências do mod ao jogo conferidas; sem mudanças necessárias).
+
 ## [0.3.4] - 2026-09-29
 
 ### Corrigido

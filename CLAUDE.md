@@ -3,7 +3,7 @@
 Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
 
 ## Estado (2026-09-29)
-- Versão instalada: **0.3.4** (tag v0.3.4). Jogo reporta 1.007.1; testada 1.007 (`Plugin.TestedGameVersion`).
+- Versão instalada: **0.3.5** (tag v0.3.5). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`).
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
 - Não testado em jogo: guardar no baú (sem linha "Baú: guardado" no log ainda) e destino Cova (falta `grave_empty` + pá).
 

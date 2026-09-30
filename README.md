@@ -4,7 +4,7 @@ Mod de automação (bot) para **Graveyard Keeper 2** — BepInEx 5 + HarmonyX, U
 O bot só executa ações que o jogador poderia fazer; nunca altera o save nem cria itens.
 
 - GUID: `com.focabr.gk2.autokeeper` · Versão: ver `Directory.Build.props` (SemVer)
-- Jogo testado: **1.007** (Unity 6000.3.9f1) · BepInEx **5.4.23.5**
+- Jogo testado: **1.007.1** (Unity 6000.3.9f1) · BepInEx **5.4.23.5**
 
 ## Estado atual
 | Etapa | Situação |

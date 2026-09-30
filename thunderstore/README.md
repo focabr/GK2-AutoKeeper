@@ -24,7 +24,7 @@ the player could do — no item spawning, no save editing.
 - Stops when energy is below a configurable threshold and there is no food on the hotbar
 
 ## Requirements
-- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007**
+- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007.1**
 - [BepInExPack 5.4.2305](https://thunderstore.io/c/graveyard-keeper-2/p/BepInEx/BepInExPack/) (BepInEx 5.4.23.x)
 
 ## Installation

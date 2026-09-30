@@ -34,6 +34,7 @@ namespace AutoKeeper.Bot.Tasks
             InspectCrematorium,
             DepositChest,
             FillGrave,
+            ParkOnPallet,
         }
 
         private enum Step
@@ -117,6 +118,8 @@ namespace AutoKeeper.Bot.Tasks
         // Crematório: checar ao chegar; baú: só o que o bot recolheu (extração/crematório).
         private readonly HashSet<string> checkedCrem = new HashSet<string>();
         private readonly HashSet<string> failedChests = new HashSet<string>();
+        private readonly HashSet<string> failedPallets = new HashSet<string>();      // paletes que recusaram um corpo (cheios)
+        private readonly HashSet<string> parkedPallets = new HashSet<string>();      // paletes onde o bot deixou um corpo já autopsiado
         private readonly Dictionary<string, int> ledger = new Dictionary<string, int>();   // itemId → unidades recolhidas pelo bot
         private Dictionary<string, int> invBefore;                                          // foto do inventário antes de extrair/recolher
         private uint prevHere;
@@ -256,6 +259,7 @@ namespace AutoKeeper.Bot.Tasks
                 seenGeneration = nav.Generation;
                 checkedCrem.Clear();   // bot religado: checa o crematório de novo
                 failedChests.Clear();
+                failedPallets.Clear();
                 chestWarned = false;
             }
             if (w.Here != 0 && w.Here != prevHere)
@@ -269,6 +273,7 @@ namespace AutoKeeper.Bot.Tasks
             w.Routes = w.Here != 0 ? nav.ReachableAreas(settings.TravelEnabled.Value) : new Dictionary<uint, AreaRoute>();
             w.Tables = Collect(ObjectKind.AutopsyTable, w);
             w.Pallets = Collect(ObjectKind.MorguePallet, w);
+            parkedPallets.RemoveWhere(uid => !GameApi.ObjectHasBody(uid)); // palete esvaziado (pelo bot ou pelo jogador)
             w.Crematoriums = Collect(ObjectKind.Crematorium, w);
             w.Graves = settings.Destination.Value == BodyDestination.Grave ? Collect(ObjectKind.EmptyGrave, w) : new List<Candidate>();
             bool wantsChest = settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value;
@@ -419,6 +424,15 @@ namespace AutoKeeper.Bot.Tasks
                         {
                             return Act(Goal.Cremate, crem.Value, carried);
                         }
+                        // Crematório ocupado e ainda há corpos novos: deixa este num palete vazio e segue com as autópsias.
+                        if (wantsParts && HasFreshBodyWaiting(w))
+                        {
+                            Candidate? park = EmptyPallet(w);
+                            if (park.HasValue)
+                            {
+                                return Act(Goal.ParkOnPallet, park.Value, carried);
+                            }
+                        }
                         return WaitAt(crem.Value.Area, "aguardando o crematório ficar livre");
                     case BodyDestination.Grave:
                         if (grave.HasValue)
@@ -448,6 +462,8 @@ namespace AutoKeeper.Bot.Tasks
             }
 
             // 3) Mesas com corpo comum.
+            Candidate? doneTable = null;   // mesa com autópsia concluída esperando o destino
+            string doneBody = null;
             foreach (Candidate t in tables)
             {
                 string uid = t.Obj.Uid;
@@ -484,6 +500,33 @@ namespace AutoKeeper.Bot.Tasks
                 {
                     return Act(Goal.TakeBody, t, body);
                 }
+                if (!doneTable.HasValue)
+                {
+                    doneTable = t;
+                    doneBody = body;
+                }
+            }
+
+            // 3d) Destino livre: levar os corpos já autopsiados que ficaram estacionados nos paletes.
+            bool destFree = (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
+            if (destFree && wantsParts)
+            {
+                foreach (Candidate pallet in w.Pallets)
+                {
+                    string pb = GameApi.GetBodyUidInObject(pallet.Obj.Uid);
+                    if (GameApi.ObjectHasPlainBody(pallet.Obj.Uid) && (parkedPallets.Contains(pallet.Obj.Uid) || (pb != null && autopsyDone.Contains(pb))))
+                    {
+                        return Act(Goal.PickUpFromPallet, pallet, pb);
+                    }
+                }
+            }
+
+            // 3e) Mesas todas ocupadas com autópsia pronta, crematório ocupado, e ainda há corpos novos:
+            //     tira o corpo da mesa e deixa num palete vazio para liberar a mesa (ele volta ao crematório depois).
+            if (doneTable.HasValue && !freeTable.HasValue && dest == BodyDestination.Crematorium && crem.HasValue && !cremFree
+                && HasFreshBodyWaiting(w) && EmptyPallet(w).HasValue)
+            {
+                return Act(Goal.TakeBody, doneTable.Value, doneBody);
             }
 
             // 4) Buscar um corpo novo (palete primeiro, depois chão) se houver mesa livre
@@ -493,11 +536,11 @@ namespace AutoKeeper.Bot.Tasks
                 : (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
             if (!canReceive)
             {
-                return default;
+                return WaitForCrematorium(w, crem, cremState);
             }
             foreach (Candidate pallet in w.Pallets)
             {
-                if (GameApi.ObjectHasPlainBody(pallet.Obj.Uid))
+                if (IsFreshPalletBody(pallet))
                 {
                     return Act(Goal.PickUpFromPallet, pallet, null);
                 }
@@ -507,7 +550,42 @@ namespace AutoKeeper.Bot.Tasks
                 GroundItemRef b = w.GroundBodies[0];
                 return new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = w.Here, Ground = true };
             }
-            return default;
+            return WaitForCrematorium(w, crem, cremState);
+        }
+
+        /// <summary>Corpo no palete que ainda não passou pela mesa (os estacionados pelo bot ficam de fora).</summary>
+        private bool IsFreshPalletBody(Candidate pallet)
+        {
+            if (!GameApi.ObjectHasPlainBody(pallet.Obj.Uid))
+            {
+                return false;
+            }
+            if (parkedPallets.Contains(pallet.Obj.Uid))
+            {
+                return false;
+            }
+            string b = GameApi.GetBodyUidInObject(pallet.Obj.Uid);
+            return b == null || !autopsyDone.Contains(b);
+        }
+
+        /// <summary>Ainda há corpo esperando autópsia (palete ou chão)?</summary>
+        private bool HasFreshBodyWaiting(WorldView w) => w.Pallets.Any(IsFreshPalletBody) || w.GroundBodies.Count > 0;
+
+        private Candidate? EmptyPallet(WorldView w)
+            => FirstFree(w.Pallets, p => !failedPallets.Contains(p.Obj.Uid) && !GameApi.ObjectHasBody(p.Obj.Uid));
+
+        /// <summary>
+        /// Nada a fazer agora, mas o crematório está queimando e ainda há corpo no necrotério (mesa ou palete):
+        /// espera em vez de encerrar a tarefa.
+        /// </summary>
+        private Decision WaitForCrematorium(WorldView w, Candidate? crem, CraftState cremState)
+        {
+            if (!crem.HasValue || cremState != CraftState.Running)
+            {
+                return default;
+            }
+            bool pending = w.Tables.Any(t => GameApi.ObjectHasPlainBody(t.Obj.Uid)) || w.Pallets.Any(p => GameApi.ObjectHasPlainBody(p.Obj.Uid));
+            return pending ? WaitAt(crem.Value.Area, "aguardando o crematório ficar livre") : default;
         }
 
         private static Candidate? FirstFree(List<Candidate> list, Func<Candidate, bool> ok)
@@ -762,9 +840,30 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.PickUpBody:
                 case Goal.PickUpFromPallet:
                     done = GameApi.IsCarryingBody();
+                    if (done && goal == Goal.PickUpFromPallet && parkedPallets.Remove(targetUid))
+                    {
+                        string c = GameApi.GetCarriedBodyUid();
+                        if (c != null)
+                        {
+                            autopsyDone.Add(c); // corpo estacionado: vai direto ao crematório
+                        }
+                    }
                     break;
                 case Goal.PutOnTable:
                     done = !GameApi.IsCarryingBody() && GameApi.ObjectHasBody(targetUid);
+                    break;
+                case Goal.ParkOnPallet:
+                    done = !GameApi.IsCarryingBody();
+                    if (done)
+                    {
+                        parkedPallets.Add(targetUid);
+                    }
+                    if (!done && Now - stepStartedAt > InteractTimeout)
+                    {
+                        failedPallets.Add(targetUid);
+                        ModLog.Warn("Corpos: o palete não aceitou o corpo; tentando outro.");
+                        return Replan(null);
+                    }
                     break;
                 case Goal.Bury:
                     done = !GameApi.IsCarryingBody();
@@ -1072,6 +1171,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.UseDoor: return "atravessar porta";
                 case Goal.InspectCrematorium: return "checar o crematório";
                 case Goal.FillGrave: return "fechar a cova";
+                case Goal.ParkOnPallet: return "deixar corpo no palete (crematório ocupado)";
                 case Goal.DepositChest: return "guardar itens no baú";
                 default: return "-";
             }
