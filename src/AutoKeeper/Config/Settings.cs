@@ -13,6 +13,14 @@ namespace AutoKeeper.Config
         Grave,
     }
 
+    /// <summary>O que fazer quando o jogo aplica a Falta de sono (2 dias sem dormir).</summary>
+    public enum LackOfSleepAction
+    {
+        Stop,
+        Sleep,
+        KeepWorking,
+    }
+
     /// <summary>Canto da tela onde fica o painel de status.</summary>
     public enum OverlayCorner
     {
@@ -92,8 +100,7 @@ namespace AutoKeeper.Config
         public ConfigEntry<bool> AutoEat { get; }
         public ConfigEntry<float> EatBelowEnergy { get; }
         public ConfigEntry<float> MaxInsanity { get; }
-        public ConfigEntry<bool> StopOnLackOfSleep { get; }
-        public ConfigEntry<bool> SleepWhenTired { get; }
+        public ConfigEntry<LackOfSleepAction> OnLackOfSleep { get; }
 
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
@@ -151,14 +158,11 @@ namespace AutoKeeper.Config
                 "Desligar o bot com insanidade acima de", "Turn bot off above insanity",
                 "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e covas. O bot desliga ao passar deste valor.",
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
-            StopOnLackOfSleep = Toggle(config, SettingTab.Bot, "Bot", "StopOnLackOfSleep", true,
-                "Desligar com falta de sono", "Turn off on lack of sleep",
-                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. O bot desliga e pede para você dormir (com \"Ir dormir com falta de sono\" ligado, ele vai dormir em vez de desligar).",
-                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. The bot turns off and asks you to sleep (with \"Go to bed on lack of sleep\" on, it goes to bed instead).");
-            SleepWhenTired = Toggle(config, SettingTab.Bot, "Bot", "SleepWhenTired", false,
-                "Ir dormir com falta de sono", "Go to bed on lack of sleep",
-                "Com a Falta de sono (2 dias sem dormir), o bot termina de levar o corpo que estiver carregando, volta para casa, deita na cama (E, como o jogador) e dorme; ao acordar, continua de onde parou.",
-                "With Lack of Sleep (2 days awake), the bot finishes placing any body it is carrying, walks home, uses the bed (E, like the player) and sleeps; after waking up it continues where it stopped.");
+            OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
+                "Com falta de sono", "On lack of sleep",
+                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. Desligar o bot (padrão); Ir dormir: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e continua de onde parou; Continuar: segue trabalhando (só o limite de insanidade protege).",
+                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. Turn off the bot (default); Go to bed: finishes placing any body it carries, walks to the home bed, sleeps and continues where it stopped; Keep working: continues (only the insanity limit protects).");
+            MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Atravessar portas até o trabalho", "Use doors to reach the work",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",
@@ -316,6 +320,45 @@ namespace AutoKeeper.Config
         }
 
         // ------------------------------------------------------------------ helpers de registro
+
+        /// <summary>
+        /// 0.3.18 tinha duas chaves ([Bot] StopOnLackOfSleep e SleepWhenTired). Lê as antigas do .cfg (entradas órfãs),
+        /// converte para OnLackOfSleep uma única vez e as apaga do arquivo.
+        /// </summary>
+        private void MigrateLackOfSleep(ConfigFile config)
+        {
+            try
+            {
+                var orphans = HarmonyLib.Traverse.Create(config).Property("OrphanedEntries").GetValue<Dictionary<ConfigDefinition, string>>();
+                if (orphans == null)
+                {
+                    return;
+                }
+                var stopDef = new ConfigDefinition("Bot", "StopOnLackOfSleep");
+                var sleepDef = new ConfigDefinition("Bot", "SleepWhenTired");
+                bool hasStop = orphans.TryGetValue(stopDef, out string stop);
+                bool hasSleep = orphans.TryGetValue(sleepDef, out string sleep);
+                if (!hasStop && !hasSleep)
+                {
+                    return;
+                }
+                if (string.Equals(sleep, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    OnLackOfSleep.Value = LackOfSleepAction.Sleep;
+                }
+                else if (string.Equals(stop, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    OnLackOfSleep.Value = LackOfSleepAction.KeepWorking;
+                }
+                orphans.Remove(stopDef);
+                orphans.Remove(sleepDef);
+                config.Save();
+            }
+            catch (Exception)
+            {
+                // Migração é conveniência: sem ela a opção nova só fica no padrão.
+            }
+        }
 
         private ConfigEntry<T> Bind<T>(ConfigFile config, SettingTab tab, string section, string key, T value,
             string labelPt, string labelEn, string helpPt, string helpEn, AcceptableValueBase range = null)

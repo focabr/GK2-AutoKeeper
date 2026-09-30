@@ -133,6 +133,10 @@ namespace AutoKeeper.FrameworkBridge
                 {
                     ui.AddEnum(def.Section, def.Key, (OverlayCorner)s.Entry.DefaultValue, name, help, s.Order);
                 }
+                else if (type == typeof(LackOfSleepAction))
+                {
+                    ui.AddEnum(def.Section, def.Key, (LackOfSleepAction)s.Entry.DefaultValue, name, help, s.Order);
+                }
                 else if (type == typeof(KeyboardShortcut))
                 {
                     ui.AddKeybind(def.Section, def.Key, (KeyboardShortcut)s.Entry.DefaultValue, name, help, s.Order);

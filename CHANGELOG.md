@@ -4,6 +4,23 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.19] - 2026-09-30
+
+### Alterado
+- **Painel de status (F9) reorganizado**: título e estado na mesma linha e, quando o bot está desligado, pausado ou
+  ocioso, a linha **Motivo** (antes o motivo só aparecia no meio do log). Depois, linhas "rótulo: valor" alinhadas:
+  **Tarefa** (o passo atual), **Local** (área · dia e hora do jogo), **Energia** (· insanidade), **Sono** (dias sem
+  dormir; destaque perto de 2 dias e com Falta de sono) e **Nas mãos** (só quando carrega algo). Posição, zona, cena e
+  dinheiro só com "Painel com detalhes técnicos". A insanidade aparecia como "sanidade".
+- **Eventos do painel**: o mais recente em cima, com "há X" (agora, 8 s, 3 min) em vez do relógio real (que confundia
+  com a hora do jogo), linhas quebradas com recuo, avisos em destaque. Mensagens técnicas ou de passo a passo (iniciar/
+  concluir tarefa, objetivo, extraindo, pontos de trabalho, UI, maestria pulada, caminho do dump) vão só para o
+  `LogOutput.log`.
+- **"Com falta de sono"** (`[Bot] OnLackOfSleep`): uma opção só com **Desligar o bot** (padrão) / **Ir dormir** /
+  **Continuar trabalhando**, no lugar das duas chaves da 0.3.18 (`StopOnLackOfSleep` + `SleepWhenTired`, que se
+  sobrepunham). O valor antigo é convertido sozinho e as chaves velhas saem do `.cfg`.
+- Mensagem da porta mais curta: "indo pela porta X para <objetivo> (N porta(s), ~M m)".
+
 ## [0.3.18] - 2026-09-30
 
 ### Adicionado

@@ -400,7 +400,7 @@ namespace AutoKeeper.Core
                 if (best != null && LoggedDockTargets.Add(uid))
                 {
                     Vector3 bp = best.transform.position;
-                    ModLog.Info($"Pontos de trabalho de {w.id}:{diag} → escolhido {bp.x:0.00},{bp.z:0.00}");
+                    ModLog.Detail($"Pontos de trabalho de {w.id}:{diag} → escolhido {bp.x:0.00},{bp.z:0.00}");
                 }
                 if (best != null)
                 {

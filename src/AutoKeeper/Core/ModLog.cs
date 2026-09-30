@@ -5,9 +5,24 @@ using BepInEx.Logging;
 
 namespace AutoKeeper.Core
 {
+    /// <summary>Uma mensagem para a lista de eventos do painel.</summary>
+    internal readonly struct LogEntry
+    {
+        public readonly float At;          // Time.unscaledTime (para "há X s")
+        public readonly LogLevel Level;
+        public readonly string Text;
+
+        public LogEntry(float at, LogLevel level, string text)
+        {
+            At = at;
+            Level = level;
+            Text = text;
+        }
+    }
+
     /// <summary>
-    /// Log central: escreve no Logger do BepInEx e guarda as últimas linhas para o overlay.
-    /// Mensagens Debug só aparecem com [Debug] VerboseLogging = true.
+    /// Log central: escreve no Logger do BepInEx e guarda as últimas mensagens para o painel.
+    /// Mensagens Debug só aparecem com [Debug] VerboseLogging = true. <see cref="Detail"/> vai só para o arquivo.
     /// </summary>
     internal static class ModLog
     {
@@ -15,10 +30,11 @@ namespace AutoKeeper.Core
 
         private static ManualLogSource source;
         private static Settings settings;
-        private static readonly LinkedList<string> recent = new LinkedList<string>();
+        private static readonly LinkedList<LogEntry> recent = new LinkedList<LogEntry>();
         private static readonly HashSet<string> onceKeys = new HashSet<string>();
 
-        public static IEnumerable<string> Recent => recent;
+        /// <summary>Eventos para o painel, do mais antigo para o mais novo.</summary>
+        public static IEnumerable<LogEntry> Recent => recent;
 
         public static void Init(ManualLogSource logSource, Settings modSettings)
         {
@@ -35,6 +51,9 @@ namespace AutoKeeper.Core
         }
 
         public static void Info(string msg) => Write(LogLevel.Info, msg);
+
+        /// <summary>Informação técnica/passo a passo: vai para o LogOutput.log, mas não para a lista de eventos do painel.</summary>
+        public static void Detail(string msg) => source?.Log(LogLevel.Info, msg);
         public static void Warn(string msg) => Write(LogLevel.Warning, msg);
         public static void Error(string msg) => Write(LogLevel.Error, msg);
 
@@ -59,20 +78,10 @@ namespace AutoKeeper.Core
                 return;
             }
             source?.Log(level, msg);
-            recent.AddLast($"{DateTime.Now:HH:mm:ss} {LevelTag(level)}{msg}");
+            recent.AddLast(new LogEntry(UnityEngine.Time.unscaledTime, level, msg));
             while (recent.Count > MaxRecent)
             {
                 recent.RemoveFirst();
-            }
-        }
-
-        private static string LevelTag(LogLevel level)
-        {
-            switch (level)
-            {
-                case LogLevel.Warning: return "[!] ";
-                case LogLevel.Error: return "[ERRO] ";
-                default: return string.Empty;
             }
         }
     }

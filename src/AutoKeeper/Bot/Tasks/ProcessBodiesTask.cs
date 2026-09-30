@@ -143,7 +143,7 @@ namespace AutoKeeper.Bot.Tasks
         private const float CreditDelay = 2f;
         private const float CreditMaxAge = 20f;   // pendência velha (bot parado/pausado muito tempo): descarta
 
-        // Sono: ir dormir na cama de casa com a Falta de sono ([Bot] SleepWhenTired).
+        // Sono: ir dormir na cama de casa com a Falta de sono ([Bot] OnLackOfSleep = Sleep).
         private bool sleepAnnounced;
         private int sleepTries;
         private const int MaxSleepTries = 3;
@@ -528,7 +528,7 @@ namespace AutoKeeper.Bot.Tasks
         private Decision Decide(WorldView w)
         {
             // Sono: com a Falta de sono e a opção ligada, larga o que está fazendo (sem corpo nas mãos) e vai dormir.
-            if (settings.SleepWhenTired.Value)
+            if (settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep)
             {
                 bool lack = GameApi.HasLackOfSleep();
                 if (!lack)
@@ -887,7 +887,7 @@ namespace AutoKeeper.Bot.Tasks
                     {
                         if (masterySkipLogged.Add(key))
                         {
-                            ModLog.Info($"Corpos: pulando {id} — {m}, abaixo do mínimo de {settings.MinMasteryChance.Value}%");
+                            ModLog.Detail($"Corpos: pulando {id} — {m}, abaixo do mínimo de {settings.MinMasteryChance.Value}%");
                         }
                         continue;
                     }
@@ -936,7 +936,7 @@ namespace AutoKeeper.Bot.Tasks
             travelPurpose = purpose;
             travelDoors = route.Doors;
             doorFromArea = w.Here;
-            ModLog.Info($"Corpos: \"{purpose}\" fica em outra área — indo pela porta \"{door.Label}\" ({route.Doors} porta(s) no caminho, ~{route.Cost:0} m)");
+            ModLog.Info($"Corpos: indo pela porta \"{door.Label}\" para {purpose} ({route.Doors} porta(s), ~{route.Cost:0} m)");
             return Begin(false, Goal.UseDoor, door.Uid, door.Position, false, null, null);
         }
 
@@ -991,7 +991,7 @@ namespace AutoKeeper.Bot.Tasks
                 standFacing = learned.Facing;
             }
 
-            ModLog.Info($"Corpos: objetivo {GoalText()}");
+            ModLog.Detail($"Corpos: objetivo {GoalText()}");
             GoTo(Step.Move);
             float dist = GameApi.DistanceTo(standSpot);
             moveTimeout = Mathf.Max(settings.MoveTimeoutSeconds.Value, dist / 3.3f * 2f + 10f);
@@ -1065,7 +1065,7 @@ namespace AutoKeeper.Bot.Tasks
             if (goal == Goal.InspectCrematorium)
             {
                 checkedCrem.Add(targetUid);
-                ModLog.Info($"Corpos: crematório checado — estado: {GameApi.GetCraftState(targetUid)}");
+                ModLog.Detail($"Corpos: crematório checado — estado: {GameApi.GetCraftState(targetUid)}");
                 return Replan(null); // se estiver pronto, o próximo plano recolhe
             }
 
@@ -1235,7 +1235,7 @@ namespace AutoKeeper.Bot.Tasks
                     }
                     if (GameApi.StartAutopsyExtract(targetUid, partId, out reason))
                     {
-                        ModLog.Info($"Corpos: extraindo {partId}");
+                        ModLog.Detail($"Corpos: extraindo {partId}");
                         StartWork();
                         return TaskResult.Running;
                     }
@@ -1250,7 +1250,7 @@ namespace AutoKeeper.Bot.Tasks
                     }
                     if (GameApi.StartPocketExtract(targetUid, partId, out reason))
                     {
-                        ModLog.Info($"Corpos: tirando {partId} (Outros)");
+                        ModLog.Detail($"Corpos: tirando {partId} (Outros)");
                         StartWork();
                         return TaskResult.Running;
                     }
@@ -1569,7 +1569,7 @@ namespace AutoKeeper.Bot.Tasks
             workSpots[targetUid] = new WorkSpot { Pos = pos, Facing = facing.sqrMagnitude > 0.01f ? facing.normalized : standFacing };
             if (Vector3.Distance(pos, standSpot) > 0.3f)
             {
-                ModLog.Info($"Corpos: o jogo trabalha em {GameApi.GetObjectDefId(targetUid)} a partir de {pos.x:0.00},{pos.z:0.00} "
+                ModLog.Detail($"Corpos: o jogo trabalha em {GameApi.GetObjectDefId(targetUid)} a partir de {pos.x:0.00},{pos.z:0.00} "
                     + $"(o bot tinha ido a {standSpot.x:0.00},{standSpot.z:0.00}) — uso o ponto do jogo daqui em diante");
             }
             standSpot = pos;

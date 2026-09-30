@@ -322,6 +322,15 @@ namespace AutoKeeper.UI
                     case BodyDestination.Grave: return T(pt, "Cova (exp.)", "Grave (exp.)");
                 }
             }
+            if (v is LackOfSleepAction ls)
+            {
+                switch (ls)
+                {
+                    case LackOfSleepAction.Stop: return T(pt, "Desligar o bot", "Turn off the bot");
+                    case LackOfSleepAction.Sleep: return T(pt, "Ir dormir", "Go to bed");
+                    case LackOfSleepAction.KeepWorking: return T(pt, "Continuar trabalhando", "Keep working");
+                }
+            }
             if (v is OverlayCorner c)
             {
                 switch (c)

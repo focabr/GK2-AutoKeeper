@@ -56,6 +56,9 @@ namespace AutoKeeper.Bot
 
         public string CurrentTaskText => eating ? $"comendo {eatingFood.ItemId}" : current == null ? "-" : $"{current.Name}: {current.Status}";
 
+        /// <summary>Só o passo atual (para o painel): "comendo X", o status da tarefa ou null.</summary>
+        public string CurrentStepText => eating ? $"comendo {eatingFood.ItemId}" : current?.Status;
+
         /// <summary>Rotas entre áreas (portas), compartilhadas pelas tarefas.</summary>
         public Navigator Navigator { get; } = new Navigator();
 
@@ -208,16 +211,17 @@ namespace AutoKeeper.Bot
                 Stop($"insanidade alta ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade ou descanse");
                 return;
             }
-            // Com "Ir dormir com falta de sono" ligado, quem cuida é a tarefa (vai até a cama); senão, desliga.
-            if (!settings.SleepWhenTired.Value && settings.StopOnLackOfSleep.Value && GameApi.HasLackOfSleep())
+            // "Com falta de sono": Desligar → para aqui; Ir dormir → a tarefa vai até a cama; Continuar → só o limite de insanidade.
+            LackOfSleepAction onLack = settings.OnLackOfSleep.Value;
+            if (onLack == LackOfSleepAction.Stop && GameApi.HasLackOfSleep())
             {
                 Stop("falta de sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
                 return;
             }
             float awake = GameApi.GetDaysWithoutSleep();
-            if ((settings.StopOnLackOfSleep.Value || settings.SleepWhenTired.Value) && awake >= 1.75f && awake < 2f)
+            if (onLack != LackOfSleepAction.KeepWorking && awake >= 1.75f && awake < 2f)
             {
-                ModLog.WarnOnce("SleepSoon", settings.SleepWhenTired.Value
+                ModLog.WarnOnce("SleepSoon", onLack == LackOfSleepAction.Sleep
                     ? $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot vai dormir na cama de casa."
                     : $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot desliga. Durma logo.");
             }
@@ -235,7 +239,7 @@ namespace AutoKeeper.Bot
                     if (SafeCanRun(t, out string reason))
                     {
                         current = t;
-                        ModLog.Info($"Iniciando tarefa: {t.Name}");
+                        ModLog.Detail($"Iniciando tarefa: {t.Name}");
                         break;
                     }
                     lastReason = $"{t.Name}: {reason}";
@@ -266,7 +270,7 @@ namespace AutoKeeper.Bot
             switch (result)
             {
                 case TaskResult.Succeeded:
-                    ModLog.Info($"Tarefa concluída: {current.Name}");
+                    ModLog.Detail($"Tarefa concluída: {current.Name}");
                     current = null;
                     break;
                 case TaskResult.Failed:
@@ -333,7 +337,7 @@ namespace AutoKeeper.Bot
             eatKeyTries = 0;
             State = BotState.Running;
             StateDetail = "comendo";
-            ModLog.Info($"Comida: energia {s.Energy:0}/{s.EnergyMax:0} — usando {pick}");
+            ModLog.Detail($"Comida: energia {s.Energy:0}/{s.EnergyMax:0} — usando {pick}");
             return true;
         }
 

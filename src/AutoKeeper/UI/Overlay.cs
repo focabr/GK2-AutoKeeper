@@ -1,31 +1,57 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using AutoKeeper.Bot;
 using AutoKeeper.Config;
 using AutoKeeper.Core;
+using BepInEx.Logging;
 using UnityEngine;
 
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Painel de status (IMGUI) com a paleta e a fonte do jogo: fundo marrom escuro com moldura,
-    /// rótulos bege-acinzentados e valores dourados. Reconstrói o texto no máximo 5x por segundo.
+    /// Painel de status (IMGUI) com a paleta e a fonte do jogo. Organizado em blocos:
+    ///   título + estado (e o motivo, quando desligado/pausado/ocioso);
+    ///   linhas "rótulo: valor" alinhadas (tarefa, local, energia, sono, mãos);
+    ///   eventos recentes (o mais novo em cima, com "há X");
+    ///   botão de configurações + teclas.
+    /// O conteúdo é refeito no máximo 5x por segundo; o desenho usa retângulos fixos (alinhamento e recuo das quebras).
     /// </summary>
     internal sealed class Overlay
     {
         private const float RefreshSeconds = 0.2f;
         private const float Margin = 12f;
+        private const float PadX = 12f;
+        private const float PadY = 8f;
+        private const float RowGap = 2f;
+        private const float SectionGap = 5f;
+
+        private enum RowKind
+        {
+            Title,
+            Pair,
+            Event,
+            Note,
+            Separator,
+        }
+
+        private struct Row
+        {
+            public RowKind Kind;
+            public string A;      // título / rótulo / tempo do evento
+            public string B;      // estado / valor / texto do evento
+            public bool Muted;
+        }
 
         private readonly Settings settings;
         private readonly BotController bot;
-        private GUIStyle style;
-        private GUIStyle buttonStyle;
-        private Texture2D fillTex, borderTex, buttonTex, buttonHoverTex;
+        private readonly List<Row> rows = new List<Row>();
+        private GUIStyle titleStyle, stateStyle, labelStyle, valueStyle, mutedValueStyle, timeStyle, eventStyle, noteStyle, footerStyle, buttonStyle;
+        private Texture2D fillTex, borderTex, lineTex, buttonTex, buttonHoverTex;
         private int styleFontSize = -1;
         private Font styleFont;
-        private string cachedText = string.Empty;
         private float nextRefresh;
+        private float labelWidth;
+        private float timeWidth;
 
         public Overlay(Settings settings, BotController bot)
         {
@@ -48,109 +74,211 @@ namespace AutoKeeper.UI
             }
 
             EnsureStyle();
-            if (Event.current.type == EventType.Repaint && Time.unscaledTime >= nextRefresh)
+            if (Event.current.type == EventType.Repaint && Time.unscaledTime >= nextRefresh || rows.Count == 0)
             {
                 nextRefresh = Time.unscaledTime + RefreshSeconds;
-                cachedText = BuildText();
+                BuildRows();
             }
 
-            var content = new GUIContent(cachedText);
-            float width = Mathf.Min(Screen.width * 0.4f, style.fontSize * 30f);
-            float textHeight = style.CalcHeight(content, width);
-            float buttonHeight = style.fontSize * 1.8f;
-            float height = textHeight + buttonHeight + 10f;
+            bool pt = GameApi.IsGameLanguagePortuguese();
+            float width = Mathf.Min(Screen.width * 0.4f, styleFontSize * 30f);
+            float inner = width - PadX * 2f;
+            float buttonHeight = styleFontSize * 1.8f;
+
+            // Alturas (iguais em todos os eventos da GUI, para o botão ficar sempre no mesmo lugar).
+            float contentHeight = 0f;
+            var heights = new float[rows.Count];
+            for (int i = 0; i < rows.Count; i++)
+            {
+                heights[i] = RowHeight(rows[i], inner);
+                contentHeight += heights[i] + RowGap;
+            }
+            float height = PadY + contentHeight + SectionGap + buttonHeight + PadY;
             Rect = PlaceInCorner(width, height);
 
-            var textRect = new Rect(Rect.x, Rect.y, width, textHeight);
-            var buttonRect = new Rect(Rect.x + 10f, Rect.y + textHeight, Mathf.Min(width - 20f, style.fontSize * 15f), buttonHeight);
-
+            float x = Rect.x + PadX;
+            float y = Rect.y + PadY;
             if (Event.current.type == EventType.Repaint)
             {
                 GameUiTheme.DrawFramedBox(Rect, fillTex, borderTex);
-                GUI.Label(textRect, content, style);
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    DrawRow(rows[i], new Rect(x, y, inner, heights[i]));
+                    y += heights[i] + RowGap;
+                }
             }
+            else
+            {
+                y += contentHeight;
+            }
+            y += SectionGap;
 
-            string label = (GameApi.IsGameLanguagePortuguese() ? "Configurações (" : "Settings (") + settings.OpenSettingsKey.Value + ")";
+            string label = (pt ? "Configurações (" : "Settings (") + settings.OpenSettingsKey.Value + ")";
+            float buttonWidth = Mathf.Min(inner * 0.55f, styleFontSize * 15f);
+            var buttonRect = new Rect(x, y, buttonWidth, buttonHeight);
+            if (Event.current.type == EventType.Repaint)
+            {
+                string keys = $"{settings.ToggleBotKey.Value} {(pt ? "liga/desliga" : "on/off")} · {settings.ToggleOverlayKey.Value} {(pt ? "esconde" : "hides")}";
+                GUI.Label(new Rect(x + buttonWidth + 8f, y, inner - buttonWidth - 8f, buttonHeight), keys, footerStyle);
+            }
             if (GUI.Button(buttonRect, label, buttonStyle))
             {
                 OnSettingsClicked?.Invoke();
             }
         }
 
-        private Rect PlaceInCorner(float w, float h)
-        {
-            switch (settings.OverlayPosition.Value)
-            {
-                case OverlayCorner.TopRight: return new Rect(Screen.width - w - Margin, Margin, w, h);
-                case OverlayCorner.BottomLeft: return new Rect(Margin, Screen.height - h - Margin, w, h);
-                case OverlayCorner.BottomRight: return new Rect(Screen.width - w - Margin, Screen.height - h - Margin, w, h);
-                default: return new Rect(Margin, Margin, w, h);
-            }
-        }
+        // ------------------------------------------------------------------ conteúdo
 
-        private string BuildText()
+        private void BuildRows()
         {
             bool pt = GameApi.IsGameLanguagePortuguese();
             GameSnapshot s = bot.LastSnapshot ?? new GameSnapshot();
-            var sb = new StringBuilder();
+            rows.Clear();
 
-            sb.Append("<color=").Append(GameUiTheme.TitleHex).Append("><b>").Append(Plugin.Name).Append(" ").Append(Plugin.Version).Append("</b></color>   ")
-              .Append(StateColored(bot.State, pt));
-            if (bot.State != BotController.BotState.Off && !string.IsNullOrEmpty(bot.StateDetail))
+            rows.Add(new Row { Kind = RowKind.Title, A = $"{Plugin.Name} {Plugin.Version}", B = StateColored(bot.State, pt) });
+            string reason = StateReason(pt);
+            if (reason != null)
             {
-                sb.Append(' ').Append(Muted("(" + bot.StateDetail + ")"));
+                rows.Add(Pair(pt ? "Motivo:" : "Reason:", reason));
             }
-            sb.Append('\n');
+            rows.Add(new Row { Kind = RowKind.Separator });
 
+            string step = bot.CurrentStepText;
+            rows.Add(Pair(pt ? "Tarefa:" : "Task:", string.IsNullOrEmpty(step) ? "—" : step));
             if (!s.InGame)
             {
-                sb.Append(Label(pt ? "Menu / carregando" : "Menu / loading")).Append('\n');
+                rows.Add(Pair(pt ? "Local:" : "Place:", pt ? "menu / carregando" : "menu / loading"));
             }
             else
             {
-                sb.Append(Label(pt ? "Local: " : "Place: ")).Append(Value(string.IsNullOrEmpty(s.ZoneName) ? "?" : s.ZoneName))
-                  .Append(Label("   " + (pt ? "Energia: " : "Energy: "))).Append(Value($"{s.Energy:0}/{s.EnergyMax:0}")).Append('\n');
-                sb.Append(Label(pt ? "Controle: " : "Control: "))
-                  .Append(s.BlockReason == null
-                      ? "<color=" + GameUiTheme.GoodHex + ">" + (pt ? "livre" : "free") + "</color>"
-                      : "<color=" + GameUiTheme.ValueHex + ">" + s.BlockReason + "</color>")
-                  .Append('\n');
-                sb.Append(Label(pt ? "Dia " : "Day ")).Append(Value(s.Day.ToString())).Append(Label("  ~")).Append(Value(s.ClockText))
-                  .Append(Label(pt ? "   Carregando: " : "   Carrying: ")).Append(Value(s.Overhead.Count == 0 ? "-" : string.Join(", ", s.Overhead))).Append('\n');
+                string place = string.IsNullOrEmpty(s.ZoneName) ? "?" : s.ZoneName;
+                rows.Add(Pair(pt ? "Local:" : "Place:", $"{place} · {(pt ? "dia" : "day")} {s.Day}, {s.ClockText}"));
+
+                bool lowEnergy = s.EnergyMax > 0f && s.Energy < settings.EatBelowEnergy.Value;
+                bool highInsanity = s.Insanity >= settings.MaxInsanity.Value * 0.8f;
+                rows.Add(Pair(pt ? "Energia:" : "Energy:",
+                    Warn($"{s.Energy:0}/{s.EnergyMax:0}", lowEnergy) + Muted(" · ") + Warn($"{(pt ? "insanidade" : "insanity")} {s.Insanity:0}", highInsanity)));
+
+                if (s.DaysWithoutSleep >= 0f)
+                {
+                    string days = s.DaysWithoutSleep.ToString("0.0");
+                    string sleep = pt ? $"{days} dia(s) sem dormir" : $"{days} day(s) without sleep";
+                    if (s.LackOfSleep)
+                    {
+                        sleep = Bad(sleep + (pt ? " — Falta de sono" : " — Lack of Sleep"));
+                    }
+                    else
+                    {
+                        sleep = Warn(sleep, s.DaysWithoutSleep >= 1.75f);
+                    }
+                    rows.Add(Pair(pt ? "Sono:" : "Sleep:", sleep));
+                }
+                if (s.Overhead.Count > 0)
+                {
+                    rows.Add(Pair(pt ? "Nas mãos:" : "Carrying:", string.Join(", ", s.Overhead.Select(id => ItemName(id, pt)))));
+                }
                 if (settings.OverlayDetailed.Value)
                 {
-                    sb.Append(Muted($"pos {s.Position.x:0.0}, {s.Position.y:0.0}, {s.Position.z:0.0} · {(pt ? "sanidade" : "sanity")} {s.Insanity:0} · {(pt ? "dinheiro" : "money")} {s.Money:0}")).Append('\n');
-                    sb.Append(Muted($"zona {s.ZoneId ?? "-"} · cena {s.SceneId} · {(pt ? "jogo" : "game")} {s.GameVersion}")).Append('\n');
+                    rows.Add(MutedPair(pt ? "Posição:" : "Position:", $"{s.Position.x:0.0}, {s.Position.y:0.0}, {s.Position.z:0.0}"));
+                    rows.Add(MutedPair(pt ? "Zona:" : "Zone:", $"{s.ZoneId ?? "-"} · {(pt ? "cena" : "scene")} {s.SceneId}"));
+                    rows.Add(MutedPair(pt ? "Dinheiro:" : "Money:", $"{s.Money:0}"));
                 }
             }
-
-            sb.Append(Label(pt ? "Tarefa: " : "Task: ")).Append(Value(bot.CurrentTaskText)).Append('\n');
-            sb.Append(Muted($"{settings.ToggleBotKey.Value} bot  ·  {settings.ToggleOverlayKey.Value} {(pt ? "painel" : "panel")}"));
-
             if (s.GameVersion != null && s.GameVersion != Plugin.TestedGameVersion)
             {
-                sb.Append('\n').Append("<color=").Append(GameUiTheme.ValueHex).Append(">")
-                  .Append(pt ? $"Jogo {s.GameVersion} não testado (testado: {Plugin.TestedGameVersion})" : $"Game {s.GameVersion} untested (tested: {Plugin.TestedGameVersion})")
-                  .Append("</color>");
+                rows.Add(new Row
+                {
+                    Kind = RowKind.Note,
+                    B = Warn(pt ? $"Jogo {s.GameVersion} não testado (testado: {Plugin.TestedGameVersion})"
+                                : $"Game {s.GameVersion} untested (tested: {Plugin.TestedGameVersion})", true),
+                });
             }
 
             int n = settings.OverlayLogLines.Value;
-            if (n > 0)
+            List<LogEntry> events = n > 0 ? ModLog.Recent.Reverse().Take(n).ToList() : new List<LogEntry>();
+            if (events.Count > 0)
             {
-                List<string> lines = ModLog.Recent.Reverse().Take(n).Reverse().ToList();
-                if (lines.Count > 0)
+                rows.Add(new Row { Kind = RowKind.Separator });
+                foreach (LogEntry e in events)
                 {
-                    sb.Append("\n<size=").Append(Mathf.Max(10, style.fontSize - 3)).Append('>');
-                    sb.Append(Muted(string.Join("\n", lines.Select(Escape))));
-                    sb.Append("</size>");
+                    rows.Add(new Row { Kind = RowKind.Event, A = Ago(Time.unscaledTime - e.At, pt), B = EventText(e) });
                 }
             }
-            return sb.ToString();
+            rows.Add(new Row { Kind = RowKind.Separator });
+
+            // Coluna de rótulos: largura do maior rótulo presente.
+            labelWidth = 0f;
+            foreach (Row r in rows)
+            {
+                if (r.Kind == RowKind.Pair)
+                {
+                    labelWidth = Mathf.Max(labelWidth, labelStyle.CalcSize(new GUIContent(r.A)).x);
+                }
+            }
+            labelWidth += 6f;
+            timeWidth = timeStyle.CalcSize(new GUIContent(pt ? "59 min" : "59 min")).x + 6f;
         }
 
-        private static string Label(string t) => "<color=" + GameUiTheme.LabelHex + ">" + t + "</color>";
-        private static string Value(string t) => "<color=" + GameUiTheme.ValueHex + ">" + t + "</color>";
+        /// <summary>Por que o bot não está trabalhando (null quando está).</summary>
+        private string StateReason(bool pt)
+        {
+            string d = bot.StateDetail;
+            switch (bot.State)
+            {
+                case BotController.BotState.Running:
+                    return null;
+                case BotController.BotState.Off:
+                    // "desligado" = estado inicial: o rodapé já diz como ligar.
+                    return string.IsNullOrEmpty(d) || d == "desligado" ? null : d;
+                default:
+                    return string.IsNullOrEmpty(d) ? null : d;
+            }
+        }
+
+        private static string EventText(LogEntry e)
+        {
+            string t = Escape(e.Text);
+            switch (e.Level)
+            {
+                case LogLevel.Warning: return Warn(t, true);
+                case LogLevel.Error: return Bad(t);
+                default: return t;
+            }
+        }
+
+        private static string Ago(float seconds, bool pt)
+        {
+            if (seconds < 5f)
+            {
+                return pt ? "agora" : "now";
+            }
+            if (seconds < 60f)
+            {
+                return $"{seconds:0} s";
+            }
+            if (seconds < 3600f)
+            {
+                return $"{seconds / 60f:0} min";
+            }
+            return $"{seconds / 3600f:0} h";
+        }
+
+        private static string ItemName(string id, bool pt)
+        {
+            if (id != null && id.StartsWith("body"))
+            {
+                return pt ? "corpo" : "body";
+            }
+            return id;
+        }
+
+        private static Row Pair(string label, string value) => new Row { Kind = RowKind.Pair, A = label, B = value };
+
+        private static Row MutedPair(string label, string value) => new Row { Kind = RowKind.Pair, A = label, B = value, Muted = true };
+
         private static string Muted(string t) => "<color=" + GameUiTheme.MutedHex + ">" + t + "</color>";
+        private static string Bad(string t) => "<color=" + GameUiTheme.BadHex + ">" + t + "</color>";
+        private static string Warn(string t, bool warn) => warn ? "<color=" + GameUiTheme.BadHex + ">" + t + "</color>" : t;
 
         private static string StateColored(BotController.BotState state, bool pt)
         {
@@ -166,34 +294,93 @@ namespace AutoKeeper.UI
         /// <summary>Evita que "&lt;" em mensagens de log quebre o rich text.</summary>
         private static string Escape(string s) => s.Replace("<", "‹").Replace(">", "›");
 
+        // ------------------------------------------------------------------ desenho
+
+        private float RowHeight(Row r, float inner)
+        {
+            switch (r.Kind)
+            {
+                case RowKind.Title:
+                    return titleStyle.CalcHeight(new GUIContent(r.A), inner);
+                case RowKind.Pair:
+                    return Mathf.Max(labelStyle.CalcHeight(new GUIContent(r.A), labelWidth),
+                        (r.Muted ? mutedValueStyle : valueStyle).CalcHeight(new GUIContent(r.B), inner - labelWidth));
+                case RowKind.Event:
+                    return eventStyle.CalcHeight(new GUIContent(r.B), inner - timeWidth);
+                case RowKind.Note:
+                    return noteStyle.CalcHeight(new GUIContent(r.B), inner);
+                default:
+                    return SectionGap * 2f + 1f;
+            }
+        }
+
+        private void DrawRow(Row r, Rect rect)
+        {
+            switch (r.Kind)
+            {
+                case RowKind.Title:
+                    GUI.Label(rect, r.A, titleStyle);
+                    GUI.Label(rect, r.B, stateStyle);
+                    break;
+                case RowKind.Pair:
+                    GUI.Label(new Rect(rect.x, rect.y, labelWidth, rect.height), r.A, labelStyle);
+                    GUI.Label(new Rect(rect.x + labelWidth, rect.y, rect.width - labelWidth, rect.height), r.B, r.Muted ? mutedValueStyle : valueStyle);
+                    break;
+                case RowKind.Event:
+                    GUI.Label(new Rect(rect.x, rect.y, timeWidth, rect.height), r.A, timeStyle);
+                    GUI.Label(new Rect(rect.x + timeWidth, rect.y, rect.width - timeWidth, rect.height), r.B, eventStyle);
+                    break;
+                case RowKind.Note:
+                    GUI.Label(rect, r.B, noteStyle);
+                    break;
+                default:
+                    GUI.DrawTexture(new Rect(rect.x, rect.y + SectionGap, rect.width, 1f), lineTex);
+                    break;
+            }
+        }
+
+        private Rect PlaceInCorner(float w, float h)
+        {
+            switch (settings.OverlayPosition.Value)
+            {
+                case OverlayCorner.TopRight: return new Rect(Screen.width - w - Margin, Margin, w, h);
+                case OverlayCorner.BottomLeft: return new Rect(Margin, Screen.height - h - Margin, w, h);
+                case OverlayCorner.BottomRight: return new Rect(Screen.width - w - Margin, Screen.height - h - Margin, w, h);
+                default: return new Rect(Margin, Margin, w, h);
+            }
+        }
+
         private void EnsureStyle()
         {
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height / 62f), 12, 22);
             Font gameFont = GameUiTheme.Font;
-            if (style != null && styleFontSize == fontSize && styleFont == gameFont)
+            if (titleStyle != null && styleFontSize == fontSize && styleFont == gameFont)
             {
                 return;
             }
             styleFontSize = fontSize;
             styleFont = gameFont;
+            rows.Clear(); // larguras dependem da fonte: refaz o conteúdo
 
             fillTex = fillTex ?? GameUiTheme.MakeTex(GameUiTheme.PanelBackground);
             borderTex = borderTex ?? GameUiTheme.MakeTex(GameUiTheme.Border);
+            lineTex = lineTex ?? GameUiTheme.MakeTex(new Color(GameUiTheme.Border.r, GameUiTheme.Border.g, GameUiTheme.Border.b, 0.8f));
             buttonTex = buttonTex ?? GameUiTheme.MakeTex(GameUiTheme.Button);
             buttonHoverTex = buttonHoverTex ?? GameUiTheme.MakeTex(GameUiTheme.ButtonHover);
 
-            style = new GUIStyle(GUI.skin.label)
-            {
-                richText = true,
-                wordWrap = true,
-                fontSize = fontSize,
-                padding = new RectOffset(12, 12, 8, 6),
-            };
-            style.normal.textColor = GameUiTheme.Label;
-            if (gameFont != null)
-            {
-                style.font = gameFont;
-            }
+            int small = Mathf.Max(10, fontSize - 3);
+            titleStyle = Make(fontSize + 1, GameUiTheme.Title, wrap: false);
+            titleStyle.fontStyle = FontStyle.Bold;
+            stateStyle = Make(fontSize, GameUiTheme.Value, wrap: false);
+            stateStyle.alignment = TextAnchor.UpperRight;
+            labelStyle = Make(fontSize, GameUiTheme.Label, wrap: false);
+            valueStyle = Make(fontSize, GameUiTheme.Value, wrap: true);
+            mutedValueStyle = Make(small, GameUiTheme.Label, wrap: true);
+            timeStyle = Make(small, GameUiTheme.Label, wrap: false);
+            eventStyle = Make(small, GameUiTheme.Title, wrap: true);
+            noteStyle = Make(small, GameUiTheme.Value, wrap: true);
+            footerStyle = Make(small, GameUiTheme.Label, wrap: true);
+            footerStyle.alignment = TextAnchor.MiddleRight;
 
             buttonStyle = new GUIStyle(GUI.skin.button)
             {
@@ -211,6 +398,25 @@ namespace AutoKeeper.UI
             {
                 buttonStyle.font = gameFont;
             }
+        }
+
+        private GUIStyle Make(int size, Color color, bool wrap)
+        {
+            var st = new GUIStyle(GUI.skin.label)
+            {
+                richText = true,
+                wordWrap = wrap,
+                fontSize = size,
+                padding = new RectOffset(0, 0, 0, 0),
+                margin = new RectOffset(0, 0, 0, 0),
+                alignment = TextAnchor.UpperLeft,
+            };
+            st.normal.textColor = color;
+            if (styleFont != null)
+            {
+                st.font = styleFont;
+            }
+            return st;
         }
     }
 }

@@ -114,8 +114,8 @@ namespace AutoKeeper.UI
                 w.BuildChrome(srcLayout.gameObject);
                 w.Init(); // LazyWindow: controlador de input, canvas, esconde a janela
                 error = null;
-                ModLog.Info("Tela de configurações nativa criada (visual da janela de Configurações do jogo).");
-                ModLog.Info("UI nativa: " + w.Describe());
+                ModLog.Detail("Tela de configurações nativa criada (visual da janela de Configurações do jogo).");
+                ModLog.Detail("UI nativa: " + w.Describe());
                 return w;
             }
             catch (Exception e)
@@ -702,6 +702,15 @@ namespace AutoKeeper.UI
                     case BodyDestination.Crematorium: return T("Crematório", "Crematorium");
                     case BodyDestination.LeaveOnTable: return T("Deixar na mesa", "Leave on table");
                     case BodyDestination.Grave: return T("Cova (experimental)", "Grave (experimental)");
+                }
+            }
+            if (v is LackOfSleepAction ls)
+            {
+                switch (ls)
+                {
+                    case LackOfSleepAction.Stop: return T("Desligar o bot", "Turn off the bot");
+                    case LackOfSleepAction.Sleep: return T("Ir dormir", "Go to bed");
+                    case LackOfSleepAction.KeepWorking: return T("Continuar trabalhando", "Keep working");
                 }
             }
             if (v is OverlayCorner c)

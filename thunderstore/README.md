@@ -26,8 +26,8 @@ the player could do — no item spawning, no save editing, no game files modifie
 - **Chest**: when your inventory is nearly full, stores **only what the bot collected** in the nearest chest.
   It never takes items out of chests, and stops at once if a nearby chest loses items while it runs
 - **Insanity and sleep guard**: turns itself off above a configurable insanity (default 60) and when the game's
-  Lack of Sleep debuff is active (2 days awake: every energy point spent adds insanity). Optional (off by default):
-  go home, sleep in the bed and continue the work afterwards
+  Lack of Sleep debuff is active (2 days awake: every energy point spent adds insanity) — or, if you choose, goes
+  home, sleeps in the bed and continues the work afterwards
 - Never holds the Action key while the game is aiming at a different object
 - Turns itself off and forgets everything when you load a save or go back to the main menu
 - **F8** – turn the bot on/off (kill switch)

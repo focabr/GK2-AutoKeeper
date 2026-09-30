@@ -20,6 +20,8 @@ namespace AutoKeeper.Core
         public float TimeOfDay;
         public int Day;
         public List<string> Overhead = new List<string>();
+        public float DaysWithoutSleep = -1f;
+        public bool LackOfSleep;
 
         /// <summary>Hora aproximada (assume timeOfDay 0 = 00:00). A confirmar no jogo.</summary>
         public string ClockText
@@ -62,6 +64,8 @@ namespace AutoKeeper.Core
             s.TimeOfDay = GameApi.GetTimeOfDay();
             s.Day = GameApi.GetDay();
             s.Overhead = GameApi.GetOverheadItemIds();
+            s.DaysWithoutSleep = GameApi.GetDaysWithoutSleep();
+            s.LackOfSleep = GameApi.HasLackOfSleep();
             return s;
         }
     }

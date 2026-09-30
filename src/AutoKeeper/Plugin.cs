@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.18";
+        public const string Version = "0.3.19";
 
         /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007.1";
@@ -109,7 +109,7 @@ namespace AutoKeeper
             try
             {
                 harmony.PatchAll(typeof(Plugin).Assembly);
-                ModLog.Info($"Patches Harmony aplicados: {harmony.GetPatchedMethods().CountSafe()}");
+                ModLog.Detail($"Patches Harmony aplicados: {harmony.GetPatchedMethods().CountSafe()}");
             }
             catch (Exception e)
             {
@@ -237,7 +237,8 @@ namespace AutoKeeper
                 string path = GameApi.WriteDiscoveryDump();
                 if (path != null)
                 {
-                    ModLog.Info($"Dump de descoberta salvo em: {path}");
+                    ModLog.Detail($"Dump de descoberta salvo em: {path}");
+                    ModLog.Info($"Dump salvo: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)");
                 }
             }
         }
