@@ -10,9 +10,9 @@ using UnityEngine;
 namespace AutoKeeper.Core
 {
     /// <summary>
-    /// Parte 2: ferramenta de descoberta (Etapa 4). Gera um JSON SOMENTE LEITURA com os objetos (WGO),
-    /// itens no chão e receitas relevantes da cena atual, para mapearmos ids reais sem adivinhar.
-    /// Nada no jogo ou no save é alterado. Saída: BepInEx/config/AutoKeeper/dumps/.
+    /// Part 2: discovery tool (Stage 4). Writes a READ-ONLY JSON with the objects (WGO),
+    /// items on the ground and relevant crafts of the current scene, so we can map real ids without guessing.
+    /// Nothing in the game or the save is changed. Output: BepInEx/config/AutoKeeper/dumps/.
     /// </summary>
     internal static partial class GameApi
     {
@@ -27,7 +27,7 @@ namespace AutoKeeper.Core
         {
             if (!IsInGame)
             {
-                ModLog.Warn("Dump: carregue um save primeiro (não funciona no menu).");
+                ModLog.Warn(Lang.T("Dump: carregue um save primeiro (não funciona no menu).", "Dump: load a save first (it does not work in the menu)."));
                 return null;
             }
 
@@ -154,7 +154,7 @@ namespace AutoKeeper.Core
                 j["inventory"] = ItemsToJson(w.Inventory.Data.Inventory, 2);
             }
 
-            // Receitas: registradas uma vez por tipo de WGO para não repetir.
+            // Crafts: recorded once per WGO type to avoid repeating them.
             if (def != null && craftsByWgoDef[w.id] == null && cc != null && cc.HasCraftsByBalance)
             {
                 var crafts = new JArray();
@@ -230,7 +230,7 @@ namespace AutoKeeper.Core
         private static readonly string[] DefKeywords =
             { "grave", "pallet", "cremat", "morgue", "tp_", "embalm", "autopsy", "river_body" };
 
-        /// <summary>Definições de WGO relevantes (mesmo as que não existem na cena), com interações e receitas.</summary>
+        /// <summary>Relevant WGO definitions (even those not in the scene), with interactions and crafts.</summary>
         private static JArray DefsOfInterest()
         {
             var arr = new JArray();
@@ -352,7 +352,7 @@ namespace AutoKeeper.Core
             return false;
         }
 
-        /// <summary>Diagnóstico da navegação por portas: regiões do navmesh do jogador, portas e alvos do bot.</summary>
+        /// <summary>Door-navigation diagnostics: the player's navmesh regions, doors and the bot's targets.</summary>
         private static JObject NavigationToJson(Vector3 playerPos)
         {
             var j = new JObject();

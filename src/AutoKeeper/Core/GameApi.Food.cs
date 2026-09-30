@@ -3,13 +3,13 @@ using LazyBearTechnology;
 
 namespace AutoKeeper.Core
 {
-    /// <summary>Item da barra rápida que recupera energia (dados copiados; o bot nunca guarda tipos do jogo).</summary>
+    /// <summary>Hot bar item that restores energy (copied data; the bot never keeps game types).</summary>
     internal readonly struct HotBarFood
     {
-        public readonly int Slot;          // 0..3 = teclas 1..4
+        public readonly int Slot;          // 0..3 = keys 1..4
         public readonly string ItemId;
-        public readonly float Energy;      // energia recuperada por uso
-        public readonly float Insanity;    // insanidade somada por uso (> 0 = efeito ruim)
+        public readonly float Energy;      // energy restored per use
+        public readonly float Insanity;    // insanity added per use (> 0 = bad effect)
         public readonly int Count;
 
         public HotBarFood(int slot, string itemId, float energy, float insanity, int count)
@@ -21,16 +21,16 @@ namespace AutoKeeper.Core
             Count = count;
         }
 
-        public override string ToString() => $"{ItemId} (tecla {Slot + 1}, +{Energy:0} energia, {Count} un.)";
+        public override string ToString() => Lang.T($"{ItemId} (tecla {Slot + 1}, +{Energy:0} energia, {Count} un.)", $"{ItemId} (key {Slot + 1}, +{Energy:0} energy, {Count} pcs)");
     }
 
     /// <summary>
-    /// Parte 6: comida da barra rápida. Só lê o que está fixado nas teclas 1–4 (PlayerData.pinnedItems);
-    /// quem come é o próprio jogo, quando o bot "aperta" a tecla (GameKey.UseHotBarItemN → TryUseHotBarItem).
+    /// Part 6: food from the hot bar. Only reads what is pinned to keys 1–4 (PlayerData.pinnedItems);
+    /// the eating is done by the game itself, when the bot "presses" the key (GameKey.UseHotBarItemN → TryUseHotBarItem).
     /// </summary>
     internal static partial class GameApi
     {
-        /// <summary>Itens fixados na barra rápida que recuperam energia ao usar.</summary>
+        /// <summary>Items pinned to the hot bar that restore energy when used.</summary>
         public static List<HotBarFood> GetHotBarFoods() => Safe(() =>
         {
             var result = new List<HotBarFood>();
@@ -50,7 +50,7 @@ namespace AutoKeeper.Core
                 Item it = pd.inventory.GetItemById(id);
                 if (it == null || it.IsEmpty || it.Definition == null || it.IsSeed || it.IsFertilizer)
                 {
-                    continue; // semente/adubo na barra = plantar, não comer
+                    continue; // seed/fertilizer on the bar = planting, not eating
                 }
                 ItemDef def = it.Definition;
                 if (!def.CanBeUsed)

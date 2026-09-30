@@ -8,11 +8,11 @@ using GK2.Framework;
 namespace AutoKeeper.FrameworkBridge
 {
     /// <summary>
-    /// Ponte OPCIONAL: registra o AutoKeeper no botão "Mods" nativo do jogo (GK2 Mod Framework).
-    /// Padrão recomendado pelo Framework (OPTIONAL_INTEGRATION.md): o AutoKeeper.dll não conhece o Framework;
-    /// esta DLL depende dos dois. Sem o Framework instalado, a ponte só escreve uma linha de aviso e não faz nada
-    /// (dependência "soft": nada de erro vermelho no log para quem não usa o Framework).
-    /// As opções são as MESMAS ConfigEntry do AutoKeeper (mesma seção/chave), lidas de Settings.UiSettings.
+    /// OPTIONAL bridge: registers AutoKeeper in the game's native "Mods" button (GK2 Mod Framework).
+    /// Pattern recommended by the Framework (OPTIONAL_INTEGRATION.md): AutoKeeper.dll does not know the Framework;
+    /// this DLL depends on both. Without the Framework installed, the bridge only writes one notice line and does nothing
+    /// ("soft" dependency: no red error in the log for those who do not use the Framework).
+    /// The options are the SAME ConfigEntry objects as AutoKeeper's (same section/key), read from Settings.UiSettings.
     /// </summary>
     [BepInPlugin(Guid, Name, Plugin.Version)]
     [BepInDependency(Plugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
@@ -27,27 +27,27 @@ namespace AutoKeeper.FrameworkBridge
             Plugin main = Plugin.Instance;
             if (main == null || main.Settings == null)
             {
-                Logger.LogError("AutoKeeper principal não está disponível; integração com o menu Mods desativada.");
+                Logger.LogError("Main AutoKeeper plugin is not available; Mods menu integration disabled.");
                 return;
             }
             if (!BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(FrameworkPlugin.PluginGuid))
             {
-                Logger.LogInfo("GK2 Mod Framework não instalado — menu Mods desativado (normal; as opções ficam no F11).");
+                Logger.LogInfo("GK2 Mod Framework not installed — Mods menu disabled (normal; the options stay in F11).");
                 return;
             }
             try
             {
                 RegisterWithFramework(main);
-                Logger.LogInfo("AutoKeeper registrado no menu Mods do GK2 Mod Framework.");
+                Logger.LogInfo("AutoKeeper registered in the GK2 Mod Framework Mods menu.");
             }
             catch (Exception e)
             {
-                // O AutoKeeper continua funcionando com a janela própria (F11).
-                Logger.LogError($"Falha ao registrar no GK2 Mod Framework: {e}");
+                // AutoKeeper keeps working with its own window (F11).
+                Logger.LogError($"Failed to register with the GK2 Mod Framework: {e}");
             }
         }
 
-        /// <summary>Separado do Awake para os tipos do Framework só serem carregados quando ele existe.</summary>
+        /// <summary>Kept apart from Awake so the Framework types are only loaded when it exists.</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void RegisterWithFramework(Plugin main)
         {
@@ -80,7 +80,7 @@ namespace AutoKeeper.FrameworkBridge
                 bool pt = (FrameworkLocalization.CurrentLanguage ?? "en").StartsWith("pt", StringComparison.OrdinalIgnoreCase);
                 Gk2Settings ui = context.Settings;
 
-                // Ações/estado no topo da seção Bot.
+                // Actions/status at the top of the Bot section.
                 ui.AddButton("Bot", "ToggleBotAction",
                     pt ? "Bot" : "Bot",
                     pt ? "Liga ou desliga o bot agora (mesmo que a tecla de atalho)." : "Turns the bot on or off now (same as the hotkey).",
@@ -96,7 +96,7 @@ namespace AutoKeeper.FrameworkBridge
                     Register(ui, s, pt);
                 }
 
-                // Opções de corpos ficam acinzentadas quando a rotina está desligada.
+                // Body options are greyed out when the routine is turned off.
                 foreach (SettingInfo s in main.Settings.UiSettings)
                 {
                     if ((s.Tab == SettingTab.Bodies || s.Tab == SettingTab.Autopsy) && s.Entry != main.Settings.BodiesEnabled)

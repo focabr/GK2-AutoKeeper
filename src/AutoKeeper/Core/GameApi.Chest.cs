@@ -5,13 +5,13 @@ using UnityEngine;
 namespace AutoKeeper.Core
 {
     /// <summary>
-    /// Parte 8: baú. Guardar no baú os itens que o bot recolheu (extração, crematório) quando o inventário enche.
-    /// É o mesmo que o jogador faz na janela do baú ("mover itens"): tira do inventário e coloca no baú,
-    /// só o que o baú aceita (filtros/espaço do jogo). Nada é criado nem apagado.
+    /// Part 8: chest. Stores in the chest the items the bot collected (extraction, crematorium) when the inventory fills up.
+    /// It is the same as what the player does in the chest window ("move items"): takes from the inventory and puts into the chest,
+    /// only what the chest accepts (the game's filters/space). Nothing is created or deleted.
     /// </summary>
     internal static partial class GameApi
     {
-        /// <summary>Contagem de itens do inventário do jogador por id (inclui o conteúdo de bolsas; corpos ficam de fora).</summary>
+        /// <summary>Player inventory item counts by id (includes bag contents; bodies are left out).</summary>
         public static Dictionary<string, int> SnapshotPlayerItems() => Safe(() =>
         {
             var counts = new Dictionary<string, int>();
@@ -40,7 +40,7 @@ namespace AutoKeeper.Core
             }
         }
 
-        /// <summary>Total de unidades guardadas no baú (para o vigia: o bot nunca tira nada de baú).</summary>
+        /// <summary>Total units stored in the chest (for the watchdog: the bot never takes anything from a chest).</summary>
         public static int ChestItemTotal(string chestUid) => Safe(() =>
         {
             WgoData chest = FindWgoByUid(chestUid);
@@ -58,21 +58,21 @@ namespace AutoKeeper.Core
             return n;
         }, -1, nameof(ChestItemTotal));
 
-        /// <summary>Espaços livres no inventário do jogador (mesma conta da janela do jogo).</summary>
+        /// <summary>Free slots in the player's inventory (same count as the game window).</summary>
         public static int PlayerFreeSlots() => Safe(() =>
         {
             Item inv = MainGame.PlayerData.inventory.Data;
             return Mathf.Max(0, inv.InventorySize - inv.InventoryFillSize);
         }, 99, nameof(PlayerFreeSlots));
 
-        /// <summary>Espaços livres no inventário do baú (-1 se não der para ler).</summary>
+        /// <summary>Free slots in the chest's inventory (-1 if it cannot be read).</summary>
         public static int ChestFreeSlots(string chestUid) => Safe(() =>
         {
             Item data = FindWgoByUid(chestUid)?.Inventory?.Data;
             return data == null ? -1 : Mathf.Max(0, data.InventorySize - data.InventoryFillSize);
         }, -1, nameof(ChestFreeSlots));
 
-        /// <summary>O baú aceita pelo menos uma unidade de algum dos itens (espaço + filtros do jogo)?</summary>
+        /// <summary>Does the chest accept at least one unit of any of the items (space + the game's filters)?</summary>
         public static bool ChestCanTakeAny(string chestUid, IEnumerable<string> itemIds) => Safe(() =>
         {
             WgoData chest = FindWgoByUid(chestUid);
@@ -90,7 +90,7 @@ namespace AutoKeeper.Core
             return false;
         }, false, nameof(ChestCanTakeAny));
 
-        /// <summary>O baú já guarda algum destes itens? (indica o baú "de guardar" desse tipo de coisa)</summary>
+        /// <summary>Does the chest already hold any of these items? (marks the chest "for storing" that kind of thing)</summary>
         public static bool ChestHasAny(string chestUid, IEnumerable<string> itemIds) => Safe(() =>
         {
             WgoData chest = FindWgoByUid(chestUid);
@@ -109,8 +109,8 @@ namespace AutoKeeper.Core
         }, false, nameof(ChestHasAny));
 
         /// <summary>
-        /// Move para o baú até <c>wanted[id]</c> unidades de cada item (limitado ao que o jogador tem e ao que o baú aceita).
-        /// Devolve o que foi movido. Perto do baú é obrigatório (igual à janela de baú, que só abre em interação).
+        /// Moves up to <c>wanted[id]</c> units of each item to the chest (limited to what the player has and what the chest accepts).
+        /// Returns what was moved. Being near the chest is required (like the chest window, which only opens on interaction).
         /// </summary>
         public static Dictionary<string, int> DepositToChest(string chestUid, Dictionary<string, int> wanted, out string reason)
         {
@@ -124,17 +124,17 @@ namespace AutoKeeper.Core
         {
             var moved = new Dictionary<string, int>();
             WgoData chest = FindWgoByUid(chestUid);
-            if (chest == null) { reason = "baú não encontrado"; return moved; }
+            if (chest == null) { reason = Lang.T("baú não encontrado", "chest not found"); return moved; }
             if (!IsNear(chest, out reason)) { return moved; }
             Inventory player = MainGame.PlayerData.inventory;
             Inventory dest = chest.Inventory;
-            if (dest == null) { reason = "o baú não tem inventário"; return moved; }
+            if (dest == null) { reason = Lang.T("o baú não tem inventário", "the chest has no inventory"); return moved; }
 
             foreach (KeyValuePair<string, int> kv in wanted)
             {
                 int have = player.Data.GetTotalCountInInventory(kv.Key);
                 int n = Math.Min(kv.Value, have);
-                // Quanto cabe: começa pelo total e diminui (o jogo só responde sim/não por quantidade).
+                // How much fits: start from the total and go down (the game only answers yes/no per amount).
                 while (n > 0 && !dest.CanAddItemToInventory(kv.Key, n))
                 {
                     n = n > 8 ? n - Math.Max(1, n / 4) : n - 1;
@@ -159,10 +159,10 @@ namespace AutoKeeper.Core
                 }
                 else
                 {
-                    player.AddItemsToInventory(removed); // não coube: devolve, nada se perde
+                    player.AddItemsToInventory(removed); // did not fit: give it back, nothing is lost
                 }
             }
-            reason = moved.Count == 0 ? "o baú não aceitou nenhum item" : null;
+            reason = moved.Count == 0 ? Lang.T("o baú não aceitou nenhum item", "the chest did not accept any item") : null;
             return moved;
         }
     }

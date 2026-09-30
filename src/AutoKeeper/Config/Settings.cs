@@ -5,24 +5,24 @@ using UnityEngine;
 
 namespace AutoKeeper.Config
 {
-    /// <summary>Valor de enum que não aparece nas telas de configuração (recurso ainda não liberado).</summary>
+    /// <summary>Enum value that does not appear in the settings windows (feature not released yet).</summary>
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class HiddenOptionAttribute : Attribute
     {
     }
 
-    /// <summary>Para onde o corpo vai depois da autópsia.</summary>
+    /// <summary>Where the body goes after the autopsy.</summary>
     public enum BodyDestination
     {
         Crematorium,
         LeaveOnTable,
 
-        /// <summary>Próximo passo do desenvolvimento (enterrar no túmulo): o código existe, escondido até terminar os testes.</summary>
+        /// <summary>Next development step (burying in a grave): the code exists, hidden until testing is done.</summary>
         [HiddenOption]
         Grave,
     }
 
-    /// <summary>O que fazer quando o jogo aplica a Falta de sono (2 dias sem dormir).</summary>
+    /// <summary>What to do when the game applies Lack of sleep (2 days awake).</summary>
     public enum LackOfSleepAction
     {
         Stop,
@@ -30,7 +30,7 @@ namespace AutoKeeper.Config
         KeepWorking,
     }
 
-    /// <summary>Canto da tela onde fica o painel de status.</summary>
+    /// <summary>Screen corner where the status panel sits.</summary>
     public enum OverlayCorner
     {
         TopLeft,
@@ -39,7 +39,7 @@ namespace AutoKeeper.Config
         BottomRight,
     }
 
-    /// <summary>Abas da tela de configurações (e seções no menu Mods do GK2 Mod Framework).</summary>
+    /// <summary>Tabs of the settings window (and sections in the GK2 Mod Framework Mods menu).</summary>
     public enum SettingTab
     {
         Bot,
@@ -51,9 +51,9 @@ namespace AutoKeeper.Config
     }
 
     /// <summary>
-    /// Metadados de UI de uma opção: rótulo/ajuda em PT e EN, aba, faixa do slider.
-    /// É a ÚNICA fonte usada tanto pela janela própria (UI/SettingsWindow) quanto pela ponte do
-    /// GK2 Mod Framework — assim as duas telas mostram sempre as mesmas opções.
+    /// UI metadata of an option: label/help in PT and EN, tab, slider range.
+    /// It is the ONLY source used both by the mod's own window (UI/SettingsWindow) and by the
+    /// GK2 Mod Framework bridge — so both screens always show the same options.
     /// </summary>
     public sealed class SettingInfo
     {
@@ -76,7 +76,7 @@ namespace AutoKeeper.Config
         public string HelpPt { get; }
         public string HelpEn { get; }
 
-        /// <summary>Faixa e passo para sliders (float/int).</summary>
+        /// <summary>Range and step for sliders (float/int).</summary>
         public float Min { get; internal set; }
         public float Max { get; internal set; }
         public float Step { get; internal set; } = 1f;
@@ -86,8 +86,8 @@ namespace AutoKeeper.Config
     }
 
     /// <summary>
-    /// Todas as opções do mod. Persistidas em BepInEx/config/com.focabr.gk2.autokeeper.cfg (padrão BepInEx,
-    /// compatível com mod managers), mas o jogador edita pela tela de configurações (F11) ou pelo menu Mods.
+    /// All mod options. Persisted in BepInEx/config/com.focabr.gk2.autokeeper.cfg (BepInEx standard,
+    /// compatible with mod managers), but the player edits them in the settings window (F11) or the Mods menu.
     /// </summary>
     public sealed class Settings
     {
@@ -139,18 +139,18 @@ namespace AutoKeeper.Config
         public ConfigEntry<OverlayCorner> OverlayPosition { get; }
         public ConfigEntry<bool> OverlayDetailed { get; }
 
-        // [Safety] (reservado, fora da UI)
+        // [Safety] (reserved, not in the UI)
         public ConfigEntry<bool> AllowCheats { get; }
 
         // [Debug]
         public ConfigEntry<bool> VerboseLogging { get; }
 
-        /// <summary>Opções visíveis nas telas de configuração, na ordem de exibição.</summary>
+        /// <summary>Options visible in the settings windows, in display order.</summary>
         public IReadOnlyList<SettingInfo> UiSettings => ui;
 
         public Settings(ConfigFile config)
         {
-            // ---------------------------------------------------------------- Avançado
+            // ---------------------------------------------------------------- Bot
             AutoEat = Toggle(config, SettingTab.Bot, "Bot", "AutoEat", true,
                 "Comer da barra de atalhos", "Eat from the hot bar",
                 "Com energia baixa, usa um item que recupera energia da barra de atalhos (teclas 1–4), como o jogador faria. Come vários seguidos sem passar do máximo e pula itens que aumentam a insanidade.",
@@ -176,7 +176,7 @@ namespace AutoKeeper.Config
                 "Ir sozinho até o trabalho (pelas portas)", "Walk to the work (through doors)",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",
                 "Goes through doors (house, morgue…) along the shortest route to where there is work, pressing E on the door like the player.");
-            // ---------------------------------------------------------------- Avançado
+            // ---------------------------------------------------------------- Bodies
             BodiesEnabled = Toggle(config, SettingTab.Bodies, "Bodies", "Enabled", true,
                 "Processar corpos", "Process bodies",
                 "Palete → mesa de autópsia → extrair órgãos → destino.",
@@ -240,7 +240,7 @@ namespace AutoKeeper.Config
             ExtractOtherPocket = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractOtherPocket", false, "Extrair o resto de \"Outros\"", "Extract the rest of \"Others\"",
                 "Tira qualquer outro item da seção \"Outros\" que não seja carne, gordura ou sangue.",
                 "Takes out any other item of the \"Others\" section that is not flesh, fat or blood.");
-            // ---------------------------------------------------------------- Avançado
+            // ---------------------------------------------------------------- Hotkeys
             ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
                 "Ligar/desligar o bot", "Toggle bot",
                 "Liga ou desliga o bot na hora (parada imediata).", "Turns the bot on or off immediately (instant stop).");
@@ -255,7 +255,7 @@ namespace AutoKeeper.Config
                 "Abrir configurações", "Open settings",
                 "Abre/fecha esta tela.", "Opens/closes this window.");
 
-            // ---------------------------------------------------------------- Avançado
+            // ---------------------------------------------------------------- Overlay
             ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,
                 "Mostrar painel de status", "Show status panel",
                 "Painel com o estado do bot, no canto escolhido em \"Posição do painel\".", "Panel with the bot state, in the corner chosen in \"Panel position\".");
@@ -271,7 +271,7 @@ namespace AutoKeeper.Config
                 "Eventos no painel", "Events in panel",
                 "Quantos eventos recentes aparecem no painel (0 = nenhum).", "How many recent events the panel shows (0 = none).");
 
-            // ---------------------------------------------------------------- Avançado
+            // ---------------------------------------------------------------- Advanced
             VerboseLogging = Toggle(config, SettingTab.Advanced, "Debug", "VerboseLogging", false,
                 "Log detalhado", "Verbose logging",
                 "Grava mensagens de depuração no BepInEx/LogOutput.log.", "Writes debug messages to BepInEx/LogOutput.log.");
@@ -288,12 +288,12 @@ namespace AutoKeeper.Config
                 "Se a receita não avançar por este tempo, o bot para e mostra o motivo.",
                 "If a craft makes no progress for this long, the bot stops and shows why.");
 
-            // Reservado: não aparece na UI.
+            // Reserved: not shown in the UI.
             AllowCheats = config.Bind("Safety", "AllowCheats", false,
-                "Reservado. O bot só executa ações que o jogador poderia fazer; nenhuma função de cheat existe hoje.");
+                "Reservado. O bot só executa ações que o jogador poderia fazer; nenhuma função de cheat existe hoje. / Reserved. The bot only performs actions the player could do; no cheat feature exists today.");
         }
 
-        /// <summary>Tipos de órgão marcados para extração (nomes do enum ItemType do jogo).</summary>
+        /// <summary>Organ types selected for extraction (names from the game's ItemType enum).</summary>
         public HashSet<string> SelectedOrganTypes()
         {
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -306,7 +306,7 @@ namespace AutoKeeper.Config
             return set;
         }
 
-        /// <summary>Tipos da seção "Outros" (bolso do corpo) marcados para extração.</summary>
+        /// <summary>Types of the "Others" section (body pocket) selected for extraction.</summary>
         public HashSet<string> SelectedPocketKinds()
         {
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -317,7 +317,7 @@ namespace AutoKeeper.Config
             return set;
         }
 
-        /// <summary>Volta todas as opções de uma aba ao padrão.</summary>
+        /// <summary>Resets all options of a tab to their defaults.</summary>
         public void ResetTab(SettingTab tab)
         {
             foreach (SettingInfo s in ui)
@@ -329,11 +329,11 @@ namespace AutoKeeper.Config
             }
         }
 
-        // ------------------------------------------------------------------ helpers de registro
+        // ------------------------------------------------------------------ registration helpers
 
         /// <summary>
-        /// 0.3.18 tinha duas chaves ([Bot] StopOnLackOfSleep e SleepWhenTired). Lê as antigas do .cfg (entradas órfãs),
-        /// converte para OnLackOfSleep uma única vez e as apaga do arquivo.
+        /// 0.3.18 had two keys ([Bot] StopOnLackOfSleep and SleepWhenTired). Reads the old ones from the .cfg (orphaned entries),
+        /// converts them to OnLackOfSleep only once and deletes them from the file.
         /// </summary>
         private void MigrateLackOfSleep(ConfigFile config)
         {
@@ -366,11 +366,11 @@ namespace AutoKeeper.Config
             }
             catch (Exception)
             {
-                // Migração é conveniência: sem ela a opção nova só fica no padrão.
+                // Migration is a convenience: without it the new option just stays at its default.
             }
         }
 
-        /// <summary>Destino escondido (túmulo, ainda em testes) vira Crematório — também se escolhido pelo menu Mods do Framework.</summary>
+        /// <summary>A hidden destination (grave, still in testing) becomes Crematorium — also when chosen from the Framework's Mods menu.</summary>
         private void KeepVisibleDestination()
         {
             if (IsHidden(Destination.Value))
@@ -386,7 +386,7 @@ namespace AutoKeeper.Config
             };
         }
 
-        /// <summary>Valores do enum que aparecem nas telas (sem os marcados com <see cref="HiddenOptionAttribute"/>).</summary>
+        /// <summary>Enum values shown in the screens (without those marked with <see cref="HiddenOptionAttribute"/>).</summary>
         public static Array VisibleValues(Type enumType)
         {
             var list = new List<object>();
@@ -411,7 +411,7 @@ namespace AutoKeeper.Config
             return field != null && field.IsDefined(typeof(HiddenOptionAttribute), false);
         }
 
-        /// <summary>Opção guardada no .cfg mas fora das telas (recurso ainda não liberado).</summary>
+        /// <summary>Option stored in the .cfg but kept out of the screens (feature not released yet).</summary>
         private static ConfigEntry<T> BindHidden<T>(ConfigFile config, string section, string key, T value, string labelPt, string labelEn, string helpPt, string helpEn)
             => config.Bind(section, key, value, new ConfigDescription($"(em testes / in testing) {helpPt} / {helpEn}"));
 

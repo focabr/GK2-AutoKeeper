@@ -4,7 +4,7 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 
-// uso: inspect <dll> <regex tipo> [regex membro]
+// usage: inspect <dll> <type regex> [member regex]
 if (args[0] == "--refs") { Refs.Dump(args[1], args[2]); return; }
 var dll = args[0]; var tre = new System.Text.RegularExpressions.Regex(args[1]);
 bool il = args.Contains("--il"); args = args.Where(a => a != "--il").ToArray();

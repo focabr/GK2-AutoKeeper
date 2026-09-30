@@ -5,8 +5,8 @@ using HarmonyLib;
 namespace AutoKeeper.Patches
 {
     /// <summary>
-    /// Postfix em LazyBearTechnology.LazyInput.Update(): depois que o jogo lê teclado/controle,
-    /// acrescenta as teclas virtuais do bot (ver GameApi.Input). Sem Transpiler, sem alterar lógica do jogo.
+    /// Postfix on LazyBearTechnology.LazyInput.Update(): after the game reads keyboard/controller,
+    /// adds the bot's virtual keys (see GameApi.Input). No Transpiler, no change to game logic.
     /// </summary>
     [HarmonyPatch]
     internal static class VirtualInputPatch
@@ -16,12 +16,12 @@ namespace AutoKeeper.Patches
             return AccessTools.Method("LazyBearTechnology.LazyInput:Update");
         }
 
-        /// <summary>Pula o patch (com log claro) se o método não existir nesta versão do jogo.</summary>
+        /// <summary>Skips the patch (with a clear log) if the method does not exist in this game version.</summary>
         private static bool Prepare()
         {
             if (TargetMethod() == null)
             {
-                ModLog.Error("LazyInput.Update não encontrado — input virtual indisponível; o bot não conseguirá agir.");
+                ModLog.Error(Lang.T("LazyInput.Update não encontrado — input virtual indisponível; o bot não conseguirá agir.", "LazyInput.Update not found — virtual input unavailable; the bot will not be able to act."));
                 return false;
             }
             return true;

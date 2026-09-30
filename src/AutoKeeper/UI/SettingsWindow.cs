@@ -10,10 +10,10 @@ using UnityEngine;
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Tela de configurações própria do AutoKeeper (IMGUI). Abre com F11 ou pelo botão do painel.
-    /// Desenha as opções a partir de Settings.UiSettings (mesma fonte da ponte do GK2 Mod Framework),
-    /// grava direto nas ConfigEntry do BepInEx (o .cfg é salvo automaticamente) e aplica na hora.
-    /// Enquanto está aberta: o bot pausa e o jogo não recebe teclas/cliques.
+    /// AutoKeeper's own settings window (IMGUI). Opens with F11 or from the status panel's button.
+    /// Draws the options from Settings.UiSettings (the same source as the GK2 Mod Framework bridge),
+    /// writes straight to the BepInEx ConfigEntry values (the .cfg is saved automatically) and applies them at once.
+    /// While it is open: the bot pauses and the game gets no keys/clicks.
     /// </summary>
     internal sealed class SettingsWindow
     {
@@ -26,7 +26,7 @@ namespace AutoKeeper.UI
         private bool rectInitialized;
         private Vector2 scroll;
         private SettingTab tab = SettingTab.Bodies;
-        private SettingInfo capturing;       // opção de tecla aguardando a nova tecla
+        private SettingInfo capturing;       // key option waiting for the new key
         private float scale = 1f;
         private readonly Dictionary<SettingInfo, string> textBuffers = new Dictionary<SettingInfo, string>();
 
@@ -42,10 +42,10 @@ namespace AutoKeeper.UI
 
         public bool IsOpen { get; private set; }
 
-        /// <summary>Esperando o jogador apertar a nova tecla de um atalho (as hotkeys do mod ficam em pausa).</summary>
+        /// <summary>Waiting for the player to press the new key for a shortcut (the mod's hotkeys are paused).</summary>
         public bool IsCapturingKey => capturing != null;
 
-        /// <summary>Área ocupada pela janela, em coordenadas de GUI (para bloquear cliques no jogo).</summary>
+        /// <summary>Area taken by the window, in GUI coordinates (to block clicks in the game).</summary>
         public Rect Rect => rect;
 
         public void Toggle()
@@ -84,7 +84,7 @@ namespace AutoKeeper.UI
                 rectInitialized = true;
             }
 
-            // Esc fecha (ou cancela a captura de tecla).
+            // Esc closes (or cancels the key capture).
             Event e = Event.current;
             if (e != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape && capturing == null)
             {
@@ -98,14 +98,14 @@ namespace AutoKeeper.UI
             rect.y = Mathf.Clamp(rect.y, 0f, Screen.height - rect.height);
         }
 
-        // ------------------------------------------------------------------ conteúdo
+        // ------------------------------------------------------------------ content
 
         private void DrawWindow(int id)
         {
             bool pt = GameApi.IsGameLanguagePortuguese();
             HandleKeyCapture();
 
-            // Cabeçalho (arrastável).
+            // Header (draggable).
             GUILayout.BeginHorizontal();
             GUILayout.Label($"{Plugin.Name} {Plugin.Version} — {T(pt, "Configurações", "Settings")}", titleStyle);
             GUILayout.FlexibleSpace();
@@ -115,7 +115,7 @@ namespace AutoKeeper.UI
             }
             GUILayout.EndHorizontal();
 
-            // Estado do bot + atalho para ligar/desligar.
+            // Bot state + shortcut to turn it on/off.
             GUILayout.BeginHorizontal(boxStyle);
             string state = bot.State == BotController.BotState.Off
                 ? T(pt, "<color=#E07A5F>DESLIGADO</color>", "<color=#E07A5F>OFF</color>")
@@ -129,7 +129,7 @@ namespace AutoKeeper.UI
             }
             GUILayout.EndHorizontal();
 
-            // Abas.
+            // Tabs.
             GUILayout.BeginHorizontal();
             foreach (SettingTab t in (SettingTab[])Enum.GetValues(typeof(SettingTab)))
             {
@@ -143,7 +143,7 @@ namespace AutoKeeper.UI
             }
             GUILayout.EndHorizontal();
 
-            // Linhas da aba.
+            // Rows of the tab.
             scroll = GUILayout.BeginScrollView(scroll);
             foreach (SettingInfo s in settings.UiSettings.Where(x => x.Tab == tab).OrderBy(x => x.Order))
             {
@@ -151,7 +151,7 @@ namespace AutoKeeper.UI
             }
             GUILayout.EndScrollView();
 
-            // Rodapé.
+            // Footer.
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(T(pt, "Restaurar padrões", "Reset defaults"), buttonStyle))
             {
@@ -261,7 +261,7 @@ namespace AutoKeeper.UI
             GUILayout.EndVertical();
         }
 
-        /// <summary>Captura a próxima tecla (com Ctrl/Shift/Alt) para o atalho selecionado.</summary>
+        /// <summary>Captures the next key (with Ctrl/Shift/Alt) for the selected shortcut.</summary>
         private void HandleKeyCapture()
         {
             Event e = Event.current;
@@ -277,7 +277,7 @@ namespace AutoKeeper.UI
             }
             if (IsModifier(e.keyCode))
             {
-                return; // espera a tecla principal
+                return; // wait for the main key
             }
             var mods = new List<KeyCode>();
             if (e.control) mods.Add(KeyCode.LeftControl);
@@ -290,11 +290,11 @@ namespace AutoKeeper.UI
 
         private void FlushTextBuffers()
         {
-            // Texto digitado e não aplicado é descartado ao trocar de aba/fechar (evita salvar valor pela metade).
+            // Typed but unapplied text is discarded when switching tabs/closing (avoids saving a half-typed value).
             textBuffers.Clear();
         }
 
-        // ------------------------------------------------------------------ textos
+        // ------------------------------------------------------------------ texts
 
         private static string T(bool pt, string ptText, string enText) => pt ? ptText : enText;
 
@@ -350,7 +350,7 @@ namespace AutoKeeper.UI
             k == KeyCode.LeftControl || k == KeyCode.RightControl || k == KeyCode.LeftShift || k == KeyCode.RightShift
             || k == KeyCode.LeftAlt || k == KeyCode.RightAlt || k == KeyCode.LeftCommand || k == KeyCode.RightCommand;
 
-        // ------------------------------------------------------------------ estilo
+        // ------------------------------------------------------------------ style
 
         private void EnsureStyles()
         {
@@ -364,7 +364,7 @@ namespace AutoKeeper.UI
             scale = Mathf.Clamp(Screen.height / 1080f, 0.8f, 2f);
             int font = Mathf.RoundToInt(16 * scale);
 
-            // Paleta da janela de Configurações do jogo (tela de reserva, usada só se a nativa falhar).
+            // Palette of the game's Settings window (fallback window, used only if the native one fails).
             bgTex = MakeTex(GameUiTheme.PanelInner);
             rowTex = MakeTex(GameUiTheme.Row);
             accentTex = MakeTex(GameUiTheme.ButtonActive);

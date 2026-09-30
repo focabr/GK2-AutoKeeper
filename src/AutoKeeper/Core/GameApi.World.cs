@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace AutoKeeper.Core
 {
-    /// <summary>Tipo de objeto do mundo que interessa ao bot.</summary>
+    /// <summary>Kind of world object the bot cares about.</summary>
     internal enum ObjectKind
     {
         AutopsyTable,
@@ -19,7 +19,7 @@ namespace AutoKeeper.Core
         Bed,
     }
 
-    /// <summary>Estado resumido da receita de um objeto (sem expor o enum do jogo ao bot).</summary>
+    /// <summary>Summarized craft state of an object (without exposing the game's enum to the bot).</summary>
     internal enum CraftState
     {
         Unknown,
@@ -29,7 +29,7 @@ namespace AutoKeeper.Core
         Other,
     }
 
-    /// <summary>Handle opaco para um objeto do mundo (o bot nunca guarda tipos do jogo).</summary>
+    /// <summary>Opaque handle to a world object (the bot never keeps game types).</summary>
     internal readonly struct WorldObjectRef
     {
         public readonly string Uid;
@@ -48,7 +48,7 @@ namespace AutoKeeper.Core
         internal static string ShortUid(string uid) => string.IsNullOrEmpty(uid) || uid.Length < 6 ? uid : uid.Substring(0, 6);
     }
 
-    /// <summary>Handle opaco para um item no chão (ex.: corpo).</summary>
+    /// <summary>Opaque handle to an item on the ground (e.g. a body).</summary>
     internal readonly struct GroundItemRef
     {
         public readonly string Uid;
@@ -74,17 +74,17 @@ namespace AutoKeeper.Core
     }
 
     /// <summary>
-    /// Parte 4: consultas ao mundo (cena atual), movimento com o pathfinding do próprio jogo e mira.
-    /// Somente o que o jogador poderia fazer: andar, virar-se, olhar o que está no chão/nas mesas.
+    /// Part 4: world queries (current scene), movement with the game's own pathfinding, and aiming.
+    /// Only what the player could do: walk, turn around, look at what is on the ground/on the tables.
     /// </summary>
     internal static partial class GameApi
     {
-        private const float PlayerWalkSpeed = 3.3f; // mesma velocidade que o jogo usa ao mover o jogador sozinho
+        private const float PlayerWalkSpeed = 3.3f; // same speed the game uses when it moves the player by itself
 
         private static AccessTools.FieldRef<MovementComponent, MovementComponent.Status> movementStatusRef;
         private static bool moveRequested;
 
-        // ------------------------------------------------------------------ helpers internos
+        // ------------------------------------------------------------------ internal helpers
 
         private static GameSceneData CurrentScene() => MainGame.WorldData.GetGameSceneDataById(MainGame.PlayerData.currentGameSceneId);
 
@@ -120,7 +120,7 @@ namespace AutoKeeper.Core
             return groups != null && groups.Contains("body");
         }
 
-        /// <summary>Corpo "comum": exclui zumbis e corpos com demônio (o MVP não mexe neles).</summary>
+        /// <summary>"Regular" body: excludes zombies and bodies with a demon (the MVP does not touch them).</summary>
         private static bool IsPlainBody(Item item)
         {
             return IsBodyItem(item)
@@ -153,9 +153,9 @@ namespace AutoKeeper.Core
             return null;
         }
 
-        // ------------------------------------------------------------------ consultas
+        // ------------------------------------------------------------------ queries
 
-        /// <summary>Corpos comuns no chão da cena atual, do mais perto ao mais longe, até <paramref name="maxDistance"/>.</summary>
+        /// <summary>Regular bodies on the ground of the current scene, nearest first, up to <paramref name="maxDistance"/>.</summary>
         public static List<GroundItemRef> FindGroundBodies(float maxDistance) => Safe(() =>
         {
             var result = new List<GroundItemRef>();
@@ -175,7 +175,7 @@ namespace AutoKeeper.Core
             return result;
         }, new List<GroundItemRef>(), nameof(FindGroundBodies));
 
-        /// <summary>Objetos de um tipo na cena atual, do mais perto ao mais longe.</summary>
+        /// <summary>Objects of one kind in the current scene, nearest first.</summary>
         public static List<WorldObjectRef> FindObjects(ObjectKind kind, float maxDistance) => Safe(() =>
         {
             var result = new List<WorldObjectRef>();
@@ -208,65 +208,65 @@ namespace AutoKeeper.Core
                 case ObjectKind.Crematorium:
                     return w.Definition.interactionType == WGODef.InteractionType.Crematorium;
                 case ObjectKind.GraveBody:
-                    return w.id == "grave_body"; // cova com corpo ainda por fechar (trabalho com pá)
+                    return w.id == "grave_body"; // grave with a body, still to be closed (shovel work)
                 case ObjectKind.Bed:
-                    return w.CustomTag == "bed_home"; // a cama da casa do jogador (dump: id "bed", interação Script)
+                    return w.CustomTag == "bed_home"; // the bed in the player's house (dump: id "bed", Script interaction)
                 case ObjectKind.GravePlace:
-                    return w.id == "grave_empty_place"; // cova marcada pelo construtor, ainda por cavar (pá → grave_empty)
+                    return w.id == "grave_empty_place"; // grave marked by the builder, still to be dug (shovel → grave_empty)
                 case ObjectKind.Chest:
                     return w.Definition.interactionType == WGODef.InteractionType.Chest
                         && w.Definition.inventorySize > 0
-                        && w.Definition.conveyorType == ConveyorElementType.None // baús de esteira/jardim/vinho são outra coisa
-                        && string.IsNullOrEmpty(w.CustomTag)                    // baús de missão (ex.: chest_resurrection) têm tag
+                        && w.Definition.conveyorType == ConveyorElementType.None // conveyor/garden/wine chests are something else
+                        && string.IsNullOrEmpty(w.CustomTag)                    // quest chests (e.g. chest_resurrection) have a tag
                         && !w.id.StartsWith("garden_bags_storage");
                 default:
                     return false;
             }
         }
 
-        /// <summary>Id atual do objeto (muda quando a cova vira grave_body, por exemplo). null se sumiu.</summary>
+        /// <summary>Current id of the object (changes when the grave becomes grave_body, for example). null if it is gone.</summary>
         public static string GetObjectDefId(string uid) => Safe(() => FindWgoByUid(uid)?.id, null, nameof(GetObjectDefId));
 
         public static bool ObjectExists(string uid) => Safe(() => FindWgoByUid(uid) != null, false, nameof(ObjectExists));
 
         public static bool GroundItemExists(string uid) => Safe(() => FindDropByUid(uid) != null, false, nameof(GroundItemExists));
 
-        /// <summary>O objeto tem um corpo dentro (mesa, cova)?</summary>
+        /// <summary>Does the object have a body inside (table, grave)?</summary>
         public static bool ObjectHasBody(string uid) => Safe(() =>
         {
             WgoData w = FindWgoByUid(uid);
             return w != null && FindBodyInInventory(w) != null;
         }, false, nameof(ObjectHasBody));
 
-        /// <summary>O corpo dentro do objeto é comum (não zumbi/demônio)?</summary>
+        /// <summary>Is the body inside the object a regular one (not zombie/demon)?</summary>
         public static bool ObjectHasPlainBody(string uid) => Safe(() =>
         {
             WgoData w = FindWgoByUid(uid);
             return w != null && IsPlainBody(FindBodyInInventory(w));
         }, false, nameof(ObjectHasPlainBody));
 
-        /// <summary>Id único do corpo dentro do objeto (para acompanhar o mesmo corpo entre etapas).</summary>
+        /// <summary>Unique id of the body inside the object (to track the same body across steps).</summary>
         public static string GetBodyUidInObject(string uid) => Safe(() =>
         {
             WgoData w = FindWgoByUid(uid);
             return w == null ? null : FindBodyInInventory(w)?.UniqueId?.Id;
         }, null, nameof(GetBodyUidInObject));
 
-        /// <summary>Receita em andamento ou na fila (o jogador precisa trabalhar ou esperar)?</summary>
+        /// <summary>Craft in progress or queued (the player needs to work or wait)?</summary>
         public static bool IsCraftActive(string uid) => Safe(() =>
         {
             CraftComponent cc = FindWgoByUid(uid)?.CraftComponent;
             return cc != null && (cc.IsStarted || cc.HasCraftsInQueue);
         }, false, nameof(IsCraftActive));
 
-        /// <summary>Item que a receita de autópsia em andamento vai dar (ex.: "skull_2_2:2"); null se não for extração de órgão.</summary>
+        /// <summary>Item the autopsy craft in progress will yield (e.g. "skull_2_2:2"); null if it is not an organ extraction.</summary>
         public static string GetActiveAutopsyItemId(string uid) => Safe(() =>
         {
             CraftDef def = FindWgoByUid(uid)?.CraftComponent?.CurrentCraftElement?.Def as CraftDef;
             return def == null || string.IsNullOrEmpty(def.autopsyItemId) ? null : def.autopsyItemId;
         }, null, nameof(GetActiveAutopsyItemId));
 
-        /// <summary>Estado da receita do objeto: parado, rodando, pronto para recolher (auto-craft terminado).</summary>
+        /// <summary>The object's craft state: idle, running, ready to collect (auto-craft finished).</summary>
         public static CraftState GetCraftState(string uid) => Safe(() =>
         {
             CraftComponent cc = FindWgoByUid(uid)?.CraftComponent;
@@ -292,14 +292,14 @@ namespace AutoKeeper.Core
             }
         }, CraftState.Unknown, nameof(GetCraftState));
 
-        /// <summary>Progresso da receita atual em ticks (para detectar trabalho travado). -1 se não houver.</summary>
+        /// <summary>Progress of the current craft in ticks (to detect stalled work). -1 if there is none.</summary>
         public static int GetCraftProgressTicks(string uid) => Safe(() =>
         {
             CraftElementBase e = FindWgoByUid(uid)?.CraftComponent?.CurrentCraftElement;
             return e == null ? -1 : e.ProgressTicks;
         }, -1, nameof(GetCraftProgressTicks));
 
-        /// <summary>Outro trabalhador (zumbi/NPC) está designado no objeto? O próprio jogador não conta.</summary>
+        /// <summary>Is another worker (zombie/NPC) assigned to the object? The player does not count.</summary>
         public static bool HasOtherWorker(string uid) => Safe(() =>
         {
             IWorker w = FindWgoByUid(uid)?.Worker;
@@ -316,18 +316,18 @@ namespace AutoKeeper.Core
 
         public static float DistanceTo(Vector3 p) => Safe(() => Vector3.Distance(MainGame.PlayerData.position.Value, p), float.MaxValue, nameof(DistanceTo));
 
-        // ------------------------------------------------------------------ pontos de interação
+        // ------------------------------------------------------------------ interaction spots
 
         /// <summary>
-        /// Onde o jogador deve ficar para usar o objeto: o dock point livre mais próximo (preferindo os de jogador,
-        /// não os de zumbi). Se o objeto ainda não foi instanciado na tela, devolve a posição dele.
+        /// Where the player should stand to use the object: the nearest free dock point (preferring the player ones,
+        /// not the zombie ones). If the object has not been instantiated on screen yet, returns its position.
         /// </summary>
-        private const float DockClearRadius = 0.2f;   // raio do jogador para checar se o ponto de trabalho está livre
+        private const float DockClearRadius = 0.2f;   // player radius used to check whether the work spot is free
         private static readonly HashSet<string> LoggedDockTargets = new HashSet<string>();
 
-        private const float DockCrowdDistance = 1.0f; // outro objeto grande mais perto que isso do ponto = apertado
+        private const float DockCrowdDistance = 1.0f; // another large object closer than this to the spot = crowded
 
-        /// <summary>Id de outro objeto interativo (mesa, baú, palete, crematório…) colado no ponto, ou null.</summary>
+        /// <summary>Id of another interactive object (table, chest, pallet, crematorium…) right next to the spot, or null.</summary>
         private static string CrowdingObject(Vector3 dock, string ownerUid)
         {
             foreach (WgoData o in CurrentScene().wgoDataList)
@@ -348,7 +348,7 @@ namespace AutoKeeper.Core
 
         private static bool SafeBool(Func<bool> f)
         {
-            try { return f(); } catch { return true; } // na dúvida, não descarta o ponto
+            try { return f(); } catch { return true; } // when in doubt, don't discard the spot
         }
 
         public static bool TryGetStandSpot(string uid, out Vector3 spot, out Vector2 facing)
@@ -380,15 +380,15 @@ namespace AutoKeeper.Core
                     {
                         continue;
                     }
-                    // Ponto de trabalho que o jogador não alcança: outro objeto em cima (colisor sólido de outro Wgo,
-                    // ex.: baú encostado) ou fora do navmesh. O bot anda por caminho roteirizado e passaria por cima.
+                    // Work spot the player cannot reach: another object on top of it (solid collider of another Wgo,
+                    // e.g. a chest pushed against it) or off the navmesh. The bot walks a scripted path and would pass right over it.
                     bool free = SafeBool(() => d.IsReachable(DockClearRadius));
                     bool onMesh = rg == null || SafeBool(() => d.IsReachable(rg));
                     Vector3 dp = d.transform.position;
-                    // Espremido entre objetos (ex.: vão entre as duas mesas): o jogador não passa, o caminho roteirizado passa.
+                    // Squeezed between objects (e.g. the gap between the two tables): the player can't get through, the scripted path can.
                     string crowd = CrowdingObject(dp, w.UniqueId.Id);
-                    diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? " zumbi" : "")}{(free ? "" : " BLOQUEADO")}"
-                        + $"{(crowd != null ? " APERTADO por " + crowd : "")}{(onMesh ? "" : " fora-navmesh")}]");
+                    diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? Lang.T(" zumbi", " zombie") : "")}{(free ? "" : Lang.T(" BLOQUEADO", " BLOCKED"))}"
+                        + $"{(crowd != null ? Lang.T(" APERTADO por ", " CROWDED by ") + crowd : "")}{(onMesh ? "" : Lang.T(" fora-navmesh", " off-navmesh"))}]");
                     float score = Vector3.Distance(dp, p) + (d.IsForZombie ? 1000f : 0f) + (free ? 0f : 500f)
                         + (crowd != null ? 300f : 0f) + (onMesh ? 0f : 5f);
                     if (score < bestScore)
@@ -400,7 +400,7 @@ namespace AutoKeeper.Core
                 if (best != null && LoggedDockTargets.Add(uid))
                 {
                     Vector3 bp = best.transform.position;
-                    ModLog.Detail($"Pontos de trabalho de {w.id}:{diag} → escolhido {bp.x:0.00},{bp.z:0.00}");
+                    ModLog.Detail(Lang.T($"Pontos de trabalho de {w.id}:{diag} → escolhido {bp.x:0.00},{bp.z:0.00}", $"Work spots for {w.id}:{diag} → chosen {bp.x:0.00},{bp.z:0.00}"));
                 }
                 if (best != null)
                 {
@@ -414,7 +414,7 @@ namespace AutoKeeper.Core
             return ok;
         }
 
-        /// <summary>Ponto um pouco antes do item no chão, vindo do lado do jogador (para ficar de frente para ele).</summary>
+        /// <summary>A point just short of the item on the ground, coming from the player's side (so the player faces it).</summary>
         public static Vector3 GetApproachSpot(Vector3 target, float standOff) => Safe(() =>
         {
             Vector3 p = MainGame.PlayerData.position.Value;
@@ -427,14 +427,14 @@ namespace AutoKeeper.Core
             return target - dir.normalized * standOff;
         }, target, nameof(GetApproachSpot));
 
-        /// <summary>Vira o jogador para a direção (x,z) dada, como faria o analógico.</summary>
+        /// <summary>Turns the player to the given (x,z) direction, as the analog stick would.</summary>
         public static void FaceDirection(Vector2 dirXZ) => Safe(() =>
         {
             MainGame.PlayerController.PhysicalBody.SetFacingDirection(dirXZ);
             return true;
         }, false, nameof(FaceDirection));
 
-        /// <summary>Vira o jogador para um ponto do mundo.</summary>
+        /// <summary>Turns the player toward a world point.</summary>
         public static void FaceTowards(Vector3 target) => Safe(() =>
         {
             Vector3 d = target - MainGame.PlayerData.position.Value;
@@ -442,7 +442,7 @@ namespace AutoKeeper.Core
             return true;
         }, false, nameof(FaceTowards));
 
-        /// <summary>O objeto é o alvo de interação atual (o que o E acionaria)? Itens grandes no chão têm prioridade no jogo.</summary>
+        /// <summary>Is the object the current interaction target (what E would trigger)? Large items on the ground take priority in the game.</summary>
         public static bool IsObjectUnderInteraction(string uid) => Safe(() =>
         {
             PlayerInteractionComponent pic = MainGame.PlayerController.PlayerInteractionComponent;
@@ -455,8 +455,8 @@ namespace AutoKeeper.Core
         }, false, nameof(IsObjectUnderInteraction));
 
         /// <summary>
-        /// Uid do alvo de interação atual do jogo (objeto ou item grande no chão), ou null se não há alvo.
-        /// Usado para nunca segurar Ação mirando outra coisa (Ação num baú = "pegar tudo").
+        /// Uid of the game's current interaction target (object or large item on the ground), or null if there is no target.
+        /// Used to never hold Action while aiming at something else (Action on a chest = "take all").
         /// </summary>
         public static string GetInteractionTargetUid() => Safe(() =>
         {
@@ -469,29 +469,29 @@ namespace AutoKeeper.Core
             return w != null && w.HasData ? w.Data.UniqueId.Id : null;
         }, null, nameof(GetInteractionTargetUid));
 
-        /// <summary>O item no chão é o alvo de interação atual?</summary>
+        /// <summary>Is the item on the ground the current interaction target?</summary>
         public static bool IsGroundItemUnderInteraction(string uid) => Safe(() =>
         {
             DropView v = MainGame.PlayerController.PlayerInteractionComponent.BigDropUnderInteraction;
             return v != null && v.Data != null && v.Data.UniqueId.Id == uid;
         }, false, nameof(IsGroundItemUnderInteraction));
 
-        /// <summary>Descrição do alvo atual de interação (para log/overlay).</summary>
+        /// <summary>Description of the current interaction target (for log/overlay).</summary>
         public static string DescribeInteractionTarget() => Safe(() =>
         {
             PlayerInteractionComponent pic = MainGame.PlayerController.PlayerInteractionComponent;
             if (pic.BigDropUnderInteraction?.Data != null)
             {
-                return "chão: " + pic.BigDropUnderInteraction.Data.Id;
+                return Lang.T("chão: ", "ground: ") + pic.BigDropUnderInteraction.Data.Id;
             }
             return pic.WgoUnderInteraction != null && pic.WgoUnderInteraction.HasData ? pic.WgoUnderInteraction.Data.id : "-";
         }, "?", nameof(DescribeInteractionTarget));
 
-        // ------------------------------------------------------------------ movimento
+        // ------------------------------------------------------------------ movement
 
         /// <summary>
-        /// Anda até <paramref name="target"/> usando o mesmo pathfinding (grafo Recast da cena) que o jogo usa
-        /// para mover o jogador em cenas roteirizadas/pesca. Não teleporta.
+        /// Walks to <paramref name="target"/> using the same pathfinding (the scene's Recast graph) the game uses
+        /// to move the player in scripted scenes/fishing. Does not teleport.
         /// </summary>
         public static bool StartMoveTo(Vector3 target) => Safe(() =>
         {
@@ -509,13 +509,13 @@ namespace AutoKeeper.Core
             if (r != MovementComponent.StartPathResult.Started)
             {
                 moveRequested = false;
-                ModLog.Warn($"Movimento recusado pelo jogo: {r}");
+                ModLog.Warn(Lang.T($"Movimento recusado pelo jogo: {r}", $"Movement refused by the game: {r}"));
                 return false;
             }
             return true;
         }, false, nameof(StartMoveTo));
 
-        /// <summary>Estado do último movimento pedido pelo bot.</summary>
+        /// <summary>State of the last movement requested by the bot.</summary>
         public static MoveState GetMoveState() => Safe(() =>
         {
             MovementComponent mc = MainGame.PlayerController.MovementComponent;
@@ -532,11 +532,11 @@ namespace AutoKeeper.Core
             {
                 return MoveState.Idle;
             }
-            // Terminou: sucesso, ou o jogo não achou caminho (status volta a None sem Completion).
+            // Finished: success, or the game found no path (status goes back to None without Completion).
             return mc.Completion == MovementComponent.CompletionState.Success ? MoveState.Arrived : MoveState.Failed;
         }, MoveState.Failed, nameof(GetMoveState));
 
-        /// <summary>Para o movimento iniciado pelo bot e devolve a física normal ao jogador.</summary>
+        /// <summary>Stops the movement started by the bot and gives the player back normal physics.</summary>
         public static void StopMoving() => Safe(() =>
         {
             if (!moveRequested)
@@ -545,13 +545,13 @@ namespace AutoKeeper.Core
             }
             moveRequested = false;
             MovementComponent mc = MainGame.PlayerController.MovementComponent;
-            // ForceStop também chama OnPathComplete do jogador (volta a física dinâmica), inclusive
-            // quando o jogo não achou caminho e deixou o corpo em modo cinemático.
+            // ForceStop also calls the player's OnPathComplete (back to dynamic physics), including
+            // when the game found no path and left the body in kinematic mode.
             mc.ForceStop();
             return true;
         }, false, nameof(StopMoving));
 
-        /// <summary>Marca o movimento como encerrado sem ForceStop (chegou normalmente).</summary>
+        /// <summary>Marks the movement as finished without ForceStop (arrived normally).</summary>
         public static void ClearMoveRequest()
         {
             moveRequested = false;

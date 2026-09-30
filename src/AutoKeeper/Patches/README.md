@@ -1,15 +1,15 @@
-# Patches Harmony
+# Harmony patches
 
-Convenções deste projeto:
+Conventions of this project:
 
-- **Um arquivo por feature** (ex.: `VirtualInputPatch.cs`), com `[HarmonyPatch]` explícito.
-- Preferir **Prefix/Postfix**; Transpiler só se não houver alternativa (e documentar o motivo).
-- Alvos de métodos privados/por nome via `AccessTools`, com checagem de `null` e log claro
-  (use `[HarmonyPrepare]` para pular o patch se o alvo não existir em outra versão do jogo).
-- Todos os patches são aplicados por `Plugin` com um único `Harmony` de ID = GUID
-  (`com.focabr.gk2.autokeeper`) e removidos com `UnpatchSelf()`.
-- Patch nunca altera save nem cria itens; só observa ou injeta "input virtual" equivalente ao do jogador.
+- **One file per feature** (e.g. `VirtualInputPatch.cs`), with an explicit `[HarmonyPatch]`.
+- Prefer **Prefix/Postfix**; Transpiler only if there is no alternative (and document why).
+- Private/by-name method targets via `AccessTools`, with a `null` check and a clear log
+  (use `[HarmonyPrepare]` to skip the patch if the target does not exist in another game version).
+- All patches are applied by `Plugin` with a single `Harmony` whose ID = GUID
+  (`com.focabr.gk2.autokeeper`) and removed with `UnpatchSelf()`.
+- A patch never changes the save nor creates items; it only observes or injects "virtual input" equivalent to the player's.
 
-Implementado (0.2.0): `VirtualInputPatch` — Postfix em `LazyBearTechnology.LazyInput.Update()` que
-acrescenta teclas virtuais do bot (Interaction/Action) às listas `pressedKeys`/`holdedKeys`,
-somente enquanto o input do jogo está ativo. Veja `docs/game-api-notes.md`.
+Implemented (0.2.0): `VirtualInputPatch` — Postfix on `LazyBearTechnology.LazyInput.Update()` that
+adds the bot's virtual keys (Interaction/Action) to the `pressedKeys`/`holdedKeys` lists,
+only while the game's input is active. See `docs/game-api-notes.md`.

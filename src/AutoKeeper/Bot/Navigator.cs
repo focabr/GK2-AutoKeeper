@@ -4,15 +4,15 @@ using UnityEngine;
 
 namespace AutoKeeper.Bot
 {
-    /// <summary>Como chegar numa região andável: custo aproximado (m) e a primeira porta do caminho.</summary>
+    /// <summary>How to reach a walkable region: approximate cost (m) and the first door on the path.</summary>
     internal readonly struct AreaRoute
     {
         public readonly uint Area;
-        public readonly float Cost;        // metros andados + penalidade por porta
-        public readonly int Doors;         // quantas portas no caminho
+        public readonly float Cost;        // meters walked + penalty per door
+        public readonly int Doors;         // how many doors on the path
         public readonly bool HasDoor;
-        public readonly DoorRef FirstDoor; // porta a usar agora (válida se HasDoor)
-        public readonly Vector3 Entry;     // onde se chega na região (posição do jogador ou saída da última porta)
+        public readonly DoorRef FirstDoor; // door to use now (valid if HasDoor)
+        public readonly Vector3 Entry;     // where the region is entered (player position or exit of the last door)
 
         public AreaRoute(uint area, float cost, int doors, bool hasDoor, DoorRef firstDoor, Vector3 entry)
         {
@@ -26,32 +26,32 @@ namespace AutoKeeper.Bot
     }
 
     /// <summary>
-    /// Planeja rotas entre regiões usando as portas do jogo (Dijkstra simples: portas = arestas).
-    /// Só lógica; tudo que toca o jogo passa pela GameApi. Os dados das portas ficam em cache por alguns segundos.
+    /// Plans routes between regions using the game's doors (simple Dijkstra: doors = edges).
+    /// Logic only; everything that touches the game goes through GameApi. Door data is cached for a few seconds.
     /// </summary>
     internal sealed class Navigator
     {
-        private const float DoorPenalty = 15f;      // prefere andar um pouco mais a atravessar portas à toa
+        private const float DoorPenalty = 15f;      // prefers walking a bit more over crossing doors needlessly
         private const float CacheSeconds = 20f;
 
         private sealed class DoorNode
         {
             public DoorRef Door;
-            public uint Area;          // região do lado de cá
-            public uint LandingArea;   // região do outro lado
+            public uint Area;          // region on this side
+            public uint LandingArea;   // region on the other side
         }
 
         private readonly List<DoorNode> doors = new List<DoorNode>();
-        private readonly HashSet<string> brokenDoors = new HashSet<string>(); // portas que não funcionaram nesta sessão
+        private readonly HashSet<string> brokenDoors = new HashSet<string>(); // doors that did not work in this session
         private readonly Dictionary<string, uint> areaByUid = new Dictionary<string, uint>();
         private float doorsCachedAt = -999f;
         private string cachedScene;
-        private string loggedDoors;     // "cena:quantidade" já registrado no log de depuração
+        private string loggedDoors;     // "scene:count" already written to the debug log
 
-        /// <summary>Aumenta a cada religada do bot; tarefas usam para saber que devem refazer verificações iniciais.</summary>
+        /// <summary>Increases every time the bot is turned back on; tasks use it to know they must redo their initial checks.</summary>
         public int Generation { get; private set; }
 
-        /// <summary>Esquece caches (ex.: ao religar o bot).</summary>
+        /// <summary>Forgets caches (e.g. when the bot is turned back on).</summary>
         public void Reset()
         {
             Generation++;
@@ -68,7 +68,7 @@ namespace AutoKeeper.Bot
             }
         }
 
-        /// <summary>Região de um objeto (cache por uid; objetos do jogo não mudam de lugar).</summary>
+        /// <summary>Region of an object (cached by uid; game objects do not move).</summary>
         public uint AreaOf(string uid, Vector3 pos)
         {
             if (uid != null && areaByUid.TryGetValue(uid, out uint a))
@@ -83,7 +83,7 @@ namespace AutoKeeper.Bot
             return a;
         }
 
-        /// <summary>Todas as regiões alcançáveis a partir do jogador, com a primeira porta de cada rota.</summary>
+        /// <summary>All regions reachable from the player, with the first door of each route.</summary>
         public Dictionary<uint, AreaRoute> ReachableAreas(bool allowDoors)
         {
             var result = new Dictionary<uint, AreaRoute>();
@@ -91,7 +91,7 @@ namespace AutoKeeper.Bot
             uint here = GameApi.GetPlayerNavArea();
             if (here == 0)
             {
-                return result; // fora do navmesh (cutscene, transição): não planejar
+                return result; // off the navmesh (cutscene, transition): do not plan
             }
             result[here] = new AreaRoute(here, 0f, 0, false, default, player);
             if (!allowDoors)
@@ -100,7 +100,7 @@ namespace AutoKeeper.Bot
             }
             RefreshDoors();
 
-            // Dijkstra sobre as portas. dist = custo até ATRAVESSAR a porta.
+            // Dijkstra over the doors. dist = cost up to CROSSING the door.
             int n = doors.Count;
             var dist = new float[n];
             var hops = new int[n];
@@ -160,7 +160,7 @@ namespace AutoKeeper.Bot
             return result;
         }
 
-        /// <summary>Custo estimado de ir do jogador até um ponto de uma região já roteada.</summary>
+        /// <summary>Estimated cost to go from the player to a point in an already-routed region.</summary>
         public static float CostTo(AreaRoute route, Vector3 target) => route.Cost + Vector3.Distance(route.Entry, target);
 
         private void RefreshDoors()
@@ -183,25 +183,26 @@ namespace AutoKeeper.Bot
                 uint landing = GameApi.GetNavArea(d.Landing);
                 if (area == 0 || landing == 0 || area == landing)
                 {
-                    continue; // porta fora do navmesh ou que não muda de região: inútil para rotas
+                    continue; // door off the navmesh or that does not change region: useless for routes
                 }
                 doors.Add(new DoorNode { Door = d, Area = area, LandingArea = landing });
             }
             string key = $"{scene}:{doors.Count}";
-            if (key != loggedDoors)   // o cache renova a cada poucos segundos: só registra quando muda
+            if (key != loggedDoors)   // the cache refreshes every few seconds: only logs when it changes
             {
                 loggedDoors = key;
-                ModLog.Debug($"Navegação: {doors.Count} portas úteis na cena {scene}");
+                ModLog.Debug(Lang.T($"Navegação: {doors.Count} portas úteis na cena {scene}", $"Navigation: {doors.Count} usable doors in scene {scene}"));
             }
         }
 
-        /// <summary>Resumo para o dump/log: portas e regiões.</summary>
+        /// <summary>Summary for the dump/log: doors and regions.</summary>
         public IEnumerable<string> DescribeDoors()
         {
             RefreshDoors();
             foreach (DoorNode d in doors)
             {
-                yield return $"{d.Door.Id}: área {d.Area} → {d.LandingArea} (destino {d.Door.DestinationId})";
+                yield return Lang.T($"{d.Door.Id}: área {d.Area} → {d.LandingArea} (destino {d.Door.DestinationId})",
+                    $"{d.Door.Id}: area {d.Area} → {d.LandingArea} (destination {d.Door.DestinationId})");
             }
         }
     }

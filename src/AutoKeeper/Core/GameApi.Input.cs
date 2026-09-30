@@ -8,10 +8,10 @@ using UnityEngine;
 namespace AutoKeeper.Core
 {
     /// <summary>
-    /// Parte 3: input virtual. O bot "aperta" teclas do próprio jogo (GameKey.Interaction = E,
-    /// GameKey.Action = segurar para trabalhar). As teclas são acrescentadas às listas internas do
-    /// LazyInput logo depois do Update dele (Patches/VirtualInputPatch), então o jogo executa exatamente
-    /// o mesmo código de quando o jogador aperta a tecla: regras, energia, ferramenta, animações.
+    /// Part 3: virtual input. The bot "presses" the game's own keys (GameKey.Interaction = E,
+    /// GameKey.Action = hold to work). The keys are added to LazyInput's internal lists
+    /// right after its Update (Patches/VirtualInputPatch), so the game runs exactly
+    /// the same code as when the player presses the key: rules, energy, tool, animations.
     /// </summary>
     internal static partial class GameApi
     {
@@ -21,7 +21,7 @@ namespace AutoKeeper.Core
         private static bool actionDownSent;
         private static int pendingHotBarSlot = -1;
 
-        // Janela/painel do mod: bloqueiam o input do jogo para um clique não virar ataque/interação.
+        // Mod window/panel: they block the game's input so a click does not turn into an attack/interaction.
         private static bool modWindowOpen;
         private static bool mouseOverModUi;
         private static AccessTools.FieldRef<LazyInput, List<GameKey>> pressedKeysRef;
@@ -34,28 +34,28 @@ namespace AutoKeeper.Core
         private static bool inputReflectionReady;
         private static bool inputReflectionFailed;
 
-        /// <summary>O bot está segurando a tecla de ação (trabalhando)?</summary>
+        /// <summary>Is the bot holding the action key (working)?</summary>
         public static bool IsHoldingAction => holdAction;
 
-        /// <summary>"Aperta" E por um frame (interagir com o alvo à frente do jogador).</summary>
+        /// <summary>"Presses" E for one frame (interact with the target in front of the player).</summary>
         public static void PressInteract()
         {
             pendingInteractFrames = 1;
         }
 
-        /// <summary>"Aperta" a tecla de ação por um frame (ex.: recolher o que o crematório produziu).</summary>
+        /// <summary>"Presses" the action key for one frame (e.g. collect what the crematorium produced).</summary>
         public static void PressAction()
         {
             pendingActionFrames = 1;
         }
 
-        /// <summary>"Aperta" a tecla da barra rápida (0..3 = teclas 1..4) por um frame: usa o item fixado ali.</summary>
+        /// <summary>"Presses" the hot bar key (0..3 = keys 1..4) for one frame: uses the item pinned there.</summary>
         public static void PressHotBar(int slot)
         {
             pendingHotBarSlot = slot >= 0 && slot < 4 ? slot : -1;
         }
 
-        /// <summary>Segura/solta a tecla de ação (trabalhar no objeto à frente). O primeiro frame também conta como "apertou".</summary>
+        /// <summary>Holds/releases the action key (work on the object in front). The first frame also counts as "pressed".</summary>
         public static void SetHoldAction(bool hold)
         {
             if (hold && !holdAction)
@@ -65,7 +65,7 @@ namespace AutoKeeper.Core
             holdAction = hold;
         }
 
-        /// <summary>Solta tudo imediatamente (kill switch / pausa / erro).</summary>
+        /// <summary>Releases everything immediately (kill switch / pause / error).</summary>
         public static void ReleaseAllVirtualKeys()
         {
             pendingInteractFrames = 0;
@@ -75,17 +75,17 @@ namespace AutoKeeper.Core
             actionDownSent = false;
         }
 
-        /// <summary>A janela de configurações do mod está aberta (bot pausa e o jogo não recebe teclas).</summary>
+        /// <summary>The mod's settings window is open (the bot pauses and the game receives no keys).</summary>
         public static bool ModWindowOpen => modWindowOpen;
 
-        /// <summary>Informado pela UI do mod a cada frame.</summary>
+        /// <summary>Reported by the mod's UI every frame.</summary>
         public static void SetModUiState(bool windowOpen, bool mouseOverUi)
         {
             modWindowOpen = windowOpen;
             mouseOverModUi = mouseOverUi;
         }
 
-        /// <summary>Chamado pelo Postfix de LazyInput.Update. Não faz nada se o jogo desativou o input.</summary>
+        /// <summary>Called by the LazyInput.Update Postfix. Does nothing if the game disabled input.</summary>
         internal static void InjectVirtualKeys(object lazyInputInstance)
         {
             if (pendingInteractFrames <= 0 && pendingActionFrames <= 0 && pendingHotBarSlot < 0 && !holdAction && !modWindowOpen && !mouseOverModUi)
@@ -101,7 +101,7 @@ namespace AutoKeeper.Core
                 var input = (LazyInput)lazyInputInstance;
                 if (modWindowOpen)
                 {
-                    // Janela aberta: o jogo não recebe nenhuma tecla/movimento (como uma janela modal do próprio jogo).
+                    // Window open: the game receives no key/movement (like one of the game's own modal windows).
                     pressedKeysRef(input).Clear();
                     holdedKeysRef(input).Clear();
                     directionRef(input) = Vector2.zero;
@@ -110,7 +110,7 @@ namespace AutoKeeper.Core
                 }
                 if (mouseOverModUi)
                 {
-                    // Clique no painel do mod não pode virar ataque/mira no jogo.
+                    // A click on the mod panel must not turn into an attack/aim in the game.
                     foreach (GameKey k in new[] { GameKey.LeftClick, GameKey.RightClick, GameKey.DoubleClick, GameKey.Attack, GameKey.AttackFocus })
                     {
                         pressedKeysRef(input).Remove(k);
@@ -149,7 +149,7 @@ namespace AutoKeeper.Core
             catch (Exception e)
             {
                 ReleaseAllVirtualKeys();
-                ModLog.WarnOnce("VirtualInput", $"Input virtual falhou e foi desativado: {e.GetType().Name}: {e.Message}");
+                ModLog.WarnOnce("VirtualInput", Lang.T($"Input virtual falhou e foi desativado: {e.GetType().Name}: {e.Message}", $"Virtual input failed and was disabled: {e.GetType().Name}: {e.Message}"));
             }
         }
 
@@ -174,7 +174,7 @@ namespace AutoKeeper.Core
             {
                 return false;
             }
-            // Métodos privados do LazyInput que já aplicam as regras do jogo (ignora GameKey.None, duplicadas, "esperar soltar").
+            // LazyInput private methods that already apply the game's rules (ignore GameKey.None, duplicates, "wait for release").
             addPressedMethod = AccessTools.Method(typeof(LazyInput), "AddPressed", new[] { typeof(GameKey) });
             addHoldedMethod = AccessTools.Method(typeof(LazyInput), "AddHolded", new[] { typeof(GameKey) });
             try
@@ -186,14 +186,14 @@ namespace AutoKeeper.Core
             }
             catch (Exception e)
             {
-                ModLog.Error($"Campos internos do LazyInput não encontrados ({e.Message}) — input virtual desativado.");
+                ModLog.Error(Lang.T($"Campos internos do LazyInput não encontrados ({e.Message}) — input virtual desativado.", $"LazyInput internal fields not found ({e.Message}) — virtual input disabled."));
                 inputReflectionFailed = true;
                 return false;
             }
             if (addPressedMethod == null || addHoldedMethod == null)
             {
                 inputReflectionFailed = true;
-                ModLog.Error("LazyInput.AddPressed/AddHolded não encontrados — o jogo mudou; input virtual desativado.");
+                ModLog.Error(Lang.T("LazyInput.AddPressed/AddHolded não encontrados — o jogo mudou; input virtual desativado.", "LazyInput.AddPressed/AddHolded not found — the game changed; virtual input disabled."));
                 return false;
             }
             inputReflectionReady = true;

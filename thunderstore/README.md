@@ -36,7 +36,7 @@ the player could do — no item spawning, no save editing, no game files modifie
 - **F10** – write a read-only discovery dump (JSON) of the current scene to `BepInEx/config/AutoKeeper/dumps`
 - Optional: with **GK2 Mod Framework** installed, the same settings appear under **Mods** in the main and pause menus
 - Pauses automatically in menus, pause screen, UI windows, dialogues, cutscenes and sleep
-- Settings window and panel in English or Brazilian Portuguese (follows the game language); log messages in Portuguese
+- Settings window, status panel and log messages in English or Brazilian Portuguese (follows the game language)
 
 ## Requirements
 - Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007.1**

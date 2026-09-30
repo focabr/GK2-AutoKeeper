@@ -7,9 +7,9 @@ using UnityEngine;
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Paleta e fonte do jogo para a UI desenhada pelo mod (painel de status e tela simples de reserva).
-    /// Cores tiradas da janela de Configurações do GK2 (marrom escuro, rótulos bege-acinzentados, valores dourados).
-    /// A fonte é a mesma dos textos do jogo (fonte-fonte do TextMeshPro), quando disponível.
+    /// The game's palette and font for the UI drawn by the mod (status panel and simple fallback window).
+    /// Colors taken from GK2's Settings window (dark brown, greyish-beige labels, golden values).
+    /// The font is the same as the game's texts (the TextMeshPro source font), when available.
     /// </summary>
     internal static class GameUiTheme
     {
@@ -24,7 +24,7 @@ namespace AutoKeeper.UI
         public static readonly Color Value = new Color(1f, 0.74f, 0f, 1f);
         public static readonly Color Title = new Color(0.95f, 0.89f, 0.78f, 1f);
 
-        // Mesmas cores em hexadecimal para rich text.
+        // Same colors in hexadecimal for rich text.
         public const string LabelHex = "#978C87";
         public const string ValueHex = "#FFBD00";
         public const string TitleHex = "#F2E3C7";
@@ -35,7 +35,7 @@ namespace AutoKeeper.UI
         private static Font font;
         private static bool fontSearched;
 
-        /// <summary>Fonte dos textos do jogo (null = fonte padrão do Unity).</summary>
+        /// <summary>Font of the game's texts (null = Unity's default font).</summary>
         public static Font Font
         {
             get
@@ -49,7 +49,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        /// <summary>Permite nova busca (ex.: fontes carregadas só depois do menu principal).</summary>
+        /// <summary>Allows a new search (e.g. fonts loaded only after the main menu).</summary>
         public static void ResetFontCache()
         {
             if (font == null)
@@ -63,20 +63,21 @@ namespace AutoKeeper.UI
             try
             {
                 TMP_FontAsset[] all = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
-                // Preferência: a fonte "pequena" das janelas do jogo; depois qualquer fonte com arquivo-fonte.
+                // Preference: the "small" font of the game's windows; then any font with a source font file.
                 TMP_FontAsset pick = all.FirstOrDefault(f => f != null && f.sourceFontFile != null
                         && f.name.IndexOf("small_font", StringComparison.OrdinalIgnoreCase) >= 0 && f.name.IndexOf("bold", StringComparison.OrdinalIgnoreCase) < 0)
                     ?? all.FirstOrDefault(f => f != null && f.sourceFontFile != null && f.name.IndexOf("bold", StringComparison.OrdinalIgnoreCase) < 0)
                     ?? all.FirstOrDefault(f => f != null && f.sourceFontFile != null);
                 if (pick != null)
                 {
-                    ModLog.Debug($"Fonte do jogo para a UI do mod: {pick.name} ({pick.sourceFontFile.name})");
+                    ModLog.Debug(Lang.T($"Fonte do jogo para a UI do mod: {pick.name} ({pick.sourceFontFile.name})",
+                        $"Game font for the mod UI: {pick.name} ({pick.sourceFontFile.name})"));
                     return pick.sourceFontFile;
                 }
             }
             catch (Exception e)
             {
-                ModLog.Debug("Fonte do jogo indisponível: " + e.Message);
+                ModLog.Debug(Lang.T("Fonte do jogo indisponível: " + e.Message, "Game font unavailable: " + e.Message));
             }
             return null;
         }
@@ -89,7 +90,7 @@ namespace AutoKeeper.UI
             return t;
         }
 
-        /// <summary>Desenha um retângulo com borda de 2 px (moldura estilo janela do jogo).</summary>
+        /// <summary>Draws a rectangle with a 2 px border (game-window-style frame).</summary>
         public static void DrawFramedBox(Rect r, Texture2D fill, Texture2D border)
         {
             GUI.DrawTexture(r, border);

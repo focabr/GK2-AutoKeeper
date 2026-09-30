@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace AutoKeeper.Core
 {
-    /// <summary>Foto do estado do jogo num instante — usada pelo overlay e pelas decisões do bot.</summary>
+    /// <summary>Snapshot of the game state at one instant — used by the overlay and by the bot's decisions.</summary>
     internal sealed class GameSnapshot
     {
         public bool InGame;
@@ -23,7 +23,7 @@ namespace AutoKeeper.Core
         public float DaysWithoutSleep = -1f;
         public bool LackOfSleep;
 
-        /// <summary>Hora aproximada (assume timeOfDay 0 = 00:00). A confirmar no jogo.</summary>
+        /// <summary>Approximate time (assumes timeOfDay 0 = 00:00). To be confirmed in game.</summary>
         public string ClockText
         {
             get
@@ -38,7 +38,7 @@ namespace AutoKeeper.Core
         }
     }
 
-    /// <summary>Lê o estado através da GameApi (nunca toca classes do jogo diretamente).</summary>
+    /// <summary>Reads the state through GameApi (never touches game classes directly).</summary>
     internal static class StateReader
     {
         public static GameSnapshot Read()

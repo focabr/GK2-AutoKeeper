@@ -9,12 +9,12 @@ using UnityEngine;
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Painel de status (IMGUI) com a paleta e a fonte do jogo. Organizado em blocos:
-    ///   título + estado (e o motivo, quando desligado/pausado/ocioso);
-    ///   linhas "rótulo: valor" alinhadas (tarefa, local, energia, sono, mãos);
-    ///   eventos recentes (o mais novo em cima, com "há X");
-    ///   botão de configurações + teclas.
-    /// O conteúdo é refeito no máximo 5x por segundo; o desenho usa retângulos fixos (alinhamento e recuo das quebras).
+    /// Status panel (IMGUI) with the game's palette and font. Organized in blocks:
+    ///   title + state (and the reason, when off/paused/idle);
+    ///   aligned "label: value" rows (task, place, energy, sleep, hands);
+    ///   recent events (newest on top, with "X ago");
+    ///   settings button + keys.
+    /// The content is rebuilt at most 5x per second; drawing uses fixed rectangles (alignment and indent of wrapped lines).
     /// </summary>
     internal sealed class Overlay
     {
@@ -37,8 +37,8 @@ namespace AutoKeeper.UI
         private struct Row
         {
             public RowKind Kind;
-            public string A;      // título / rótulo / tempo do evento
-            public string B;      // estado / valor / texto do evento
+            public string A;      // title / label / event time
+            public string B;      // state / value / event text
             public bool Muted;
         }
 
@@ -59,10 +59,10 @@ namespace AutoKeeper.UI
             this.bot = bot;
         }
 
-        /// <summary>Área ocupada pelo painel (GUI), para o clique nele não virar ataque no jogo.</summary>
+        /// <summary>Area taken by the panel (GUI), so a click on it doesn't turn into an attack in the game.</summary>
         public Rect Rect { get; private set; }
 
-        /// <summary>Chamado quando o jogador clica no botão de configurações do painel.</summary>
+        /// <summary>Called when the player clicks the panel's settings button.</summary>
         public System.Action OnSettingsClicked;
 
         public void Draw()
@@ -85,7 +85,7 @@ namespace AutoKeeper.UI
             float inner = width - PadX * 2f;
             float buttonHeight = styleFontSize * 1.8f;
 
-            // Alturas (iguais em todos os eventos da GUI, para o botão ficar sempre no mesmo lugar).
+            // Heights (the same in every GUI event, so the button always stays in the same place).
             float contentHeight = 0f;
             var heights = new float[rows.Count];
             for (int i = 0; i < rows.Count; i++)
@@ -127,7 +127,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        // ------------------------------------------------------------------ conteúdo
+        // ------------------------------------------------------------------ content
 
         private void BuildRows()
         {
@@ -206,7 +206,7 @@ namespace AutoKeeper.UI
             }
             rows.Add(new Row { Kind = RowKind.Separator });
 
-            // Coluna de rótulos: largura do maior rótulo presente.
+            // Label column: width of the widest label present.
             labelWidth = 0f;
             foreach (Row r in rows)
             {
@@ -219,7 +219,7 @@ namespace AutoKeeper.UI
             timeWidth = timeStyle.CalcSize(new GUIContent(pt ? "59 min" : "59 min")).x + 6f;
         }
 
-        /// <summary>Por que o bot não está trabalhando (null quando está).</summary>
+        /// <summary>Why the bot is not working (null when it is).</summary>
         private string StateReason(bool pt)
         {
             string d = bot.StateDetail;
@@ -228,8 +228,8 @@ namespace AutoKeeper.UI
                 case BotController.BotState.Running:
                     return null;
                 case BotController.BotState.Off:
-                    // "desligado" = estado inicial: o rodapé já diz como ligar.
-                    return string.IsNullOrEmpty(d) || d == "desligado" ? null : d;
+                    // Empty = initial state: the footer already says how to turn it on.
+                    return string.IsNullOrEmpty(d) ? null : d;
                 default:
                     return string.IsNullOrEmpty(d) ? null : d;
             }
@@ -291,10 +291,10 @@ namespace AutoKeeper.UI
             }
         }
 
-        /// <summary>Evita que "&lt;" em mensagens de log quebre o rich text.</summary>
+        /// <summary>Keeps "&lt;" in log messages from breaking the rich text.</summary>
         private static string Escape(string s) => s.Replace("<", "‹").Replace(">", "›");
 
-        // ------------------------------------------------------------------ desenho
+        // ------------------------------------------------------------------ drawing
 
         private float RowHeight(Row r, float inner)
         {
@@ -360,7 +360,7 @@ namespace AutoKeeper.UI
             }
             styleFontSize = fontSize;
             styleFont = gameFont;
-            rows.Clear(); // larguras dependem da fonte: refaz o conteúdo
+            rows.Clear(); // widths depend on the font: rebuild the content
 
             fillTex = fillTex ?? GameUiTheme.MakeTex(GameUiTheme.PanelBackground);
             borderTex = borderTex ?? GameUiTheme.MakeTex(GameUiTheme.Border);

@@ -1,58 +1,60 @@
 # GK2 AutoKeeper — boot-loader
 
-Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
+BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
-## Estado (2026-09-30)
-- Versão instalada: **0.3.22** (tag v0.3.22). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/GK2_AutoKeeper-0.3.22.zip`.
-- Publicação: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categorias Mods + AI Generated), Nexus
-  (tags AI-Generated Content + AI Media). Guia: projeto Claude "GK2" → `claude/publicacao.md`.
-- Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
-- Validado em jogo (0.3.15): zerar memória no novo load, busca de corpo lá fora, ponto de trabalho do jogo (1 ajuste
-  por mesa), comer em sequência, estacionar no palete, leitura de sono/insanidade no dump.
-- Idas ao baú validadas (0.3.15, `ChestFreeSlots` = 6): 1 ida, sem repetição.
-- "Dormir e continuar" validado (teste na 0.3.18; lógica igual até a 0.3.22): porta de casa → cama → dorme → cura → volta à mesa.
-- Túmulo (destino `Grave` + `DigGraves`) **escondido das telas** desde a 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
-  até terminar os testes; é o "próximo passo" divulgado. Para liberar: tirar o atributo e voltar `DigGraves` para `Toggle`.
-- Suporte = issues do GitHub com modelos em `.github/ISSUE_TEMPLATE/` (bug, ajuda na configuração, sugestão; EN + pt-BR).
+## State (2026-09-30)
+- Installed version: **0.3.23** (tag v0.3.23). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.23.zip`.
+- Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
+  (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
+- Detailed state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (handoff). Do not keep volatile state here.
+- Validated in-game (0.3.15): memory reset on a new load, fetching bodies outside, the game's work spot (1 adjustment
+  per table), eating in sequence, parking on the pallet, sleep/insanity reading in the dump.
+- Chest trips validated (0.3.15, `ChestFreeSlots` = 6): 1 trip, no repeats.
+- "Sleep, then resume" validated (tested on 0.3.18; same logic up to 0.3.23): house door → bed → sleeps → cured → back to the table.
+- Grave (destination `Grave` + `DigGraves`) **hidden from the UI** since 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
+  until testing is done; it is the announced "next step". To release it: remove the attribute and switch `DigGraves` back to `Toggle`.
+- Support = GitHub issues with templates in `.github/ISSUE_TEMPLATE/` (bug, help with settings, suggestion; EN + pt-BR).
 
-## Mapa (Grep por estes nomes)
-- `src/AutoKeeper/Plugin.cs` — entrada, hotkeys (F8 bot, F9 painel, F10 dump, F11 config), versão.
-- `Bot/Tasks/ProcessBodiesTask.cs` — rotina: `Decide` (crematório pronto / baú) → `DecideCore` → Goals; `TickAim/TickWork/Tick*`.
-- `Bot/Navigator.cs` — andar/portas (`Generation`). `Bot/BotController.cs` — liga/desliga.
-- `Core/GameApi*.cs` — TODO acesso ao jogo (World, Actions, Chest). Nada de lógica de jogo fora daqui.
-- `Config/Settings.cs` — opções; ordem de declaração = ordem na tela; `SettingTab`.
-- `UI/NativeSettingsWindow.cs` (tela clonada do jogo) e `UI/SettingsWindow.cs` (IMGUI, fallback).
-- `src/AutoKeeper.FrameworkBridge` — ponte opcional do GK2 Mod Framework.
-- `docs/game-api-notes.md` — achados do jogo (seção 13: cova).
+## Map (Grep for these names)
+- `src/AutoKeeper/Plugin.cs` — entry point, hotkeys (F8 bot, F9 panel, F10 dump, F11 settings), version.
+- `Bot/Tasks/ProcessBodiesTask.cs` — routine: `Decide` (crematorium ready / chest) → `DecideCore` → Goals; `TickAim/TickWork/Tick*`.
+- `Bot/Navigator.cs` — walking/doors (`Generation`). `Bot/BotController.cs` — on/off.
+- `Core/GameApi*.cs` — ALL game access (World, Actions, Chest). No game logic outside it.
+- `Config/Settings.cs` — options; declaration order = on-screen order; `SettingTab`.
+- `UI/NativeSettingsWindow.cs` (window cloned from the game) and `UI/SettingsWindow.cs` (IMGUI, fallback).
+- `src/AutoKeeper.FrameworkBridge` — optional GK2 Mod Framework bridge.
+- `docs/game-api-notes.md` — game findings (section 13: grave).
 
-## Build / entrega
-- `dotnet build src/AutoKeeper/AutoKeeper.csproj -c Release "-p:GamePath=<jogo>"`; a ponte precisa de `-p:FrameworkDll=<GK2.Framework.dll>`.
-- Na nuvem: `apt install dotnet-sdk-8.0`, `nuget.config` com `<clear/>` (sem NuGet), stage de `Managed/` + `BepInEx/core`;
-  ponte com `tools/FrameworkStub`; ler código do jogo (membros + IL) com `tools/Inspect` (ver `tools/README.md`).
-- Commits feitos na nuvem → device: `git bundle` → `device_commit_files` em `D:\Claude\GK2\_xfer\` →
+## Build / delivery
+- `dotnet build src/AutoKeeper/AutoKeeper.csproj -c Release "-p:GamePath=<game>"`; the bridge needs `-p:FrameworkDll=<GK2.Framework.dll>`.
+- In the cloud: `apt install dotnet-sdk-8.0`, `nuget.config` with `<clear/>` (no NuGet), stage `Managed/` + `BepInEx/core`;
+  bridge with `tools/FrameworkStub`; read the game code (members + IL) with `tools/Inspect` (see `tools/README.md`).
+- Commits made in the cloud → device: `git bundle` → `device_commit_files` into `D:\Claude\GK2\_xfer\` →
   `git fetch <bundle> main:refs/remotes/xfer/main --tags && git merge --ff-only xfer/main`.
-  No clone da nuvem, rodar `git remote remove origin` logo após clonar o bundle: com remote, o verificador automático da
-  nuvem cobra push e assinatura "Claude" em todo commit (o repo real no PC não tem remote e usa a autoria `focabr`).
-- Entrega ao PC: copiar para uma pasta NOVA em `/mnt/user-data/outputs/` e `device_commit_files` (pasta repetida entrega cache velho). Conferir versão: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
-- O jogo só carrega o DLL novo ao reiniciar: antes de analisar um teste, conferir `Loading [GK2 AutoKeeper x.y.z]` no `LogOutput.log`.
-- Fechar versão: subir `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; atualizar o handoff do projeto.
-- git no device: pedir permissão de apagar em `D:\Claude\GK2` (senão ficam `.git/*.lock`).
+  In the cloud clone, run `git remote remove origin` right after cloning the bundle: with a remote, the cloud's automatic
+  checker demands a push and a "Claude" signature on every commit (the real repo on the PC has no remote and uses the `focabr` authorship).
+- Delivery to the PC: copy to a NEW folder in `/mnt/user-data/outputs/` and `device_commit_files` (a reused folder delivers a stale cache). Check the version: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
+- The game only loads the new DLL after a restart: before analyzing a test, check `Loading [GK2 AutoKeeper x.y.z]` in `LogOutput.log`.
+- Closing a version: bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; update the project handoff.
+- git on the device: ask for delete permission in `D:\Claude\GK2` (otherwise `.git/*.lock` files are left behind).
 
-## Armadilhas
-- O layout do jogo ignora LayoutElement: usar `RectTransform.sizeDelta`.
-- Tela nativa só abre com jogo carregado (menu principal cai no IMGUI).
-- Baús de missão (customTag) e de esteira/jardim são ignorados de propósito.
-- NUNCA segurar Ação sem conferir o alvo do jogo (`GuardAim`): Ação num baú = pegar tudo.
-- Memória de mundo (sets da tarefa, Navigator, caches estáticos) tem de ser zerada em `ResetMemory` — novo load não reinicia o plugin.
-- Crematório: estado lido à distância (`GetCraftState`); só visitar se `ReadyToCollect`.
-- Segurar Ação faz o JOGO levar o jogador ao ponto de trabalho dele (`PlayerWorkComponent.FindNearestDockPoint`, alcance
-  pelo `PlayerLocalAreaMovement.IsReachable`); o bot aprende esse ponto (`workSpots`) — não brigar com ele.
-- Energia máx = 100 − insanidade. "Privação de Sono" (`lack_of_sleep_debuff`, 2 dias acordado): metade da energia gasta vira
-  insanidade; dormir até encher a energia cura e tira 20 de insanidade (regras do jogo em `docs/game-api-notes.md` §15).
-- Itens extraídos/recolhidos chegam ao inventário um instante DEPOIS da receita terminar: o registro do bot (`ledger`)
-  soma por pendências (`QueueCredit`/`SettleCredits`, ~2 s), nunca na hora.
-- Textos da tela/painel/log seguem o vocabulário oficial do jogo (pt-BR: Privação de Sono, Barra de atalhos, Túmulo,
-  Caveira, Entranhas, Chance de sucesso). Tabela e critérios: projeto Claude "GK2" → `claude/revisao-textos.md`.
-- Painel (`UI/Overlay.cs`): mensagens técnicas/passo a passo usam `ModLog.Detail` (só arquivo); `ModLog.Info` aparece
-  nos eventos do painel — escrever curto e com contexto.
-- `LogOutput.log` descarta Debug do BepInEx: `ModLog.Debug` grava como Info com `[dbg]` (só com VerboseLogging).
+## Pitfalls
+- The game's layout ignores LayoutElement: use `RectTransform.sizeDelta`.
+- The native window only opens with a game loaded (the main menu falls back to IMGUI).
+- Quest chests (customTag) and conveyor/garden chests are ignored on purpose.
+- NEVER hold Action without checking the game's target (`GuardAim`): Action on a chest = take all.
+- World memory (task sets, Navigator, static caches) must be reset in `ResetMemory` — a new load does not restart the plugin.
+- Crematorium: state read from a distance (`GetCraftState`); only visit if `ReadyToCollect`.
+- Holding Action makes the GAME take the player to its own work spot (`PlayerWorkComponent.FindNearestDockPoint`, reach
+  via `PlayerLocalAreaMovement.IsReachable`); the bot learns that spot (`workSpots`) — do not fight it.
+- Max energy = 100 − insanity. "Lack of sleep" (`lack_of_sleep_debuff`, 2 days awake): half of the energy spent turns into
+  insanity; sleeping until energy is full cures it and removes 20 insanity (game rules in `docs/game-api-notes.md` §15).
+- Extracted/collected items reach the inventory a moment AFTER the recipe finishes: the bot's record (`ledger`)
+  counts them through pending credits (`QueueCredit`/`SettleCredits`, ~2 s), never immediately.
+- Window/panel/log texts follow the game's official vocabulary (EN: Lack of sleep, hot bar, grave, skull, guts, success
+  chance; pt-BR: Privação de Sono, Barra de atalhos, Túmulo, Caveira, Entranhas, Chance de sucesso). Table and criteria:
+  Claude project "GK2" → `claude/revisao-textos.md`.
+- Language: code comments and dev docs in English; every player/log message goes through `Lang.T(pt, en)` (follows the game language, like the settings window and panel).
+- Status panel (`UI/Overlay.cs`): technical/step-by-step messages use `ModLog.Detail` (file only); `ModLog.Info` shows up
+  in the panel events — keep it short and with context.
+- `LogOutput.log` drops BepInEx Debug: `ModLog.Debug` writes as Info with `[dbg]` (only with VerboseLogging).

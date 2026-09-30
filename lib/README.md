@@ -1,23 +1,23 @@
 # lib/
 
-Esta pasta fica **vazia no repositório**. O projeto não copia nem redistribui DLLs do jogo ou do BepInEx.
+This folder stays **empty in the repository**. The project does not copy or redistribute game or BepInEx DLLs.
 
-As referências de compilação vêm da sua instalação (via `GamePath`, veja `Directory.Build.props`):
+The build references come from your installation (via `GamePath`, see `Directory.Build.props`):
 
-| DLL | Origem | Por quê |
+| DLL | Source | Why |
 |---|---|---|
-| `BepInEx.dll`, `0Harmony.dll` | `<jogo>/BepInEx/core/` | API de plugin, config, log e patches Harmony |
-| `UnityEngine*.dll` (Core, IMGUI, InputLegacy, TextRendering) | `<jogo>/GraveyardKeeper2_Data/Managed/` | `MonoBehaviour`, `OnGUI`, `KeyboardShortcut` |
-| `Assembly-CSharp.dll` | idem | Classes do jogo (`MainGame`, `PlayerController`, `WgoData`...) |
-| `LazyBearTechnology.dll` | idem | Engine interna da Lazy Bear (`LazyInput`, `LazyUI`...) |
-| `Newtonsoft.Json.dll`, `UniTask.dll` | idem | JSON do dump de descoberta / tipos usados em assinaturas do jogo |
-| `AstarPathfindingProject.dll`, `Sirenix.Serialization.dll` | idem | tipos que aparecem em assinaturas usadas (Seeker, MonoBehaviours serializados) |
+| `BepInEx.dll`, `0Harmony.dll` | `<game>/BepInEx/core/` | Plugin API, config, logging and Harmony patches |
+| `UnityEngine*.dll` (Core, IMGUI, InputLegacy, TextRendering) | `<game>/GraveyardKeeper2_Data/Managed/` | `MonoBehaviour`, `OnGUI`, `KeyboardShortcut` |
+| `Assembly-CSharp.dll` | same | Game classes (`MainGame`, `PlayerController`, `WgoData`...) |
+| `LazyBearTechnology.dll` | same | Lazy Bear's internal engine (`LazyInput`, `LazyUI`...) |
+| `Newtonsoft.Json.dll`, `UniTask.dll` | same | JSON for the discovery dump / types used in game signatures |
+| `AstarPathfindingProject.dll`, `Sirenix.Serialization.dll` | same | Types that appear in the signatures used (Seeker, serialized MonoBehaviours) |
 
-Todas usam `<Private>false</Private>`: servem só para compilar e **nunca** vão para `bin/` nem para o zip de release.
+All of them use `<Private>false</Private>`: they are only for compiling and **never** go into `bin/` or the release zip.
 
-Alternativa para CI: `dotnet build -p:UseNuGetRefs=true` usa os pacotes `BepInEx.Core` e
-`UnityEngine.Modules` (6000.3.9) do NuGet para BepInEx/Unity. Os assemblies do jogo continuam
-vindo da instalação local.
+Alternative for CI: `dotnet build -p:UseNuGetRefs=true` uses the NuGet packages `BepInEx.Core` and
+`UnityEngine.Modules` (6000.3.9) for BepInEx/Unity. The game assemblies still come from
+the local installation.
 
-Se quiser usar uma cópia local em `lib/` (ex.: máquina sem o jogo), aponte `GamePath` para uma pasta com a
-mesma estrutura. Arquivos `*.dll` são ignorados pelo `.gitignore`.
+If you want to use a local copy in `lib/` (e.g. a machine without the game), point `GamePath` to a folder with the
+same structure. `*.dll` files are ignored by `.gitignore`.

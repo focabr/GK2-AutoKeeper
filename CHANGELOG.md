@@ -1,374 +1,389 @@
 # Changelog
 
-Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
-
-## 0.3.22 — 2026-09-30
-- "Dormir e continuar" (Privação de Sono) validado em jogo: vai pela porta de casa até a cama, dorme, acorda sem a
-  Privação de Sono e volta à mesa de autópsia pela porta do porão, continuando o corpo de onde parou.
-- Texto corrigido pela regra do jogo: com Privação de Sono **metade** da energia gasta vira insanidade (antes dizia
-  "cada ponto"). Ajuste na ajuda da opção, no motivo de desligar, no README e no README do Thunderstore.
-- Notas do jogo (`docs/game-api-notes.md` §15): dormir cura a Privação de Sono ao encher a energia e tira 20 de insanidade;
-  sem ela, o jogo não deixa dormir de energia cheia; acordar salva o jogo.
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.23] - 2026-09-30
+- Multilingual: log messages and status panel events now follow the game language, like the settings window and the
+  panel (Brazilian Portuguese when the game is in Portuguese, English otherwise). Messages written while the game is
+  still starting come out in English.
+- Source code comments and developer docs (this changelog, `CLAUDE.md`, `docs/`, `tools/`, `build.ps1`) are now in English.
+- English players no longer see the Portuguese word "desligado" next to the bot state (fallback settings window and
+  Mods menu status line) before the bot is turned on for the first time.
+
+## [0.3.22] - 2026-09-30
+- "Sleep, then resume" (Lack of sleep) validated in-game: goes through the house door to the bed, sleeps, wakes up
+  without Lack of sleep and returns to the autopsy table through the basement door, continuing the body where it left off.
+- Text corrected to match the game's rule: with Lack of sleep, **half** of the energy spent turns into insanity (it used
+  to say "each point"). Fixed in the option's help, in the turn-off reason, in the README and in the Thunderstore README.
+- Game notes (`docs/game-api-notes.md` §15): sleeping cures Lack of sleep once energy is full and removes 20 insanity;
+  without it, the game does not let you sleep with full energy; waking up saves the game.
+
 ## [0.3.21] - 2026-09-30
 
-### Alterado
-- **Destino "Túmulo" fora das opções** (versão de publicação): "Destino do corpo depois da autópsia" mostra só Crematório e
-  Deixar na mesa, e "Cavar túmulos já marcados" sai da tela. O código do enterro continua no mod, escondido, e é o
-  **próximo passo** anunciado. Quem tinha `Destination = Grave` no `.cfg` volta para Crematório (também se escolher pelo
-  menu Mods do GK2 Mod Framework).
+### Changed
+- **"Grave" destination removed from the options** (release build): "Body destination after autopsy" only shows
+  Crematorium and Leave on table, and "Dig graves you placed" is no longer shown. The burial code stays in the mod, hidden,
+  and is the announced **next step**. Anyone with `Destination = Grave` in the `.cfg` goes back to Crematorium (also when
+  choosing it from the Mods menu of GK2 Mod Framework).
 
-### Adicionado
-- **Suporte pelo GitHub**: modelos de issue em `.github/ISSUE_TEMPLATE/` (inglês + pt-BR) — *Bug / Problema*,
-  *Help with settings / Ajuda na configuração* e *Suggestion / Sugestão* — com o mínimo necessário para investigar:
-  versões, o que aconteceu, como reproduzir, `LogOutput.log` (copiado antes de reiniciar o jogo), diagnóstico F10 e
-  configurações (`.cfg` renomeado para `.txt`). Issue em branco desligada.
-- README, página do Thunderstore e página do Nexus com a seção **Suporte** (onde está cada arquivo e o que enviar) e
-  **Próximos passos** (enterrar no túmulo depois da autópsia). Descrição curta sem "or a grave".
+### Added
+- **Support through GitHub**: issue templates in `.github/ISSUE_TEMPLATE/` (English + pt-BR) — *Bug / Problema*,
+  *Help with settings / Ajuda na configuração* and *Suggestion / Sugestão* — asking for the minimum needed to investigate:
+  versions, what happened, how to reproduce, `LogOutput.log` (copied before restarting the game), F10 diagnostic file and
+  settings (`.cfg` renamed to `.txt`). Blank issues disabled.
+- README, Thunderstore page and Nexus page with a **Support** section (where each file is and what to send) and
+  **Next steps** (burial in a grave after the autopsy). Short description without "or a grave".
 
 ## [0.3.20] - 2026-09-30
 
-### Alterado
-- **Revisão de todos os textos** (tela F11, valores, painel e mensagens) com o vocabulário oficial do jogo e rótulos que
-  dizem o que a opção faz. As chaves do `.cfg` não mudam. Principais trocas (pt-BR):
-  - "Com falta de sono" → **"Ao ficar com Privação de Sono"** (nome do efeito no jogo); "Ir dormir" → **"Dormir e continuar"**.
-  - "barra rápida" → **barra de atalhos**; "cova" → **túmulo**; "crânio" → **caveira**; "vísceras" → **entranhas**.
-  - "Respeitar a maestria" → **"Pular extrações com chance baixa"**; "Chance mínima de sucesso" → **"Chance de sucesso
-    mínima"**; a ajuda cita a janela de extração do jogo (não "Remover…", que não existe em pt-BR).
-  - "Guardar no baú com inventário cheio" → **"Guardar no baú o que o bot recolheu"**; "Ir ao baú com menos de (espaços
-    livres)" → **"Ir ao baú com espaços livres abaixo de"**; "Checar o crematório primeiro" → **"Recolher o crematório
-    antes de começar"**; "Buscar corpos no chão até (m)" → **"Alcance para corpos no chão (m)"**.
-  - "Atravessar portas até o trabalho" → **"Ir sozinho até o trabalho (pelas portas)"** (o aviso de ocioso já usava esse nome).
-  - "Comer quando a energia estiver abaixo de" → **"Comer com energia abaixo de"**; "Extrair demais itens" →
-    **"Extrair o resto de "Outros""**; "Salvar diagnóstico (dump)" → **"Salvar arquivo de diagnóstico"**;
-    "Linhas de log no painel" → **"Eventos no painel"**; "Tempo máximo andando" → **"Tempo máximo para chegar"**.
-  - Painel: estado ocioso "LIGADO" → **AGUARDANDO**; "Nas mãos" → **Carregando**; "desligado pelo jogador (hotkey)" →
-    "(F8)" com a tecla configurada.
-  - Inglês no mesmo critério ("Eat from the hot bar", "When Lack of sleep hits", "Sleep, then resume", "Dig graves you
-    placed", "Skip low-chance extractions", "Store what the bot collected"…).
+### Changed
+- **Review of all texts** (F11 window, values, status panel and messages), in English and pt-BR, with the game's official
+  vocabulary and labels that say what the option does. The `.cfg` keys do not change. Main changes:
+  - Lack-of-sleep option → **"When Lack of sleep hits"** (the game's effect name; pt-BR "Ao ficar com Privação de Sono");
+    its "go to sleep" value → **"Sleep, then resume"**.
+  - Game terms: **hot bar** ("Eat from the hot bar"; was "hotbar"); the pt-BR texts now use the game's own words for
+    grave, skull and guts.
+  - "Respect mastery" → **"Skip low-chance extractions"**; **"Minimum success chance (%)"**; the help text refers to the
+    game's extraction window (not "Remove…", which does not exist in the pt-BR game).
+  - **"Store what the bot collected"** (it used to say "when the inventory is full"); **"Go to the chest below free
+    slots"**; **"Collect the crematorium first"** (was "check the crematorium first"); **"Ground body range (m)"**.
+  - **"Walk to the work (through doors)"** (the idle warning already used this name); **"Dig graves you placed"**.
+  - **"Eat below energy"**; **"Extract the rest of "Others""** (was "extract other items"); **"Save diagnostic file"**
+    (was "save diagnostics (dump)"); **"Events in panel"** (was "log lines in panel"); **"Max time to arrive (s)"**
+    (was "max walking time").
+  - Status panel: idle state "ON" → **WAITING**; "In hands" → **Carrying**; "turned off by the player (hotkey)" →
+    "(F8)" with the configured key.
 
 ## [0.3.19] - 2026-09-30
 
-### Alterado
-- **Painel de status (F9) reorganizado**: título e estado na mesma linha e, quando o bot está desligado, pausado ou
-  ocioso, a linha **Motivo** (antes o motivo só aparecia no meio do log). Depois, linhas "rótulo: valor" alinhadas:
-  **Tarefa** (o passo atual), **Local** (área · dia e hora do jogo), **Energia** (· insanidade), **Sono** (dias sem
-  dormir; destaque perto de 2 dias e com Falta de sono) e **Nas mãos** (só quando carrega algo). Posição, zona, cena e
-  dinheiro só com "Painel com detalhes técnicos". A insanidade aparecia como "sanidade".
-- **Eventos do painel**: o mais recente em cima, com "há X" (agora, 8 s, 3 min) em vez do relógio real (que confundia
-  com a hora do jogo), linhas quebradas com recuo, avisos em destaque. Mensagens técnicas ou de passo a passo (iniciar/
-  concluir tarefa, objetivo, extraindo, pontos de trabalho, UI, maestria pulada, caminho do dump) vão só para o
-  `LogOutput.log`.
-- **"Com falta de sono"** (`[Bot] OnLackOfSleep`): uma opção só com **Desligar o bot** (padrão) / **Ir dormir** /
-  **Continuar trabalhando**, no lugar das duas chaves da 0.3.18 (`StopOnLackOfSleep` + `SleepWhenTired`, que se
-  sobrepunham). O valor antigo é convertido sozinho e as chaves velhas saem do `.cfg`.
-- Mensagem da porta mais curta: "indo pela porta X para <objetivo> (N porta(s), ~M m)".
+### Changed
+- **Status panel (F9) reorganized**: title and state on the same line and, when the bot is off, paused or idle, a
+  **Reason** line (before, the reason only showed up in the middle of the log). Then aligned "label: value" lines:
+  **Task** (the current step), **Place** (area · game day and time), **Energy** (· insanity), **Sleep** (days without
+  sleeping; highlighted near 2 days and with Lack of sleep) and **In hands** (only when carrying something). Position,
+  zone, scene and money only with "Panel with technical details". Insanity used to show as "sanity".
+- **Panel events**: newest on top, with "X ago" (now, 8 s, 3 min) instead of the real clock (which was confused with
+  the game time), wrapped lines with indent, warnings highlighted. Technical or step-by-step messages (start/finish
+  task, goal, extracting, work spots, UI, skipped mastery, dump path) only go to `LogOutput.log`.
+- **Lack of sleep option** (`[Bot] OnLackOfSleep`): a single option with **Turn off the bot** (default) / **Go to sleep** /
+  **Keep working**, replacing the two keys from 0.3.18 (`StopOnLackOfSleep` + `SleepWhenTired`, which overlapped). The
+  old value is converted automatically and the old keys are removed from the `.cfg`.
+- Shorter door message: "going through door X to <goal> (N door(s), ~M m)".
 
 ## [0.3.18] - 2026-09-30
 
-### Adicionado
-- **Ir dormir com falta de sono** (`[Bot] SleepWhenTired`, **desligado por padrão**): com o debuff Falta de sono
-  (2 dias sem dormir), o bot termina de levar o corpo que estiver carregando, vai até a cama de casa (`bed_home`),
-  aperta E como o jogador e dorme; ao acordar, continua de onde parou ("Sono: descansado — voltando ao trabalho").
-  Tem prioridade sobre "Desligar com falta de sono". Se apertar E 3 vezes e o personagem não dormir, o bot para com aviso.
+### Added
+- **Go to sleep with Lack of sleep** (`[Bot] SleepWhenTired`, **off by default**): with the Lack of sleep debuff
+  (2 days without sleeping), the bot finishes delivering the body it is carrying, walks to the house bed (`bed_home`),
+  presses E like the player and sleeps; when it wakes up, it continues where it left off ("Sleep: rested — back to
+  work"). Takes priority over "Turn off with Lack of sleep". If it presses E 3 times and the character does not sleep,
+  the bot stops with a warning.
 
-### Corrigido
-- Registro do que o bot recolheu (o que vai para o baú): o jogo entrega o item um instante depois de a receita
-  terminar (sai do objeto e voa até o jogador), e o bot conferia o inventário na hora. Resultado no teste da 0.3.16:
-  cinza, sal e certificados do crematório nunca iam para o baú, e parte das extrações também não. Agora cada coleta
-  é somada ~2 s depois (extração: só o item esperado, 1 unidade; crematório: o que chegou), inclusive quando comer
-  interrompe o trabalho no instante em que a receita termina.
-- Nome no jogo: a tela F11 e o painel mostravam "AutoKeeper"; agora mostram **GK2 AutoKeeper**.
+### Fixed
+- Record of what the bot collected (what goes to the chest): the game delivers the item a moment after the recipe
+  finishes (it leaves the object and flies to the player), and the bot checked the inventory right away. Result in the
+  0.3.16 test: ashes, salt and crematorium certificates never went to the chest, and part of the extractions did not
+  either. Now each collection is counted ~2 s later (extraction: only the expected item, 1 unit; crematorium: whatever
+  arrived), including when eating interrupts the work at the moment the recipe finishes.
+- In-game name: the F11 window and the status panel showed "AutoKeeper"; they now show **GK2 AutoKeeper**.
 
 ## [0.3.17] - 2026-09-30
 
-Versão de publicação: o código do bot é o mesmo da 0.3.16.
+Release build: the bot code is the same as in 0.3.16.
 
-### Alterado
-- Pacote do Thunderstore renomeado para **`GK2_AutoKeeper`** (aparece como "GK2 AutoKeeper", igual ao nome no jogo);
-  zip `GK2_AutoKeeper-x.y.z.zip`; `website_url` aponta para o GitHub.
-- Descrição curta nova (Thunderstore e resumo do Nexus).
-- README do GitHub em inglês com resumo em pt-BR, tabela de recursos (o que já foi testado em jogo) e todas as opções.
-- Aviso de transparência: "Code written with Claude (Anthropic) and tested in-game by the author" no README e na página;
-  página do Nexus com as marcações obrigatórias de IA (AI-Generated Content + AI Media) e requisitos.
+### Changed
+- Thunderstore package renamed to **`GK2_AutoKeeper`** (shows as "GK2 AutoKeeper", same as the in-game name);
+  zip `GK2_AutoKeeper-x.y.z.zip`; `website_url` points to GitHub.
+- New short description (Thunderstore and Nexus summary).
+- GitHub README in English with a pt-BR summary, a feature table (what has already been tested in-game) and all options.
+- Transparency notice: "Code written with Claude (Anthropic) and tested in-game by the author" in the README and on the
+  page; Nexus page with the mandatory AI tags (AI-Generated Content + AI Media) and requirements.
 
 ## [0.3.16] - 2026-09-30
 
-### Alterado
-- Baú: o log de "guardado" mostra também os espaços livres no baú, e o que o bot recolheu e **não coube** (baú cheio,
-  pilha cheia ou filtro do baú) aparece numa linha "não coube em …; ficam no inventário até um baú aceitar". No teste da
-  0.3.15 o baú do necrotério encheu e cinza, sal, certificados, sangue e um crânio ficaram no inventário sem aviso.
-- Log de depuração: "Navegação: N portas úteis" só aparece quando a cena ou o número de portas muda (antes repetia a
-  cada renovação do cache).
+### Changed
+- Chest: the "stored" log line also shows the free slots in the chest, and whatever the bot collected that **did not
+  fit** (chest full, stack full or chest filter) is listed in a line "did not fit in …; stays in the inventory until a
+  chest accepts it". In the 0.3.15 test the morgue chest filled up and ashes, salt, certificates, blood and a skull
+  stayed in the inventory without a warning.
+- Debug log: "Navigation: N useful doors" only appears when the scene or the number of doors changes (it used to repeat
+  on every cache refresh).
 
 ## [0.3.15] - 2026-09-29
 
-### Adicionado
-- **Proteção de insanidade e sono** (aba Bot):
-  - `MaxInsanity` (padrão 60): o bot desliga ao passar desse valor. Cada ponto de insanidade tira 1 da energia
-    máxima, e perto de 80 o jogo bloqueia autópsia e covas.
-  - `StopOnLackOfSleep` (ligado): com o debuff do jogo "Falta de sono" (`lack_of_sleep_debuff`, 2 dias sem dormir),
-    cada ponto de energia gasto vira meio ponto de insanidade; o bot desliga e pede para dormir. Com 1,75 dia sem
-    dormir, avisa uma vez no log.
-  - No teste da 0.3.12 a insanidade foi de 11 a 51 em um corpo (energia máxima 89 → 49) por causa desse debuff.
-- Dump (F10): `daysWithoutSleep` e `lackOfSleep` do jogador.
-- Pacote Thunderstore/Nexus: README e página do Nexus atualizados para a 0.3.x; `manifest.json` 0.3.15.
+### Added
+- **Insanity and sleep guard** (Bot tab):
+  - `MaxInsanity` (default 60): the bot turns off above this value. Each insanity point takes 1 from max energy, and
+    near 80 the game blocks autopsies and graves.
+  - `StopOnLackOfSleep` (on): with the game's "Lack of sleep" debuff (`lack_of_sleep_debuff`, 2 days without sleeping),
+    each energy point spent becomes half an insanity point; the bot turns off and asks you to sleep. At 1.75 days
+    without sleep, it warns once in the log.
+  - In the 0.3.12 test, insanity went from 11 to 51 in one body (max energy 89 → 49) because of this debuff.
+- Dump (F10): the player's `daysWithoutSleep` and `lackOfSleep`.
+- Thunderstore/Nexus package: README and Nexus page updated for 0.3.x; `manifest.json` 0.3.15.
 
 ## [0.3.14] - 2026-09-29
 
-### Adicionado
-- **Cavar covas marcadas** (`[Bodies] DigGraves`, ligado por padrão): com destino Cova e nenhuma cova aberta
-  (`grave_empty`), o bot cava com a pá uma cova que o jogador já marcou com o construtor do cemitério
-  (`grave_empty_place` → `grave_empty`) — só quando há corpo esperando enterro. Nunca marca covas novas nem desenterra.
-  Se estiver carregando um corpo e a cova ainda precisar ser cavada, deixa o corpo num palete vazio antes.
-- Dump (F10): definições com `hp`, `replaceToWgoOnDie` e `executeOnDeath`; alvos de navegação incluem covas marcadas e
-  covas com corpo.
+### Added
+- **Dig placed graves** (`[Bodies] DigGraves`, on by default): with the Grave destination and no open grave
+  (`grave_empty`), the bot digs with the shovel a grave the player has already placed with the graveyard builder
+  (`grave_empty_place` → `grave_empty`) — only when a body is waiting for burial. It never places new graves nor
+  exhumes. If it is carrying a body and the grave still needs digging, it first leaves the body on an empty pallet.
+- Dump (F10): definitions with `hp`, `replaceToWgoOnDie` and `executeOnDeath`; navigation targets include placed graves
+  and graves with a body.
 
-### Corrigido
-- Fechar a cova: o bot conferia a mira antes de ver se a cova já tinha virado outro objeto; quando o jogo troca o
-  objeto, a mira passa para o novo e isso contava como "mira errada" (podia terminar em falha depois de 6 s).
+### Fixed
+- Closing the grave: the bot checked the aim before seeing whether the grave had already turned into another object;
+  when the game swaps the object, the aim moves to the new one and that counted as "wrong aim" (it could end in a
+  failure after 6 s).
 
 ## [0.3.13] - 2026-09-29
 
-### Corrigido
-- Vai e volta na mesa entre cada órgão: ao segurar Ação, o próprio jogo leva o jogador ao ponto de trabalho que ele
-  escolhe (`PlayerWorkComponent.FindNearestDockPoint`, com a checagem de alcance dele), e esse ponto podia ser o outro
-  lado da mesa. No órgão seguinte o bot voltava ao ponto que ele tinha escolhido, e o jogo o levava de novo. Agora,
-  quando o trabalho avança, o bot guarda o ponto onde o jogo o colocou e usa esse ponto nos próximos objetivos do mesmo
-  objeto (log: "o jogo trabalha em … — uso o ponto do jogo daqui em diante").
-- `[Debug] VerboseLogging` não gravava nada no `LogOutput.log` (o filtro padrão do BepInEx descarta Debug); agora grava
-  como Info com o prefixo `[dbg]`.
+### Fixed
+- Back and forth at the table between organs: while Action is held, the game itself takes the player to the work spot
+  it chooses (`PlayerWorkComponent.FindNearestDockPoint`, with its own reach check), and that spot could be on the other
+  side of the table. On the next organ the bot went back to the spot it had chosen, and the game moved it again. Now,
+  when the work progresses, the bot remembers the spot where the game put it and uses that spot for the next goals on
+  the same object (log: "the game works on … — using the game's spot from now on").
+- `[Debug] VerboseLogging` wrote nothing to `LogOutput.log` (BepInEx's default filter drops Debug); it now writes as
+  Info with the `[dbg]` prefix.
 
-### Alterado
-- Comida: numa parada para comer, o bot segue comendo enquanto a comida couber inteira na energia que falta
-  (ex.: 19 → 49 → 79 de 86 com torta de +30), em vez de interromper o trabalho a cada extração para comer uma só.
-  Nada que passe do máximo é comido nessa sequência.
-- Log: menu → Continuar disparava até três avisos "Memória do bot zerada" seguidos (menu, troca do `PlayerData`,
-  partida carregada). A memória continua sendo zerada em todos, mas o aviso sai uma vez só enquanto o bot não rodar.
+### Changed
+- Food: during a stop to eat, the bot keeps eating as long as the whole food item fits in the missing energy
+  (e.g. 19 → 49 → 79 of 86 with a +30 pie), instead of interrupting the work after every extraction to eat just one.
+  Nothing that would go over the maximum is eaten in that sequence.
+- Log: menu → Continue triggered up to three "Bot memory reset" warnings in a row (menu, `PlayerData` swap, loaded
+  game). The memory is still reset in all of them, but the warning appears only once while the bot is not running.
 
 ## [0.3.12] - 2026-09-29
 
-### Alterado
-- Guardar no baú: depois de guardar, o bot só volta ao baú se o inventário encher mais que isso (antes ia ao baú a
-  cada item quando o resto do inventário era do jogador e o número de espaços livres não subia).
-- Log dos pontos de trabalho: uma entrada por ponto (antes o ponto "apertado" aparecia duplicado).
+### Changed
+- Store in the chest: after storing, the bot only goes back to the chest if the inventory fills up beyond that (before,
+  it went to the chest for every item when the rest of the inventory belonged to the player and the number of free
+  slots did not go up).
+- Work spot log: one entry per spot (before, the "tight" spot appeared twice).
 
 ## [0.3.11] - 2026-09-29
 
-### Corrigido
-- Novo load sem fechar o jogo (sair para o menu e "Continuar"): o bot mantinha a memória do load anterior (corpos já
-  autopsiados, paletes com corpo estacionado, itens a guardar, covas, portas, baús recusados…). Agora, ao voltar ao
-  menu ou carregar uma partida (eventos `MainGame.OnGoToMainMenu`/`OnGameStarted` e, por garantia, troca do
-  `PlayerData`), o bot desliga e zera toda a memória interna.
+### Fixed
+- New load without closing the game (quit to the menu and "Continue"): the bot kept the memory of the previous load
+  (bodies already autopsied, pallets with a parked body, items to store, graves, doors, refused chests…). Now, when
+  returning to the menu or loading a game (events `MainGame.OnGoToMainMenu`/`OnGameStarted` and, as a safeguard, a
+  `PlayerData` swap), the bot turns off and resets all its internal memory.
 
 ## [0.3.10] - 2026-09-29
 
-### Adicionado
-- **Vigia dos baús**: o bot nunca tira itens de baú. Se um baú a até 8 m perder itens com o bot ligado, ele solta as
-  teclas, desliga na hora e registra no log o objetivo, o passo, o alvo do jogo e a posição (no teste da 0.3.9 o baú
-  do necrotério foi esvaziado de novo no inventário sem nenhum aviso de mira).
+### Added
+- **Chest watch**: the bot never takes items out of chests. If a chest within 8 m loses items while the bot is on, it
+  releases the keys, turns off at once and logs the goal, the step, the game's target and the position (in the 0.3.9
+  test the morgue chest was emptied into the inventory again without any aim warning).
 
-### Alterado
-- Escolha do ponto de trabalho: pontos espremidos entre objetos (outro objeto a menos de 1 m, ex.: o vão entre as
-  duas mesas de autópsia) ficam por último. O teste "fora do navmesh" da 0.3.9 marcava justamente o lado da mesa onde
-  o jogador fica e virou só desempate. `IsReachable` do jogo não marcou nenhum ponto como bloqueado.
+### Changed
+- Work spot choice: spots squeezed between objects (another object less than 1 m away, e.g. the gap between the two
+  autopsy tables) come last. The 0.3.9 "off the navmesh" test flagged precisely the side of the table where the player
+  stands and is now only a tie-breaker. The game's `IsReachable` did not mark any spot as blocked.
 
 ## [0.3.9] - 2026-09-29
 
-### Corrigido
-- Ponto de trabalho que o jogador não alcança: o bot anda por caminho roteirizado e chegava a lugares onde o jogador
-  não consegue ir (ex.: encostado/em cima do baú ao lado da mesa). Agora descarta pontos com colisor sólido de outro
-  objeto em cima (`DockPoint.IsReachable` do próprio jogo) ou fora do navmesh, preferindo um ponto livre.
+### Fixed
+- Work spot the player cannot reach: the bot walks along a scripted path and could reach places the player cannot go
+  (e.g. against/on top of the chest next to the table). It now discards spots with another object's solid collider on
+  top (the game's own `DockPoint.IsReachable`) or off the navmesh, preferring a free spot.
 
-### Adicionado
-- Log (uma vez por objeto) dos pontos de trabalho considerados e do escolhido, para diagnosticar posição.
+### Added
+- Log (once per object) of the work spots considered and the one chosen, to diagnose position.
 
 ## [0.3.8] - 2026-09-29
 
-### Corrigido
-- **Grave:** o bot podia esvaziar o baú do necrotério no inventário. Depois de guardar itens, ele começava a
-  extração parado ao lado do baú (considerava "perto" da mesa a até 2,2 m) e segurava Ação com o jogo mirando o baú,
-  o que no jogo é "pegar tudo". Agora:
-  - com ponto de trabalho conhecido, o bot sempre anda até ele (tolerância de 0,5 m);
-  - nunca segura Ação se o jogo estiver mirando outro objeto; se a mira sair do alvo no meio do trabalho, solta a
-    Ação na hora, reposiciona e, se não conseguir em 6 s, para com aviso (vale para mesa e cova).
-- Com o inventário cheio (sem espaço nem pilha do mesmo item), o bot para com aviso claro em vez de travar a extração.
+### Fixed
+- **Serious:** the bot could empty the morgue chest into the inventory. After storing items, it started the extraction
+  standing next to the chest (it counted as "near" the table up to 2.2 m) and held Action with the game aiming at the
+  chest, which in the game means "take all". Now:
+  - with a known work spot, the bot always walks to it (0.5 m tolerance);
+  - it never holds Action if the game is aiming at another object; if the aim leaves the target in the middle of the
+    work, it releases Action at once, repositions and, if it cannot within 6 s, stops with a warning (applies to the
+    table and the grave).
+- With a full inventory (no free slot nor a stack of the same item), the bot stops with a clear warning instead of
+  getting stuck in the extraction.
 
 ## [0.3.7] - 2026-09-29
 
-### Adicionado
-- **Buscar corpos em outras áreas** (`[Bodies] FetchRemoteBodies`, ligado por padrão): como última tarefa, sem corpo
-  nos paletes, o bot atravessa as portas para buscar corpos largados no chão lá fora (ex.: entregues pela Inquisição;
-  a cena inteira é conhecida de dentro do necrotério) e os traz para uma mesa livre. Sem mesa livre e com o crematório
-  ocupado, deixa o corpo num palete vazio para a autópsia depois.
+### Added
+- **Fetch bodies from other areas** (`[Bodies] FetchRemoteBodies`, on by default): as the last task, with no body on
+  the pallets, the bot goes through the doors to fetch bodies left on the ground outside (e.g. delivered by the
+  Inquisition; the whole scene is known from inside the morgue) and brings them to a free table. With no free table
+  and the crematorium busy, it leaves the body on an empty pallet for a later autopsy.
 
 ## [0.3.6] - 2026-09-29
 
-### Corrigido
-- Guardar no baú: o bot saía do necrotério atrás de um baú distante (a ~400 m) só porque ele já tinha ossos, em vez de
-  usar o baú vazio ao lado das mesas. Agora vale o baú mais perto que aceite os itens; um baú que já guarda os mesmos
-  itens só tem preferência se estiver na mesma área e no máximo 15 m mais longe.
+### Fixed
+- Store in the chest: the bot left the morgue for a distant chest (~400 m away) just because it already held bones,
+  instead of using the empty chest next to the tables. Now the nearest chest that accepts the items wins; a chest that
+  already holds the same items is only preferred if it is in the same area and at most 15 m farther.
 
 ## [0.3.5] - 2026-09-29
 
-### Adicionado
-- **Estacionar corpos no palete**: com as mesas ocupadas por corpos já autopsiados, o crematório ocupado e ainda
-  havendo corpos novos, o bot tira o corpo da mesa, deixa num palete vazio e segue fazendo a autópsia dos outros.
-  Quando o crematório libera, ele busca os corpos estacionados e leva ao crematório. Na hora de pegar corpo novo,
-  os estacionados ficam de fora.
+### Added
+- **Park bodies on the pallet**: with the tables taken by bodies already autopsied, the crematorium busy and new bodies
+  still waiting, the bot takes the body off the table, leaves it on an empty pallet and keeps doing the autopsy of the
+  others. When the crematorium frees up, it fetches the parked bodies and takes them to the crematorium. When picking up
+  a new body, the parked ones are left out.
 
-### Corrigido
-- O bot não dá mais a tarefa como concluída enquanto o crematório está queimando e ainda há corpo em mesa ou
-  palete: ele espera o crematório liberar.
+### Fixed
+- The bot no longer considers the task finished while the crematorium is burning and there is still a body on a table
+  or pallet: it waits for the crematorium to free up.
 
-### Alterado
-- Versão do jogo testada: **1.007.1** (todas as 388 referências do mod ao jogo conferidas; sem mudanças necessárias).
+### Changed
+- Tested game version: **1.007.1** (all 388 references from the mod to the game checked; no changes needed).
 
 ## [0.3.4] - 2026-09-29
 
-### Corrigido
-- "Checar o crematório primeiro" não anda mais até um crematório vazio: o estado é lido à distância e o bot só vai quando há algo pronto para recolher (e isso vale a qualquer momento, não só entre um órgão e outro).
+### Fixed
+- "Check the crematorium first" no longer walks to an empty crematorium: the state is read from a distance and the bot only goes there when something is ready to collect (and this applies at any time, not only between one organ and the next).
 
 ## [0.3.3] - 2026-09-29
 
-### Alterado
-- "Restaurar padrões" e "Fechar" ficam juntos e centralizados (antes se espalhavam pelas pontas da janela).
+### Changed
+- "Reset defaults" and "Close" sit together and centered (before, they were spread to the edges of the window).
 
 ## [0.3.2] - 2026-09-29
 
-### Alterado
-- Categoria Teclas: botões do mesmo tamanho e alinhados, na ordem das teclas (F8, F9, F10, F11); o botão "Ligar bot" tem a largura das duas ações de baixo.
+### Changed
+- Hotkeys category: buttons of the same size and aligned, in key order (F8, F9, F10, F11); the "Start bot" button is as wide as the two actions below it.
 
 ## [0.3.1] - 2026-09-29
 
-### Alterado
-- Categorias "Órgãos" e "Outros itens" viraram uma só: **Extração** (maestria, órgãos e itens de "Outros").
-- Botões da janela: "Ligar bot" em destaque, com divisor em cima; "Restaurar padrões" e "Fechar" lado a lado; textos de ajuda revisados; a descrição da opção sob o mouse agora tem cor legível.
+### Changed
+- The "Organs" and "Other items" categories were merged into one: **Extraction** (mastery, organs and "Others" items).
+- Window buttons: "Start bot" highlighted, with a divider above it; "Reset defaults" and "Close" side by side; help texts revised; the description of the option under the mouse now has a readable color.
 
 ## [0.3.0] - 2026-09-29
 
-### Adicionado
-- **Destino "Cova"**: o bot leva o corpo até uma `grave_empty` (indo ao cemitério pelas portas), aperta E (o jogo coloca o
-  corpo e troca a cova por `grave_body`) e fecha a cova segurando Ação com a pá, como o jogador. Só fecha covas em que o próprio
-  bot colocou um corpo. Sem cova vazia, o bot para com aviso (não cava sozinho).
-  Definições do jogo (dump 1.007): `grave_empty` = CustomInteraction `InsertOvrhdItem()` + `ChangeWgo("grave_body")`;
-  `grave_body` = trabalho com pá (Shovel).
+### Added
+- **"Grave" destination**: the bot carries the body to a `grave_empty` (going to the graveyard through the doors),
+  presses E (the game places the body and swaps the grave for `grave_body`) and closes the grave by holding Action with
+  the shovel, like the player. It only closes graves in which the bot itself placed a body. With no empty grave, the
+  bot stops with a warning (it does not dig on its own).
+  Game definitions (dump 1.007): `grave_empty` = CustomInteraction `InsertOvrhdItem()` + `ChangeWgo("grave_body")`;
+  `grave_body` = work with the shovel (Shovel).
 
-### Removido
-- Opção `[Bodies] GraveCraftId` e a antiga tentativa de enterro por receita (o jogo não usa receita para enterrar).
+### Removed
+- Option `[Bodies] GraveCraftId` and the old attempt to bury through a recipe (the game does not use a recipe for burial).
 
 ## [0.2.8] - 2026-09-29
 
-Primeira versão de publicação (Thunderstore/Nexus).
+First release build (Thunderstore/Nexus).
 
-### Alterado
-- Revisão de nomes e organização da tela de configurações:
-  - categoria "Bot" virou **Geral**;
-  - textos mais claros ("Desligar o bot com energia abaixo de", "Comer quando a energia estiver abaixo de",
-    "Atravessar portas até o trabalho", "Processar corpos", "Respeitar a maestria", "Extrair demais itens" etc.);
-  - opções técnicas (intervalo entre decisões, tempo máximo andando, parar se o trabalho travar) foram para **Avançado**;
-  - "Receita de enterro (id)" saiu da tela (continua no `.cfg`);
-  - ordem das opções de Corpos: processar, destino, raio, checar crematório, baú.
-- Os nomes das chaves no `.cfg` não mudaram: configurações já salvas continuam valendo (apenas as 3 opções técnicas trocam de categoria na tela).
+### Changed
+- Review of the names and organization of the settings window:
+  - the "Bot" category became **General**;
+  - clearer texts ("Turn off the bot below energy", "Eat when energy is below", "Cross doors to the work",
+    "Process bodies", "Respect mastery", "Extract other items" etc.);
+  - technical options (interval between decisions, max walking time, stop if work stalls) moved to **Advanced**;
+  - "Burial recipe (id)" was removed from the window (it is still in the `.cfg`);
+  - order of the Bodies options: process, destination, radius, check crematorium, chest.
+- The key names in the `.cfg` did not change: settings already saved still apply (only the 3 technical options change category in the window).
 
 ## [0.2.7] - 2026-09-29
 
-### Alterado
-- Janela de configurações: a "Categoria" fica centralizada e sem rótulo, como um seletor acima das opções.
+### Changed
+- Settings window: the "Category" is centered and has no label, like a selector above the options.
 
 ## [0.2.6] - 2026-09-29
 
-### Adicionado
-- **Checar o crematório primeiro** (`[Bodies] CheckCrematoriumFirst`, padrão ligado): ao chegar numa área com crematório o bot passa por ele antes de começar e recolhe o que estiver pronto.
-- **Guardar no baú** (`[Bodies] UseChest`, `ChestFreeSlots`): com poucos espaços livres, leva ao baú SÓ o que o bot recolheu (extrações e crematório; registro por diferença do inventário). Prefere o baú que já guarda esses itens; ignora baús de missão, de esteira e de jardim.
+### Added
+- **Check the crematorium first** (`[Bodies] CheckCrematoriumFirst`, on by default): when arriving in an area with a crematorium, the bot visits it before starting and collects whatever is ready.
+- **Store in the chest** (`[Bodies] UseChest`, `ChestFreeSlots`): with few free slots, takes ONLY what the bot collected to the chest (extractions and crematorium; tracked by inventory difference). Prefers the chest that already holds those items; ignores quest, conveyor and garden chests.
 
 ## [0.2.5] - 2026-09-29
 
-### Corrigido
-- Divisor da janela de configurações: altura e largura explícitas (antes ocupava espaço demais).
+### Fixed
+- Settings window divider: explicit height and width (before, it took up too much space).
 
 ## [0.2.4] - 2026-09-29
 
-### Alterado
-- Janela de configurações: linha divisória dourada entre a "Categoria" e as opções, para deixar claro que trocar a categoria muda a lista abaixo.
+### Changed
+- Settings window: golden divider line between the "Category" and the options, to make it clear that changing the category changes the list below.
 
 ## [0.2.3] - 2026-09-28
 
-### Adicionado
-- **Ir sozinho até o trabalho** (`[Bot] UseDoors`, padrão ligado): se a mesa/palete/crematório está em outra área,
-  o bot anda até a porta (objetos `tp_*` do jogo) e aperta E, como o jogador, pelo caminho mais curto
-  (ex.: casa → pátio → necrotério). As áreas vêm do navmesh do próprio jogo; portas que não funcionarem são
-  ignoradas no resto da sessão. O dump F10 ganhou a seção `navigation` para diagnóstico.
-- **Comer da barra rápida** (`[Bot] AutoEat`, `EatBelowEnergy`): com energia baixa, aperta a tecla 1–4 de um item
-  que recupera energia (o próprio jogo consome o item). Escolhe o que desperdiça menos, pula itens que aumentam
-  a insanidade e só desliga por energia baixa quando não há mais comida.
-- **Itens de "Outros" da autópsia**: carne, gordura e sangue (liga/desliga cada um) e "outros itens" (desligado),
-  com a mesma sequência do clique na janela de autópsia.
-- **Maestria item por item** (`RequireMastery`, `MinMasteryChance`): por cima das opções de extração, pula o órgão ou
-  item cuja chance na janela "Remover …" fique abaixo do mínimo (padrão 100% = só com maestria total).
+### Added
+- **Walk to the work by itself** (`[Bot] UseDoors`, on by default): if the table/pallet/crematorium is in another area,
+  the bot walks to the door (the game's `tp_*` objects) and presses E, like the player, along the shortest path
+  (e.g. house → yard → morgue). The areas come from the game's own navmesh; doors that do not work are ignored for the
+  rest of the session. The F10 dump gained a `navigation` section for diagnostics.
+- **Eat from the hot bar** (`[Bot] AutoEat`, `EatBelowEnergy`): with low energy, presses the 1–4 key of an item that
+  restores energy (the game itself consumes the item). Picks the one that wastes the least, skips items that raise
+  insanity and only turns off for low energy when there is no food left.
+- **"Others" items from the autopsy**: flesh, fat and blood (each one on/off) and "other items" (off), with the same
+  sequence as clicking in the autopsy window.
+- **Item-by-item mastery** (`RequireMastery`, `MinMasteryChance`): on top of the extraction options, skips the organ or
+  item whose chance in the "Remove …" window is below the minimum (default 100% = only with full mastery).
 
-### Alterado
-- Tela de configurações: novas categorias "Órgãos" e "Outros itens"; "Raio de busca" agora vale só para corpos no chão.
-- A ponte do menu Mods não gera mais erro vermelho no log quando o GK2 Mod Framework não está instalado.
-- Painel: com nada a fazer, diz se procurou também atrás das portas.
+### Changed
+- Settings window: new "Organs" and "Other items" categories; "Search radius" now only applies to bodies on the ground.
+- The Mods menu bridge no longer logs a red error when GK2 Mod Framework is not installed.
+- Status panel: with nothing to do, it says whether it also searched behind the doors.
 
 ## [0.2.2] - 2026-09-28
 
-### Alterado
-- **Tela de configurações com o visual nativo do jogo**: agora é montada com peças clonadas da janela de
-  Configurações do próprio GK2 (moldura, cabeçalho, linhas "◀ valor ▶", sliders, botões, fontes, cores e sons).
-  É uma janela do jogo de verdade: pausa o jogo, trava o personagem e fecha com Esc. Categorias (Bot, Corpos,
-  Teclas, Painel, Avançado) num seletor igual aos do jogo; a descrição da opção aparece ao passar o mouse.
-  Técnica de captura do visual inspirada no GK2 Mod Framework (SuperMan4eg, licença MIT).
-- A tela simples antiga (IMGUI) continua como reserva automática se o jogo mudar e a nativa não puder ser montada,
-  agora com a paleta do jogo.
-- **Painel de status** redesenhado com a paleta do jogo (marrom escuro com moldura, rótulos bege, valores dourados),
-  fonte do jogo quando disponível, mais compacto (detalhes técnicos opcionais em "Painel detalhado").
-- Novas opções: posição do painel (4 cantos) e painel detalhado. Linhas de log no painel: padrão 3.
+### Changed
+- **Settings window with the game's native look**: it is now built from pieces cloned from GK2's own Settings window
+  (frame, header, "◀ value ▶" rows, sliders, buttons, fonts, colors and sounds). It is a real game window: it pauses
+  the game, locks the character and closes with Esc. Categories (Bot, Bodies, Hotkeys, Panel, Advanced) in a selector
+  like the game's; the option description appears on mouse hover.
+  Look-capture technique inspired by GK2 Mod Framework (SuperMan4eg, MIT license).
+- The old simple window (IMGUI) remains as an automatic fallback if the game changes and the native one cannot be
+  built, now with the game's palette.
+- **Status panel** redesigned with the game's palette (dark brown with a frame, beige labels, golden values), the
+  game's font when available, more compact (technical details optional in "Detailed panel").
+- New options: panel position (4 corners) and detailed panel. Log lines in the panel: default 3.
 
 ## [0.2.1] - 2026-09-28
 
-### Adicionado
-- **Tela de configurações dentro do jogo** (F11 ou botão "Configurações" no painel): abas Bot, Corpos, Teclas,
-  Painel e Avançado; interruptores, sliders, seletor de destino, troca de teclas (clique e aperte a nova tecla),
-  "Restaurar padrões", botão Ligar/Desligar bot. Textos em PT ou EN conforme o idioma do jogo.
-  Aplica na hora e salva sozinho no `.cfg` (com atraso de 1 s para não gravar a cada movimento de slider).
-- Enquanto a tela está aberta o bot pausa e o jogo não recebe teclas; clique no painel não vira ataque no jogo.
-- **Integração opcional com o GK2 Mod Framework** (`AutoKeeper.FrameworkBridge.dll`): as mesmas opções aparecem
-  no botão "Mods" nativo do jogo (menu principal e pausa, com suporte a controle). Sem o Framework, a ponte é ignorada.
-- Painel mostra o **local** (zona do mundo, ex.: "Pátio"/"morgue"), que muda ao andar/teleportar; a "cena" do Unity
-  quase nunca muda no GK2.
+### Added
+- **In-game settings window** (F11 or the "Settings" button on the status panel): Bot, Bodies, Hotkeys, Panel and
+  Advanced tabs; toggles, sliders, destination selector, key rebinding (click and press the new key), "Reset defaults",
+  Start/Stop bot button. Texts in PT or EN following the game language.
+  Applies immediately and saves itself to the `.cfg` (with a 1 s delay so it does not write on every slider movement).
+- While the window is open, the bot pauses and the game receives no keys; clicking the status panel does not turn into
+  an attack in the game.
+- **Optional integration with GK2 Mod Framework** (`AutoKeeper.FrameworkBridge.dll`): the same options appear under the
+  game's native "Mods" button (main menu and pause, with controller support). Without the Framework, the bridge is
+  ignored.
+- The status panel shows the **place** (world zone, e.g. "Yard"/"morgue"), which changes when walking/teleporting; the
+  Unity "scene" almost never changes in GK2.
 
-### Alterado
-- `[Bodies] ExtractOrgans` (texto) virou 6 opções liga/desliga: `ExtractSkin`, `ExtractBones`, `ExtractSkull`,
+### Changed
+- `[Bodies] ExtractOrgans` (text) became 6 on/off options: `ExtractSkin`, `ExtractBones`, `ExtractSkull`,
   `ExtractHeart`, `ExtractBrain`, `ExtractGuts`.
-- `[Bot] MinEnergy` agora vai de 0 a 100; `GraveCraftId` foi para a aba Avançado.
+- `[Bot] MinEnergy` now goes from 0 to 100; `GraveCraftId` moved to the Advanced tab.
 
 ## [0.2.0] - 2026-09-28
 
-### Adicionado
-- **Primeira rotina do bot — "Processar corpos"**: palete (ou chão) → mesa de autópsia livre → extrai órgãos
-  (config `ExtractOrgans`, padrão `all`) → tira o corpo → **crematório** (padrão) → recolhe o resultado quando pronto.
-  Destinos: `Crematorium`, `LeaveOnTable`, `Grave` (experimental).
-- Input virtual (`Patches/VirtualInputPatch`, Postfix em `LazyInput.Update`): o bot aperta E / segura Ação pelo próprio jogo.
-- Movimento com o pathfinding do jogo (grafo Recast), mira no alvo e passo curto de ajuste.
-- Ações equivalentes à UI (extrair órgão, tirar corpo, iniciar enterro) usando as classes de dados das janelas, sem abri-las.
-- Novas opções: `[Bot] MoveTimeoutSeconds`, `WorkStallSeconds`; seção `[Bodies]`.
-- Dump F10 inclui `defsOfInterest` (definições de covas, paletes, portas, crematório).
+### Added
+- **First bot routine — "Process bodies"**: pallet (or ground) → free autopsy table → extracts organs
+  (config `ExtractOrgans`, default `all`) → takes the body off → **crematorium** (default) → collects the result when
+  ready. Destinations: `Crematorium`, `LeaveOnTable`, `Grave` (experimental).
+- Virtual input (`Patches/VirtualInputPatch`, Postfix on `LazyInput.Update`): the bot presses E / holds Action through the game itself.
+- Movement with the game's pathfinding (Recast graph), aiming at the target and a short adjustment step.
+- Actions equivalent to the UI (extract organ, take the body off, start burial) using the windows' data classes, without opening them.
+- New options: `[Bot] MoveTimeoutSeconds`, `WorkStallSeconds`; `[Bodies]` section.
+- F10 dump includes `defsOfInterest` (definitions of graves, pallets, doors, crematorium).
 
-### Alterado
-- Versão testada do jogo: **1.007** (diff 1.006→1.007 revisado).
-- Proteção nas hotkeys (erro não se repete a cada frame).
+### Changed
+- Tested game version: **1.007** (1.006→1.007 diff reviewed).
+- Hotkey guard (an error no longer repeats every frame).
 
 ## [0.1.0] - 2026-09-28
 
-### Adicionado
-- Estrutura do plugin BepInEx 5 (`com.focabr.gk2.autokeeper`), Harmony com `UnpatchSelf`.
-- Configuração (`.cfg`): hotkeys F8 (bot), F9 (overlay), F10 (dump), intervalo de tick, energia mínima.
-- Overlay na tela com estado do bot, versão do jogo, motivo de pausa automática, posição, energia, dia/hora e item carregado.
-- `GameApi` (adapter único) com leitura de estado protegida contra mudanças do jogo.
-- Verificação de compatibilidade com a versão testada do jogo (1.006).
-- Dump de descoberta somente leitura (F10) para mapear objetos/itens/receitas da cena.
-- `BotController` com fila de tarefas, pausa automática (menu, janela, diálogo, cinemática) e parada por energia baixa. Nenhuma tarefa ainda.
+### Added
+- BepInEx 5 plugin structure (`com.focabr.gk2.autokeeper`), Harmony with `UnpatchSelf`.
+- Configuration (`.cfg`): hotkeys F8 (bot), F9 (overlay), F10 (dump), tick interval, minimum energy.
+- On-screen overlay with the bot state, game version, auto-pause reason, position, energy, day/time and carried item.
+- `GameApi` (single adapter) with state reading protected against game changes.
+- Compatibility check against the tested game version (1.006).
+- Read-only discovery dump (F10) to map the scene's objects/items/recipes.
+- `BotController` with a task queue, auto-pause (menu, window, dialogue, cutscene) and stop on low energy. No tasks yet.

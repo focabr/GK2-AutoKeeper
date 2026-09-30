@@ -1,8 +1,8 @@
 # Bot/Tasks
 
-Uma classe por rotina, implementando `ITask` (`CanRun`, `Tick`, `Abort`).
+One class per routine, implementing `ITask` (`CanRun`, `Tick`, `Abort`).
 
-- `ProcessBodiesTask` (0.2.0) — palete/chão → mesa de autópsia → extrair órgãos → crematório
-  (ou deixar na mesa / cova experimental). Fluxo e ids reais em `docs/game-api-notes.md` (seções 7b e 11).
+- `ProcessBodiesTask` (0.2.0) — pallet/ground → autopsy table → extract organs → crematorium
+  (or leave on the table / experimental grave). Flow and real ids in `docs/game-api-notes.md` (sections 7b and 11).
 
-Planejado: enterro atravessando a porta do necrotério (0.3).
+Planned: burial by going through the morgue door (0.3).

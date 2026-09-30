@@ -61,7 +61,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.22*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.23*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
@@ -79,7 +79,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 
 ## Settings (F11)
 All options are saved automatically to `BepInEx/config/com.focabr.gk2.autokeeper.cfg`; there is no need to edit it.
-The settings window and panel follow the game language (English or Brazilian Portuguese); log messages are in Portuguese.
+Settings window, status panel and log messages in English or Brazilian Portuguese (follows the game language).
 
 | Category | Option (`[Section] Key`) | Default | What it does |
 |---|---|---|---|
@@ -150,7 +150,7 @@ MIT — see [LICENSE](LICENSE).
 ## Resumo (pt-BR)
 **GK2 AutoKeeper** é um bot para o **Graveyard Keeper 2** que faz a rotina do necrotério (palete → mesa de autópsia →
 órgãos → crematório) usando só ações que o jogador faria: sem criar itens, sem editar o save. **F8** liga/desliga,
-**F9** painel, **F11** configurações (textos em português quando o jogo está em português), **F10** diagnóstico.
+**F9** painel, **F11** configurações (tela, painel e mensagens do log em português quando o jogo está em português), **F10** diagnóstico.
 Instalação: BepInEx 5.4.23.x no jogo e a pasta `plugins/AutoKeeper` do zip em `<jogo>/BepInEx/plugins/`.
 Código escrito com o Claude (Anthropic) e testado no jogo pelo autor. Notas de engenharia reversa em `docs/game-api-notes.md`.
 **Suporte:** problemas, ajuda na configuração e sugestões por **[issue no GitHub](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**,

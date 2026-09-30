@@ -7,16 +7,16 @@ using UnityEngine;
 namespace AutoKeeper.Core
 {
     /// <summary>
-    /// Porta que teleporta o jogador (objetos tp_* do jogo: CustomInteraction com TeleportTo("destino")).
-    /// O bot usa a porta do mesmo jeito que o jogador: anda até ela e aperta E.
+    /// Door that teleports the player (the game's tp_* objects: CustomInteraction with TeleportTo("destination")).
+    /// The bot uses the door the same way the player does: walks up to it and presses E.
     /// </summary>
     internal readonly struct DoorRef
     {
         public readonly string Uid;
         public readonly string Id;
-        public readonly Vector3 Position;       // a porta, do lado de cá
-        public readonly Vector3 Landing;        // onde o jogador aparece do outro lado
-        public readonly string DestinationId;   // porta do outro lado
+        public readonly Vector3 Position;       // the door, on this side
+        public readonly Vector3 Landing;        // where the player appears on the other side
+        public readonly string DestinationId;   // door on the other side
 
         public DoorRef(string uid, string id, Vector3 position, Vector3 landing, string destinationId)
         {
@@ -27,24 +27,24 @@ namespace AutoKeeper.Core
             DestinationId = destinationId;
         }
 
-        /// <summary>Nome curto para o painel: "tp_RT_home_exit" → "home exit".</summary>
+        /// <summary>Short name for the panel: "tp_RT_home_exit" → "home exit".</summary>
         public string Label => Id != null && Id.StartsWith("tp_RT_") ? Id.Substring(6).Replace('_', ' ') : Id;
 
         public override string ToString() => $"{Id}#{WorldObjectRef.ShortUid(Uid)}";
     }
 
     /// <summary>
-    /// Parte 7: navegação entre áreas. O navmesh do jogo (grafo Recast da cena, o mesmo que o MovementComponent usa)
-    /// tem "ilhas" separadas: cada interior (casa, necrotério…) é uma região sem ligação a pé com o lado de fora.
-    /// As portas tp_* ligam essas regiões. Aqui só se consulta: qual região contém um ponto e quais portas existem.
+    /// Part 7: navigation between areas. The game's navmesh (the scene's Recast graph, the same one MovementComponent uses)
+    /// has separate "islands": each interior (house, morgue…) is a region with no walking connection to the outside.
+    /// The tp_* doors connect these regions. This only queries: which region contains a point and which doors exist.
     /// </summary>
     internal static partial class GameApi
     {
-        private const float NavSnapDistance = 4f; // ponto a mais que isso do navmesh = "fora do mapa andável"
+        private const float NavSnapDistance = 4f; // a point farther than this from the navmesh = "off the walkable map"
 
         private static readonly Regex TeleportToRegex = new Regex("TeleportTo\\(\\s*\"([^\"]+)\"", RegexOptions.Compiled);
 
-        /// <summary>Grafo Recast que o jogo usa para mover o jogador na cena atual (MovementComponent.FindPathRecastGraph).</summary>
+        /// <summary>Recast graph the game uses to move the player in the current scene (MovementComponent.FindPathRecastGraph).</summary>
         private static NavGraph PlayerNavGraph()
         {
             AstarPath ap = AstarPath.active;
@@ -79,13 +79,13 @@ namespace AutoKeeper.Core
             return nn.node.Area;
         }
 
-        /// <summary>Região andável (componente conexo do navmesh) que contém o ponto. 0 = desconhecida/fora do navmesh.</summary>
+        /// <summary>Walkable region (connected component of the navmesh) that contains the point. 0 = unknown/off the navmesh.</summary>
         public static uint GetNavArea(Vector3 pos) => Safe(() => NavAreaCore(pos, out _), 0u, nameof(GetNavArea));
 
-        /// <summary>Região andável onde o jogador está agora.</summary>
+        /// <summary>Walkable region the player is in right now.</summary>
         public static uint GetPlayerNavArea() => Safe(() => NavAreaCore(MainGame.PlayerData.position.Value, out _), 0u, nameof(GetPlayerNavArea));
 
-        /// <summary>Ponto andável mais perto (a porta em si costuma ficar na parede, fora do navmesh).</summary>
+        /// <summary>Nearest walkable point (the door itself is usually in the wall, off the navmesh).</summary>
         public static Vector3 GetNearestWalkablePoint(Vector3 pos) => Safe(() =>
         {
             NavAreaCore(pos, out Vector3 snapped);
@@ -93,8 +93,8 @@ namespace AutoKeeper.Core
         }, pos, nameof(GetNearestWalkablePoint));
 
         /// <summary>
-        /// Portas da cena atual que o jogador pode usar agora (condição da porta avaliada pelo próprio jogo)
-        /// e cujo destino existe. Somente leitura.
+        /// Doors of the current scene that the player can use now (door condition evaluated by the game itself)
+        /// and whose destination exists. Read-only.
         /// </summary>
         public static List<DoorRef> FindDoors() => Safe(() =>
         {
@@ -115,7 +115,7 @@ namespace AutoKeeper.Core
                 if (!MainGame.WorldData.TryGetWgoData(destId, out WgoData dest, out GameSceneData destScene)
                     || dest == null || destScene == null || destScene.id != scene)
                 {
-                    continue; // destino não construído ou em outra cena
+                    continue; // destination not built or in another scene
                 }
                 result.Add(new DoorRef(w.UniqueId.Id, w.id, w.Position, dest.GetTeleportPointPosition(), destId));
             }
@@ -152,7 +152,7 @@ namespace AutoKeeper.Core
             }
             catch
             {
-                return false; // condição que o jogo não conseguiu avaliar: não arriscar
+                return false; // a condition the game could not evaluate: don't risk it
             }
         }
     }

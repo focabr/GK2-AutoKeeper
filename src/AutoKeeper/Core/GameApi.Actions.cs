@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace AutoKeeper.Core
 {
-    /// <summary>Maestria atual x exigida para uma extração (dados copiados).</summary>
+    /// <summary>Current vs. required mastery for an extraction (copied data).</summary>
     internal readonly struct ExtractMastery
     {
         public readonly int Mastery;
@@ -17,16 +17,16 @@ namespace AutoKeeper.Core
             Required = required;
         }
 
-        /// <summary>Chance (%) de cada golpe avançar, como a janela do jogo mostra. 0 = não dá para extrair.</summary>
+        /// <summary>Chance (%) that each hit makes progress, as the game window shows. 0 = cannot extract.</summary>
         public int ChancePercent => Required <= 0 ? (Mastery > 0 ? 100 : 0) : System.Math.Min(100, (int)(100f * Mastery / Required));
 
-        public override string ToString() => $"chance de sucesso {ChancePercent}% (maestria {Mastery}/{Required})";
+        public override string ToString() => Lang.T($"chance de sucesso {ChancePercent}% (maestria {Mastery}/{Required})", $"success chance {ChancePercent}% (mastery {Mastery}/{Required})");
     }
 
     /// <summary>
-    /// Parte 5: ações equivalentes a cliques de UI. Usam as MESMAS classes de dados das janelas do jogo
-    /// (UICraftSelectionWindowData / UISingleCraftWindowData) sem abrir a janela, e repetem exatamente o que
-    /// o botão faz. Só funcionam com o jogador perto do objeto (como na UI) e nunca criam itens.
+    /// Part 5: actions equivalent to UI clicks. They use the SAME data classes as the game's windows
+    /// (UICraftSelectionWindowData / UISingleCraftWindowData) without opening the window, and repeat exactly what
+    /// the button does. They only work with the player near the object (as in the UI) and never create items.
     /// </summary>
     internal static partial class GameApi
     {
@@ -37,18 +37,18 @@ namespace AutoKeeper.Core
             float d = Vector3.Distance(MainGame.PlayerData.position.Value, w.Position);
             if (d > MaxUseDistance)
             {
-                reason = $"longe demais do objeto ({d:0.0} m)";
+                reason = Lang.T($"longe demais do objeto ({d:0.0} m)", $"too far from the object ({d:0.0} m)");
                 return false;
             }
             reason = null;
             return true;
         }
 
-        // ------------------------------------------------------------------ autópsia
+        // ------------------------------------------------------------------ autopsy
 
         /// <summary>
-        /// Órgãos do corpo na mesa que ainda podem ser extraídos, filtrados pela config.
-        /// <paramref name="allowAll"/> = todos; senão, aceita por tipo (Bones, Brain, Heart, Guts, Skin, Skull) ou por id de item.
+        /// Organs of the body on the table that can still be extracted, filtered by the config.
+        /// <paramref name="allowAll"/> = all; otherwise, accepts by type (Bones, Brain, Heart, Guts, Skin, Skull) or by item id.
         /// </summary>
         public static List<string> GetExtractableOrgans(string tableUid, bool allowAll, ICollection<string> allowed) => Safe(() =>
         {
@@ -67,7 +67,7 @@ namespace AutoKeeper.Core
                 }
                 if (!LazyConsts.MAIN_ORGANS_TYPES.Contains(organ.Definition.type))
                 {
-                    continue; // itens de bolso não entram no MVP
+                    continue; // pocket items are not part of the MVP
                 }
                 bool wanted = allowAll || allowed.Contains(organ.Definition.type.ToString()) || allowed.Contains(organ.id);
                 if (wanted && GameBalance.GetAutopsyCraftDef(AutopsyTypeCraft.ExtractOrgan, organ.id) != null)
@@ -79,8 +79,8 @@ namespace AutoKeeper.Core
         }, new List<string>(), nameof(GetExtractableOrgans));
 
         /// <summary>
-        /// Tipo de um item "Outros" (bolso) do corpo, como a janela de autópsia mostra: Flesh (carne), Fat (gordura),
-        /// Blood (sangue) ou Other. Órgãos principais e certificados (burial_reward) não são itens de bolso.
+        /// Kind of an "Others" (pocket) item of the body, as the autopsy window shows: Flesh, Fat,
+        /// Blood or Other. Main organs and certificates (burial_reward) are not pocket items.
         /// </summary>
         private static string PocketKind(Item item)
         {
@@ -107,7 +107,7 @@ namespace AutoKeeper.Core
                 && (item.Definition.itemGroupIds == null || !item.Definition.itemGroupIds.Contains("burial_reward"));
         }
 
-        /// <summary>Itens da seção "Outros" da janela de autópsia (carne, gordura, sangue…) permitidos pela config.</summary>
+        /// <summary>Items in the "Others" section of the autopsy window (flesh, fat, blood…) allowed by the config.</summary>
         public static List<string> GetExtractablePocketItems(string tableUid, ICollection<string> allowedKinds) => Safe(() =>
         {
             var result = new List<string>();
@@ -129,38 +129,38 @@ namespace AutoKeeper.Core
         }, new List<string>(), nameof(GetExtractablePocketItems));
 
         /// <summary>
-        /// = clicar num item de "Outros" na janela de autópsia e confirmar "extrair" (mesma sequência de
-        /// UIAutopsyWindowData.TryExtractItemFromPocket). Tira 1 unidade; o item sai no fim do trabalho.
+        /// = clicking an "Others" item in the autopsy window and confirming "extract" (same sequence as
+        /// UIAutopsyWindowData.TryExtractItemFromPocket). Takes 1 unit; the item comes out at the end of the work.
         /// </summary>
         public static bool StartPocketExtract(string tableUid, string itemId, out string reason)
         {
             string why = null;
             bool ok = Safe(() => StartPocketExtractImpl(tableUid, itemId, out why), false, nameof(StartPocketExtract));
-            reason = ok ? null : (why ?? "erro interno (veja o log)");
+            reason = ok ? null : (why ?? Lang.T("erro interno (veja o log)", "internal error (see the log)"));
             return ok;
         }
 
         private static bool StartPocketExtractImpl(string tableUid, string itemId, out string reason)
         {
             WgoData table = FindWgoByUid(tableUid);
-            if (table == null) { reason = "mesa não encontrada"; return false; }
+            if (table == null) { reason = Lang.T("mesa não encontrada", "table not found"); return false; }
             if (!IsNear(table, out reason)) { return false; }
-            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = "mesa já tem receita em andamento"; return false; }
+            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = Lang.T("mesa já tem receita em andamento", "the table already has a craft in progress"); return false; }
             Item body = FindBodyInInventory(table);
-            if (!IsPlainBody(body)) { reason = "sem corpo comum na mesa"; return false; }
+            if (!IsPlainBody(body)) { reason = Lang.T("sem corpo comum na mesa", "no regular body on the table"); return false; }
             Item pocket = body.Inventory?.Find(i => IsPocketItem(i) && i.id == itemId);
-            if (pocket == null) { reason = $"{itemId} não está mais no corpo"; return false; }
+            if (pocket == null) { reason = Lang.T($"{itemId} não está mais no corpo", $"{itemId} is no longer in the body"); return false; }
             CraftDef def = GameBalance.GetAutopsyCraftDef(AutopsyTypeCraft.PocketExtract);
-            if (def == null) { reason = "o jogo não tem receita de extrair item do bolso"; return false; }
+            if (def == null) { reason = Lang.T("o jogo não tem receita de extrair item do bolso", "the game has no craft to extract pocket items"); return false; }
 
-            // A janela mostra cada unidade como uma célula (cópia com Count = 1) e passa essa célula para a receita.
+            // The window shows each unit as a cell (copy with Count = 1) and passes that cell to the craft.
             Item unit = pocket.Count == 1 ? pocket : Item.Copy(pocket);
             unit.Count = 1;
             PlayerController pc = MainGame.PlayerController;
             bool setWorker = false;
             if (table.Worker == null)
             {
-                table.TrySetWorker(pc); // a janela de autópsia aberta faz o mesmo
+                table.TrySetWorker(pc); // the open autopsy window does the same
                 setWorker = true;
             }
             try
@@ -175,7 +175,7 @@ namespace AutoKeeper.Core
             {
                 if (setWorker)
                 {
-                    table.ClearWorker(); // igual ao fechar a janela
+                    table.ClearWorker(); // same as closing the window
                 }
             }
             reason = null;
@@ -183,8 +183,8 @@ namespace AutoKeeper.Core
         }
 
         /// <summary>
-        /// Maestria do jogador para extrair um item na mesa, igual à janela "Remover …": maestria atual (talento + ferramentas
-        /// + perks) contra a exigida pela receita (talentLock). Chance = % de cada golpe avançar (100 = maestria suficiente).
+        /// Player's mastery to extract an item at the table, same as the "Remove …" window: current mastery (talent + tools
+        /// + perks) against the one required by the craft (talentLock). Chance = % that each hit makes progress (100 = enough mastery).
         /// </summary>
         public static ExtractMastery GetExtractMastery(string tableUid, string itemId, bool pocket) => Safe(() =>
         {
@@ -200,34 +200,34 @@ namespace AutoKeeper.Core
             return new ExtractMastery(mastery, def.talentLock);
         }, new ExtractMastery(0, 0), nameof(GetExtractMastery));
 
-        /// <summary>= clicar no órgão na janela de autópsia e depois em "iniciar" (itens padrão da janela).</summary>
+        /// <summary>= clicking the organ in the autopsy window and then "start" (the window's default items).</summary>
         public static bool StartAutopsyExtract(string tableUid, string organItemId, out string reason)
         {
             string why = null;
             bool ok = Safe(() => StartAutopsyExtractImpl(tableUid, organItemId, out why), false, nameof(StartAutopsyExtract));
-            reason = ok ? null : (why ?? "erro interno (veja o log)");
+            reason = ok ? null : (why ?? Lang.T("erro interno (veja o log)", "internal error (see the log)"));
             return ok;
         }
 
         private static bool StartAutopsyExtractImpl(string tableUid, string organItemId, out string reason)
         {
             WgoData table = FindWgoByUid(tableUid);
-            if (table == null) { reason = "mesa não encontrada"; return false; }
+            if (table == null) { reason = Lang.T("mesa não encontrada", "table not found"); return false; }
             if (!IsNear(table, out reason)) { return false; }
-            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = "mesa já tem receita em andamento"; return false; }
+            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = Lang.T("mesa já tem receita em andamento", "the table already has a craft in progress"); return false; }
             Item body = FindBodyInInventory(table);
-            if (!IsPlainBody(body)) { reason = "sem corpo comum na mesa"; return false; }
+            if (!IsPlainBody(body)) { reason = Lang.T("sem corpo comum na mesa", "no regular body on the table"); return false; }
 
             Item organ = body.Inventory?.Find(i => i != null && i.id == organItemId);
-            if (organ == null) { reason = $"órgão {organItemId} não está mais no corpo"; return false; }
+            if (organ == null) { reason = Lang.T($"órgão {organItemId} não está mais no corpo", $"organ {organItemId} is no longer in the body"); return false; }
             CraftDef def = GameBalance.GetAutopsyCraftDef(AutopsyTypeCraft.ExtractOrgan, organ.id);
-            if (def == null) { reason = $"sem receita de extração para {organ.id}"; return false; }
+            if (def == null) { reason = Lang.T($"sem receita de extração para {organ.id}", $"no extraction craft for {organ.id}"); return false; }
 
             PlayerController pc = MainGame.PlayerController;
             bool setWorker = false;
             if (table.Worker == null)
             {
-                table.TrySetWorker(pc);   // a janela faz o mesmo enquanto está aberta
+                table.TrySetWorker(pc);   // the window does the same while it is open
                 setWorker = true;
             }
             try
@@ -242,43 +242,43 @@ namespace AutoKeeper.Core
                 });
                 if (!data.CanStartCraft)
                 {
-                    reason = $"requisitos de {def.id} não atendidos (itens/ferramenta/talento?)";
+                    reason = Lang.T($"requisitos de {def.id} não atendidos (itens/ferramenta/talento?)", $"requirements for {def.id} not met (items/tool/talent?)");
                     return false;
                 }
                 data.OnCraftStarted();
-                reason = started ? null : "o jogo não aceitou a receita";
+                reason = started ? null : Lang.T("o jogo não aceitou a receita", "the game did not accept the craft");
                 return started;
             }
             finally
             {
                 if (setWorker)
                 {
-                    table.ClearWorker(); // igual ao fechar a janela
+                    table.ClearWorker(); // same as closing the window
                 }
             }
         }
 
-        /// <summary>= botão "tirar corpo" da janela de autópsia: o corpo vai para cima da cabeça do jogador.</summary>
+        /// <summary>= the autopsy window's "take body" button: the body goes over the player's head.</summary>
         public static bool TakeBodyFromTable(string tableUid, out string reason)
         {
             string why = null;
             bool ok = Safe(() => TakeBodyFromTableImpl(tableUid, out why), false, nameof(TakeBodyFromTable));
-            reason = ok ? null : (why ?? "erro interno (veja o log)");
+            reason = ok ? null : (why ?? Lang.T("erro interno (veja o log)", "internal error (see the log)"));
             return ok;
         }
 
         private static bool TakeBodyFromTableImpl(string tableUid, out string reason)
         {
             WgoData table = FindWgoByUid(tableUid);
-            if (table == null) { reason = "mesa não encontrada"; return false; }
+            if (table == null) { reason = Lang.T("mesa não encontrada", "table not found"); return false; }
             if (!IsNear(table, out reason)) { return false; }
-            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = "mesa ainda tem receita em andamento"; return false; }
+            if (table.CraftComponent.IsStarted || table.CraftComponent.HasCraftsInQueue) { reason = Lang.T("mesa ainda tem receita em andamento", "the table still has a craft in progress"); return false; }
             Item body = FindBodyInInventory(table);
-            if (!IsPlainBody(body)) { reason = "sem corpo comum na mesa"; return false; }
+            if (!IsPlainBody(body)) { reason = Lang.T("sem corpo comum na mesa", "no regular body on the table"); return false; }
             PlayerData pd = MainGame.PlayerData;
-            if (pd.HasOverheadItem || !pd.HasFreeOverheadSlot) { reason = "o jogador já está carregando algo"; return false; }
+            if (pd.HasOverheadItem || !pd.HasFreeOverheadSlot) { reason = Lang.T("o jogador já está carregando algo", "the player is already carrying something"); return false; }
 
-            // Mesma sequência de UIAutopsyWindowData.TakeBody.
+            // Same sequence as UIAutopsyWindowData.TakeBody.
             pd.AddOverheadItem(body);
             table.Inventory.RemoveItemFromInventoryByUID(body);
             GameScene.GetWgoViewGlobal(table.UniqueId)?.DrawWidgets();
@@ -286,12 +286,12 @@ namespace AutoKeeper.Core
             return true;
         }
 
-        // ------------------------------------------------------------------ cova
-        // Enterrar não é receita: com um corpo na cabeça, apertar E em "grave_empty" executa
-        // InsertOvrhdItem() + ChangeWgo("grave_body"); depois "grave_body" é um trabalho com pá (segurar Ação).
-        // O bot faz os dois como o jogador (tecla E e Ação segurada) — ver ProcessBodiesTask.
+        // ------------------------------------------------------------------ grave
+        // Burying is not a craft: with a body overhead, pressing E on "grave_empty" runs
+        // InsertOvrhdItem() + ChangeWgo("grave_body"); then "grave_body" is shovel work (hold Action).
+        // The bot does both like the player (E key and Action held) — see ProcessBodiesTask.
 
-        /// <summary>Ids das receitas disponíveis no objeto (diagnóstico).</summary>
+        /// <summary>Ids of the crafts available on the object (diagnostics).</summary>
         public static List<string> GetCraftIds(string uid) => Safe(() =>
         {
             var ids = new List<string>();

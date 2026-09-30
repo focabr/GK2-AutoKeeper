@@ -1,11 +1,11 @@
 <Project>
   <!--
-    Configurações compartilhadas por todos os projetos do repositório.
+    Settings shared by all projects in the repository.
 
-    Caminho do jogo (NUNCA fixo no código):
-      1) variável de ambiente GK2_GAME_PATH, ou
-      2) arquivo local GamePath.props (ignorado pelo git) — veja GamePath.props.example, ou
-      3) na linha de comando: dotnet build -p:GamePath="D:\...\Graveyard Keeper 2"
+    Game path (NEVER hard-coded):
+      1) environment variable GK2_GAME_PATH, or
+      2) local file GamePath.props (ignored by git) — see GamePath.props.example, or
+      3) on the command line: dotnet build -p:GamePath="D:\...\Graveyard Keeper 2"
   -->
   <Import Project="$(MSBuildThisFileDirectory)GamePath.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.props')" />
 
@@ -14,8 +14,8 @@
     <GameManagedDir>$(GamePath)/GraveyardKeeper2_Data/Managed</GameManagedDir>
     <BepInExDir>$(GamePath)/BepInEx</BepInExDir>
 
-    <!-- Versão única do mod (SemVer). Plugin.cs repete o valor em Plugin.Version. -->
-    <Version>0.3.22</Version>
+    <!-- Single mod version (SemVer). Plugin.cs repeats the value in Plugin.Version. -->
+    <Version>0.3.23</Version>
     <Authors>focabr</Authors>
     <Company>focabr</Company>
     <Product>GK2 AutoKeeper</Product>

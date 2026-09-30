@@ -11,8 +11,8 @@ using UnityEngine;
 namespace AutoKeeper
 {
     /// <summary>
-    /// Ponto de entrada do mod. Só faz "cola": config, Harmony, hotkeys e ciclo de vida.
-    /// Toda lógica de jogo fica em Core/GameApi; toda lógica de automação fica em Bot/.
+    /// Mod entry point. It is only "glue": config, Harmony, hotkeys and lifecycle.
+    /// All game logic lives in Core/GameApi; all automation logic lives in Bot/.
     /// </summary>
     [BepInPlugin(Guid, Name, Version)]
     [BepInProcess("GraveyardKeeper2.exe")]
@@ -20,33 +20,34 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.22";
+        public const string Version = "0.3.23";
 
-        /// <summary>Versão do jogo em que o mod foi testado (GameInfo.Version).</summary>
+        /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007.1";
 
-        /// <summary>Instância ativa (usada pela ponte opcional do GK2 Mod Framework).</summary>
+        /// <summary>Active instance (used by the optional GK2 Mod Framework bridge).</summary>
         public static Plugin Instance { get; private set; }
 
-        /// <summary>Opções do mod (mesma fonte para a janela própria e para o menu Mods do Framework).</summary>
+        /// <summary>Mod options (same source for the mod's own window and for the Framework's Mods menu).</summary>
         public Settings Settings { get; private set; }
 
         internal BotController Bot { get; private set; }
 
         private Harmony harmony;
         private Overlay overlay;
-        private SettingsWindow settingsWindow;          // tela simples (IMGUI), usada só se a nativa falhar
-        private NativeSettingsWindow nativeWindow;      // tela com o visual do jogo
+        private SettingsWindow settingsWindow;          // simple window (IMGUI), used only if the native one fails
+        private NativeSettingsWindow nativeWindow;      // window with the game's look
         private bool compatibilityChecked;
         private bool configDirty;
         private float configDirtySince;
 
-        /// <summary>Estado do bot em texto (para a ponte do Framework).</summary>
-        public string BotStatusText => Bot == null ? "-" : $"{Bot.State} — {Bot.StateDetail}";
+        /// <summary>Bot state as text (for the Framework bridge).</summary>
+        public string BotStatusText => Bot == null ? "-"
+            : string.IsNullOrEmpty(Bot.StateDetail) ? Bot.State.ToString() : $"{Bot.State} — {Bot.StateDetail}";
 
         public bool IsBotOn => Bot != null && Bot.State != BotController.BotState.Off;
 
-        /// <summary>Liga/desliga o bot (mesmo efeito da hotkey).</summary>
+        /// <summary>Turns the bot on/off (same effect as the hotkey).</summary>
         public void ToggleBot() => Bot?.Toggle();
 
         private bool SettingsOpen => (nativeWindow != null && nativeWindow.IsShown) || (settingsWindow != null && settingsWindow.IsOpen);
@@ -54,8 +55,8 @@ namespace AutoKeeper
         private bool CapturingKey => (nativeWindow != null && nativeWindow.IsCapturingKey) || (settingsWindow != null && settingsWindow.IsCapturingKey);
 
         /// <summary>
-        /// Abre/fecha a tela de configurações. Preferência: tela NATIVA (peças da janela de Configurações do jogo).
-        /// Se ela não puder ser montada (ex.: jogo mudou), usa a tela simples e avisa no log.
+        /// Opens/closes the settings window. Preference: NATIVE window (pieces of the game's Settings window).
+        /// If it cannot be built (e.g. the game changed), uses the simple window and warns in the log.
         /// </summary>
         public void ToggleSettingsWindow()
         {
@@ -74,7 +75,7 @@ namespace AutoKeeper
                 nativeWindow = NativeSettingsWindow.TryCreate(Settings, Bot, out string error);
                 if (nativeWindow == null)
                 {
-                    ModLog.WarnOnce("native-ui", $"Tela nativa indisponível ({error}); usando a tela simples.");
+                    ModLog.WarnOnce("native-ui", Lang.T($"Tela nativa indisponível ({error}); usando a tela simples.", $"Native settings window unavailable ({error}); using the simple window."));
                 }
             }
             if (nativeWindow != null)
@@ -86,7 +87,7 @@ namespace AutoKeeper
                 }
                 catch (Exception e)
                 {
-                    ModLog.Error($"Falha ao abrir a tela nativa: {e}");
+                    ModLog.Error(Lang.T($"Falha ao abrir a tela nativa: {e}", $"Failed to open the native settings window: {e}"));
                     Destroy(nativeWindow.gameObject);
                     nativeWindow = null;
                 }
@@ -97,33 +98,34 @@ namespace AutoKeeper
         private void Awake()
         {
             Instance = this;
-            // Salvar o .cfg a cada movimento de slider seria desperdício: salvamos com atraso (ver SaveConfigIfDirty).
+            // Saving the .cfg on every slider move would be wasteful: we save with a delay (see SaveConfigIfDirty).
             Config.SaveOnConfigSet = false;
             Settings = new Settings(Config);
             Config.SettingChanged += (_, __) => { configDirty = true; configDirtySince = Time.unscaledTime; };
-            Config.Save(); // grava opções novas/descrições atualizadas
+            Config.Save(); // writes new options/updated descriptions
             ModLog.Init(Logger, Settings);
 
-            // Um único Harmony com ID = GUID, para que UnpatchSelf remova só os nossos patches.
+            // A single Harmony with ID = GUID, so that UnpatchSelf removes only our patches.
             harmony = new Harmony(Guid);
             try
             {
                 harmony.PatchAll(typeof(Plugin).Assembly);
-                ModLog.Detail($"Patches Harmony aplicados: {harmony.GetPatchedMethods().CountSafe()}");
+                ModLog.Detail(Lang.T($"Patches Harmony aplicados: {harmony.GetPatchedMethods().CountSafe()}", $"Harmony patches applied: {harmony.GetPatchedMethods().CountSafe()}"));
             }
             catch (Exception e)
             {
-                ModLog.Error($"Falha ao aplicar patches Harmony — o bot ficará desativado. {e}");
+                ModLog.Error(Lang.T($"Falha ao aplicar patches Harmony — o bot ficará desativado. {e}", $"Failed to apply Harmony patches — the bot will be disabled. {e}"));
             }
 
             Bot = new BotController(Settings);
             GameApi.HookGameLifecycle();
-            Bot.Register(new ProcessBodiesTask(Settings, Bot.Navigator)); // ordem = prioridade
+            Bot.Register(new ProcessBodiesTask(Settings, Bot.Navigator)); // order = priority
             overlay = new Overlay(Settings, Bot);
             settingsWindow = new SettingsWindow(Settings, Bot);
             overlay.OnSettingsClicked = ToggleSettingsWindow;
 
-            ModLog.Info($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.");
+            ModLog.Info(Lang.T($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.",
+                $"{Name} {Version} loaded. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = settings, {Settings.ToggleOverlayKey.Value} = status panel."));
         }
 
         private void Update()
@@ -139,7 +141,7 @@ namespace AutoKeeper
             overlay.Draw();
             settingsWindow.Draw();
 
-            // Informa a GameApi se o mouse está sobre a UI do mod (clique não vira ataque) e se a janela está aberta.
+            // Tells GameApi whether the mouse is over the mod's UI (a click does not become an attack) and whether the window is open.
             if (Event.current != null && Event.current.type == EventType.Repaint)
             {
                 Vector2 m = Event.current.mousePosition;
@@ -150,13 +152,13 @@ namespace AutoKeeper
 
         private void OnDestroy()
         {
-            Bot?.Stop("plugin descarregado");
+            Bot?.Stop(Lang.T("plugin descarregado", "plugin unloaded"));
             GameApi.SetModUiState(false, false);
             SaveConfigIfDirty(force: true);
             harmony?.UnpatchSelf();
         }
 
-        /// <summary>Grava o .cfg 1 s depois da última alteração (ou na hora ao fechar a janela/sair).</summary>
+        /// <summary>Writes the .cfg 1 s after the last change (or immediately when closing the window/quitting).</summary>
         private void SaveConfigIfDirty(bool force)
         {
             if (!configDirty)
@@ -172,12 +174,12 @@ namespace AutoKeeper
                 }
                 catch (Exception e)
                 {
-                    ModLog.Warn($"Não consegui salvar o .cfg: {e.Message}");
+                    ModLog.Warn(Lang.T($"Não consegui salvar o .cfg: {e.Message}", $"Could not save the .cfg: {e.Message}"));
                 }
             }
         }
 
-        /// <summary>Compara a versão do jogo com a testada, uma única vez, quando o jogo já inicializou.</summary>
+        /// <summary>Compares the game version with the tested one, only once, after the game has initialized.</summary>
         private void CheckCompatibilityOnce()
         {
             if (compatibilityChecked || !GameApi.IsMainGameReady)
@@ -189,15 +191,16 @@ namespace AutoKeeper
             string gameVersion = GameApi.GetGameVersion();
             if (gameVersion == null)
             {
-                ModLog.Warn("Não consegui ler a versão do jogo (GameInfo). O mod pode estar desatualizado.");
+                ModLog.Warn(Lang.T("Não consegui ler a versão do jogo (GameInfo). O mod pode estar desatualizado.", "Could not read the game version (GameInfo). The mod may be outdated."));
             }
             else if (gameVersion != TestedGameVersion)
             {
-                ModLog.Warn($"Versão do jogo {gameVersion} difere da testada ({TestedGameVersion}). Se algo falhar, desligue o bot (F8) e verifique atualizações do mod.");
+                ModLog.Warn(Lang.T($"Versão do jogo {gameVersion} difere da testada ({TestedGameVersion}). Se algo falhar, desligue o bot (F8) e verifique atualizações do mod.",
+                    $"Game version {gameVersion} differs from the tested one ({TestedGameVersion}). If something fails, turn off the bot (F8) and check for mod updates."));
             }
             else
             {
-                ModLog.Info($"Versão do jogo {gameVersion} — compatível (testada).");
+                ModLog.Info(Lang.T($"Versão do jogo {gameVersion} — compatível (testada).", $"Game version {gameVersion} — compatible (tested)."));
             }
         }
 
@@ -209,8 +212,8 @@ namespace AutoKeeper
             }
             catch (Exception e)
             {
-                // Ex.: input legado do Unity desativado. Loga uma vez em vez de a cada frame.
-                ModLog.WarnOnce("hotkeys", $"Hotkeys indisponíveis ({e.GetType().Name}: {e.Message}).");
+                // E.g. Unity's legacy input disabled. Logs once instead of every frame.
+                ModLog.WarnOnce("hotkeys", Lang.T($"Hotkeys indisponíveis ({e.GetType().Name}: {e.Message}).", $"Hotkeys unavailable ({e.GetType().Name}: {e.Message})."));
             }
         }
 
@@ -218,7 +221,7 @@ namespace AutoKeeper
         {
             if (CapturingKey)
             {
-                return; // o jogador está escolhendo uma tecla nova na tela de configurações
+                return; // the player is choosing a new key in the settings window
             }
             if (Settings.OpenSettingsKey.Value.IsDown())
             {
@@ -237,8 +240,8 @@ namespace AutoKeeper
                 string path = GameApi.WriteDiscoveryDump();
                 if (path != null)
                 {
-                    ModLog.Detail($"Dump de descoberta salvo em: {path}");
-                    ModLog.Info($"Dump salvo: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)");
+                    ModLog.Detail(Lang.T($"Dump de descoberta salvo em: {path}", $"Discovery dump saved to: {path}"));
+                    ModLog.Info(Lang.T($"Dump salvo: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)", $"Dump saved: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)"));
                 }
             }
         }
@@ -246,7 +249,7 @@ namespace AutoKeeper
 
     internal static class EnumerableExtensions
     {
-        /// <summary>Count() que não explode se o enumerável for nulo.</summary>
+        /// <summary>Count() that does not blow up if the enumerable is null.</summary>
         public static int CountSafe<T>(this System.Collections.Generic.IEnumerable<T> source)
         {
             if (source == null)

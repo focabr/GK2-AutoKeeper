@@ -6,20 +6,20 @@ using UnityEngine;
 namespace AutoKeeper.Core
 {
     /// <summary>
-    /// ÚNICO ponto do mod que toca classes do jogo (adapter). Quando o jogo atualizar, só os arquivos
-    /// GameApi*.cs devem mudar. Cada membro público é protegido por <see cref="Safe{T}"/>: se o jogo
-    /// renomear/remover algo, logamos UMA vez de forma clara e devolvemos um valor neutro (o bot para).
+    /// The ONLY place in the mod that touches game classes (adapter). When the game updates, only the
+    /// GameApi*.cs files should change. Every public member is guarded by <see cref="Safe{T}"/>: if the game
+    /// renames/removes something, we log it clearly ONCE and return a neutral value (the bot stops).
     ///
-    /// Parte 1 (este arquivo): leitura de estado — somente leitura, nenhum efeito colateral.
-    /// Notas de engenharia reversa: docs/game-api-notes.md.
+    /// Part 1 (this file): state reading — read-only, no side effects.
+    /// Reverse-engineering notes: docs/game-api-notes.md.
     /// </summary>
     internal static partial class GameApi
     {
-        // ------------------------------------------------------------------ infraestrutura
+        // ------------------------------------------------------------------ infrastructure
 
         /// <summary>
-        /// Executa <paramref name="body"/> protegendo contra mudanças do jogo. O corpo do lambda é compilado
-        /// em um método separado, então até MissingMethodException/MissingFieldException (JIT) é capturada aqui.
+        /// Runs <paramref name="body"/> guarded against game changes. The lambda body is compiled into a
+        /// separate method, so even MissingMethodException/MissingFieldException (JIT) is caught here.
         /// </summary>
         private static T Safe<T>(Func<T> body, T fallback, string member)
         {
@@ -30,17 +30,17 @@ namespace AutoKeeper.Core
             catch (Exception e)
             {
                 ModLog.WarnOnce("GameApi." + member,
-                    $"GameApi.{member} falhou ({e.GetType().Name}: {e.Message}). O jogo pode ter mudado — atualize o mod.");
+                    $"GameApi.{member} falhou / failed ({e.GetType().Name}: {e.Message}). O jogo pode ter mudado — atualize o mod. / The game may have changed — update the mod.");
                 return fallback;
             }
         }
 
-        // ------------------------------------------------------------------ estado geral
+        // ------------------------------------------------------------------ general state
 
-        /// <summary>MainGame já existe (qualquer cena, inclusive menu).</summary>
+        /// <summary>MainGame already exists (any scene, including the menu).</summary>
         public static bool IsMainGameReady => Safe(() => MainGame.Instance != null, false, nameof(IsMainGameReady));
 
-        /// <summary>Um save está carregado e o jogador existe.</summary>
+        /// <summary>A save is loaded and the player exists.</summary>
         public static bool IsInGame => Safe(() =>
             MainGame.Instance != null
             && MainGame.Instance.gameState == MainGame.GameState.InGame
@@ -49,13 +49,13 @@ namespace AutoKeeper.Core
 
         private static string cachedGameVersion;
 
-        // ------------------------------------------------------------------ ciclo de vida do save
+        // ------------------------------------------------------------------ save lifecycle
 
         private static bool lifecycleHooked;
         private static string pendingLifecycleEvent;
         private static object lastWorldToken;
 
-        /// <summary>Assina os eventos do jogo de "partida iniciada" (load/novo jogo) e "voltou ao menu".</summary>
+        /// <summary>Subscribes to the game's "game started" (load/new game) and "back to menu" events.</summary>
         public static void HookGameLifecycle()
         {
             if (lifecycleHooked)
@@ -65,15 +65,15 @@ namespace AutoKeeper.Core
             lifecycleHooked = true;
             Safe(() =>
             {
-                MainGame.OnGameStarted += () => pendingLifecycleEvent = "partida carregada";
-                MainGame.OnGoToMainMenu += () => pendingLifecycleEvent = "voltou ao menu principal";
+                MainGame.OnGameStarted += () => pendingLifecycleEvent = Lang.T("partida carregada", "game loaded");
+                MainGame.OnGoToMainMenu += () => pendingLifecycleEvent = Lang.T("voltou ao menu principal", "back to the main menu");
                 return true;
             }, false, nameof(HookGameLifecycle));
         }
 
         /// <summary>
-        /// Houve um novo load / saída para o menu desde a última chamada? Usa os eventos do jogo e, por garantia,
-        /// a troca do objeto PlayerData (cada load cria um novo).
+        /// Was there a new load / exit to the menu since the last call? Uses the game's events and, as a safeguard,
+        /// the replacement of the PlayerData object (each load creates a new one).
         /// </summary>
         public static bool ConsumeWorldChange(out string what)
         {
@@ -82,7 +82,7 @@ namespace AutoKeeper.Core
             object token = Safe(() => (object)MainGame.PlayerData, null, nameof(ConsumeWorldChange));
             if (what == null && token != null && lastWorldToken != null && !ReferenceEquals(token, lastWorldToken))
             {
-                what = "novo load (dados do jogador trocados)";
+                what = Lang.T("novo load (dados do jogador trocados)", "new load (player data replaced)");
             }
             if (token != null)
             {
@@ -95,7 +95,7 @@ namespace AutoKeeper.Core
             return what != null;
         }
 
-        /// <summary>Versão do jogo (GameInfo.Version, ex.: "1.007").</summary>
+        /// <summary>Game version (GameInfo.Version, e.g. "1.007").</summary>
         public static string GetGameVersion()
         {
             if (cachedGameVersion == null)
@@ -106,63 +106,63 @@ namespace AutoKeeper.Core
         }
 
         /// <summary>
-        /// null = o jogador está livre (o bot pode agir). Caso contrário, o motivo da pausa automática:
-        /// menu, pausa, janela de UI, diálogo/roteiro (ByFlow), cinemática, sono, teleporte, morte.
+        /// null = the player is free (the bot may act). Otherwise, the reason for the automatic pause:
+        /// menu, pause, UI window, dialogue/script (ByFlow), cutscene, sleep, teleport, death.
         /// </summary>
-        public static string GetBlockReason() => Safe(GetBlockReasonImpl, "erro ao ler o estado do jogo", nameof(GetBlockReason));
+        public static string GetBlockReason() => Safe(GetBlockReasonImpl, Lang.T("erro ao ler o estado do jogo", "error reading the game state"), nameof(GetBlockReason));
 
         private static string GetBlockReasonImpl()
         {
             if (!IsInGame)
             {
-                return "fora do jogo (menu/carregando)";
+                return Lang.T("fora do jogo (menu/carregando)", "not in game (menu/loading)");
             }
             if (ModWindowOpen)
             {
-                return "configurações do AutoKeeper abertas";
+                return Lang.T("configurações do AutoKeeper abertas", "AutoKeeper settings open");
             }
             if (MainGame.IsGamePaused)
             {
-                return "jogo pausado";
+                return Lang.T("jogo pausado", "game paused");
             }
             LazyWidgetBase window = LazyWindowsStackController.ActiveWindow;
             if (window != null)
             {
-                return "janela aberta: " + window.GetType().Name;
+                return Lang.T("janela aberta: ", "window open: ") + window.GetType().Name;
             }
             PlayerController pc = MainGame.PlayerController;
-            if (!pc.IsControlEnabledByType(TakenControlType.ByCinematics)) return "cinemática";
-            if (!pc.IsControlEnabledByType(TakenControlType.ByFlow)) return "diálogo/cena roteirizada";
+            if (!pc.IsControlEnabledByType(TakenControlType.ByCinematics)) return Lang.T("cinemática", "cutscene");
+            if (!pc.IsControlEnabledByType(TakenControlType.ByFlow)) return Lang.T("diálogo/cena roteirizada", "dialogue/scripted scene");
             if (!pc.IsControlEnabledByType(TakenControlType.ByUI)) return "UI";
-            if (!pc.IsControlEnabledByType(TakenControlType.BySleep)) return "dormindo";
-            if (!pc.IsControlEnabledByType(TakenControlType.ByTeleport)) return "teleporte";
-            if (!pc.IsControlEnabledByType(TakenControlType.ByDeath)) return "morte";
-            if (!pc.IsControlEnabledByType(TakenControlType.ByBuilding)) return "modo construção";
+            if (!pc.IsControlEnabledByType(TakenControlType.BySleep)) return Lang.T("dormindo", "sleeping");
+            if (!pc.IsControlEnabledByType(TakenControlType.ByTeleport)) return Lang.T("teleporte", "teleport");
+            if (!pc.IsControlEnabledByType(TakenControlType.ByDeath)) return Lang.T("morte", "death");
+            if (!pc.IsControlEnabledByType(TakenControlType.ByBuilding)) return Lang.T("modo construção", "build mode");
             if (!LazyInput.IsInputActive())
             {
-                return "input do jogo desativado";
+                return Lang.T("input do jogo desativado", "game input disabled");
             }
             return null;
         }
 
-        /// <summary>O jogo está em português (pt-br)? Usado para escolher os textos da UI do mod.</summary>
+        /// <summary>Is the game in Portuguese (pt-br)? Used to choose the mod's UI texts.</summary>
         public static bool IsGameLanguagePortuguese() => Safe(() =>
         {
             string lang = (LLBase.CurrentLang ?? "en").ToLowerInvariant();
             return lang.StartsWith("pt") || lang == "br";
         }, false, nameof(IsGameLanguagePortuguese));
 
-        // ------------------------------------------------------------------ jogador
+        // ------------------------------------------------------------------ player
 
         public static string GetSceneId() => Safe(() => MainGame.PlayerData.currentGameSceneId, null, nameof(GetSceneId));
 
         /// <summary>
-        /// Id da zona do mundo onde o jogador está (ex.: "morgue"). A "cena" do Unity quase nunca muda no GK2
-        /// (o mapa todo é RuinedTemple); o que muda ao andar/teleportar é a zona — a mesma que o jogo mostra no canto.
+        /// Id of the world zone the player is in (e.g. "morgue"). The Unity "scene" almost never changes in GK2
+        /// (the whole map is RuinedTemple); what changes when walking/teleporting is the zone — the same one the game shows in the corner.
         /// </summary>
         public static string GetZoneId() => Safe(() => MainGame.PlayerData.CurrentWorldZoneData?.id, null, nameof(GetZoneId));
 
-        /// <summary>Nome da zona no idioma do jogo, igual ao rótulo do canto superior direito (ex.: "Pátio").</summary>
+        /// <summary>Zone name in the game's language, same as the top-right corner label (e.g. "Pátio").</summary>
         public static string GetZoneName() => Safe(() =>
         {
             PlayerData pd = MainGame.PlayerData;
@@ -176,28 +176,28 @@ namespace AutoKeeper.Core
 
         public static Vector3 GetPlayerPosition() => Safe(() => MainGame.PlayerData.position.Value, Vector3.zero, nameof(GetPlayerPosition));
 
-        /// <summary>Privação de Sono do jogo (`lack_of_sleep_debuff`, 2 dias sem dormir: metade da energia gasta vira insanidade).</summary>
+        /// <summary>The game's Lack of sleep (`lack_of_sleep_debuff`, 2 days without sleep: half the energy spent turns into insanity).</summary>
         public static bool HasLackOfSleep() => Safe(() => MainGame.Instance.GameSave.perkSystemData.HasPerk("lack_of_sleep_debuff"), false, nameof(HasLackOfSleep));
 
-        /// <summary>O personagem está dormindo (sistema de energia do jogo).</summary>
+        /// <summary>The character is sleeping (the game's energy system).</summary>
         public static bool IsSleeping() => Safe(() => MainGame.PlayerData.energySystem.IsSleeping, false, nameof(IsSleeping));
 
-        /// <summary>Dias de jogo desde a última vez que dormiu (o debuff entra em 2). -1 se não der para ler.</summary>
+        /// <summary>In-game days since the last sleep (the debuff kicks in at 2). -1 if it cannot be read.</summary>
         public static float GetDaysWithoutSleep() => Safe(() => MainGame.PlayerData.energySystem.timeWithoutSleep, -1f, nameof(GetDaysWithoutSleep));
 
-        /// <summary>Para onde o jogador está virado (x,z). No trabalho, o jogo alinha ao ponto de trabalho dele.</summary>
+        /// <summary>Where the player is facing (x,z). While working, the game aligns it to the object's work spot.</summary>
         public static Vector2 GetPlayerFacing() => Safe(() => MainGame.PlayerData.Direction, Vector2.zero, nameof(GetPlayerFacing));
 
-        /// <summary>Energia atual (GameRes "energy").</summary>
+        /// <summary>Current energy (GameRes "energy").</summary>
         public static float GetEnergy() => Safe(() => MainGame.PlayerData.GetRes("energy"), -1f, nameof(GetEnergy));
 
-        /// <summary>Energia máxima (definição do GameRes "energy").</summary>
+        /// <summary>Maximum energy (GameRes "energy" definition).</summary>
         public static float GetEnergyMax() => Safe(() => PlayerEnergyGameResSystem.GetSystem().Max, -1f, nameof(GetEnergyMax));
 
-        /// <summary>Qualquer GameRes do jogador (ex.: "insanity", "money", "stamina").</summary>
+        /// <summary>Any player GameRes (e.g. "insanity", "money", "stamina").</summary>
         public static float GetPlayerRes(string resName) => Safe(() => MainGame.PlayerData.GetRes(resName), -1f, nameof(GetPlayerRes));
 
-        /// <summary>Ids dos itens carregados "sobre a cabeça" (corpos, sacos, caixas...).</summary>
+        /// <summary>Ids of the items carried "overhead" (bodies, sacks, boxes...).</summary>
         public static List<string> GetOverheadItemIds() => Safe(() =>
         {
             var list = new List<string>();
@@ -211,7 +211,7 @@ namespace AutoKeeper.Core
             return list;
         }, new List<string>(), nameof(GetOverheadItemIds));
 
-        /// <summary>Quantidade total de um item no inventário principal do jogador (sem bolsas/cinto).</summary>
+        /// <summary>Total count of an item in the player's main inventory (without bags/belt).</summary>
         public static int CountPlayerItem(string itemId) => Safe(() =>
         {
             int total = 0;
@@ -225,15 +225,15 @@ namespace AutoKeeper.Core
             return total;
         }, 0, nameof(CountPlayerItem));
 
-        // ------------------------------------------------------------------ relógio
+        // ------------------------------------------------------------------ clock
 
-        /// <summary>Fração do dia 0..1 (EnvironmentEngine.timeOfDay).</summary>
+        /// <summary>Fraction of the day 0..1 (EnvironmentEngine.timeOfDay).</summary>
         public static float GetTimeOfDay() => Safe(() => EnvironmentEngine.Instance.timeOfDay, -1f, nameof(GetTimeOfDay));
 
-        /// <summary>Dia corrente do save (EnvironmentData.Day).</summary>
+        /// <summary>Current day of the save (EnvironmentData.Day).</summary>
         public static int GetDay() => Safe(() => MainGame.Instance.GameSave.environmentData.Day, -1, nameof(GetDay));
 
-        /// <summary>Índice do dia da semana (EnvironmentData.CurrentDayNumber).</summary>
+        /// <summary>Day-of-week index (EnvironmentData.CurrentDayNumber).</summary>
         public static int GetWeekDayNumber() => Safe(() => MainGame.Instance.GameSave.environmentData.CurrentDayNumber, -1, nameof(GetWeekDayNumber));
     }
 }

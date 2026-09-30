@@ -1,4 +1,4 @@
-// STUB só para compilar a ponte (assinaturas copiadas das referências da ponte 0.3.12). Nunca distribuir.
+// STUB only for building the bridge (signatures copied from the 0.3.12 bridge's references). Never distribute it.
 using System;
 using BepInEx.Configuration;
 namespace GK2.Framework

@@ -1,239 +1,239 @@
-# Notas de engenharia reversa — Graveyard Keeper 2
+# Reverse-engineering notes — Graveyard Keeper 2
 
-> Jogo **1.006 → 1.007** (diff revisado: nada do que o mod usa mudou) · Unity **6000.3.9f1** (Mono, não IL2CPP) · BepInEx **5.4.23.5** carregou sem erros.
-> Fonte: descompilação local de `Assembly-CSharp.dll` e `LazyBearTechnology.dll` (ILSpy). Nada foi alterado em disco.
-> Tudo que está aqui só é usado através de `Core/GameApi*.cs`.
+> Game **1.006 → 1.007** (diff reviewed: nothing the mod uses changed) · Unity **6000.3.9f1** (Mono, not IL2CPP) · BepInEx **5.4.23.5** loaded without errors.
+> Source: local decompilation of `Assembly-CSharp.dll` and `LazyBearTechnology.dll` (ILSpy). Nothing was changed on disk.
+> Everything here is only used through `Core/GameApi*.cs`.
 
-## 0. Observações gerais
-- Quase todas as classes do jogo estão no **namespace global**; a engine interna fica em `LazyBearTechnology`.
-- O jogo detecta mod loaders **só para bug report** (`ModLoaderDetection` → `Player.log` mostra `loader: ...`).
-  Ao reportar bugs à Lazy Bear, desativar mods.
-- A pasta oficial `LocalLow/.../Mods` aceita **apenas traduções** (Shift+F10 recarrega). Código precisa de BepInEx.
-- Grande parte da lógica de roteiro (entrega de corpos, quests) está em grafos **FlowCanvas/NodeCanvas** (dados),
-  não em C#. Ids concretos (WGOs, receitas) só aparecem em runtime → por isso o **dump F10**.
+## 0. General remarks
+- Almost all game classes are in the **global namespace**; the internal engine lives in `LazyBearTechnology`.
+- The game detects mod loaders **only for bug reports** (`ModLoaderDetection` → `Player.log` shows `loader: ...`).
+  When reporting bugs to Lazy Bear, disable mods.
+- The official `LocalLow/.../Mods` folder accepts **only translations** (Shift+F10 reloads). Code needs BepInEx.
+- Much of the scripted logic (body deliveries, quests) lives in **FlowCanvas/NodeCanvas** graphs (data),
+  not in C#. Concrete ids (WGOs, recipes) only show up at runtime → hence the **F10 dump**.
 
-## 1. Pontos de entrada (estáticos)
-| Membro | Uso |
+## 1. Entry points (static)
+| Member | Use |
 |---|---|
 | `MainGame.Instance` | singleton; `gameState` (`MainMenu`/`InGame`), `GameSave`, `dropSystem`, `craftSystem`, `movementSystem` |
-| `MainGame.PlayerController` | o jogador (MonoBehaviour) |
-| `MainGame.PlayerData` | dados do jogador (posição, inventários, recursos) |
-| `MainGame.WorldData` | todas as cenas/objetos (`GameSceneData`) |
-| `MainGame.IsGamePaused` + eventos `OnGamePaused/OnGameUnpaused/OnGameStarted/OnGoToMainMenu` | estado global |
-| `LazySingletonSO<GameInfo>.Instance.Version` | versão do jogo ("1.006") |
-| `GameBalance.Me.GetData<T>(id)` / `GetDataCollection<T>()` | definições (ItemDef, WGODef, CraftDef, BodyDef...) |
+| `MainGame.PlayerController` | the player (MonoBehaviour) |
+| `MainGame.PlayerData` | player data (position, inventories, resources) |
+| `MainGame.WorldData` | all scenes/objects (`GameSceneData`) |
+| `MainGame.IsGamePaused` + events `OnGamePaused/OnGameUnpaused/OnGameStarted/OnGoToMainMenu` | global state |
+| `LazySingletonSO<GameInfo>.Instance.Version` | game version ("1.006") |
+| `GameBalance.Me.GetData<T>(id)` / `GetDataCollection<T>()` | definitions (ItemDef, WGODef, CraftDef, BodyDef...) |
 
-## 2. Jogador
-- **Posição**: `PlayerData.position.Value` (Vector3); direção `PlayerData.Direction`; cena `PlayerData.currentGameSceneId`.
-- **Recursos (GameRes)**: `PlayerData.GetRes("energy" | "insanity" | "money" | "stamina" | "happiness")`;
-  máximo da energia: `PlayerEnergyGameResSystem.GetSystem().Max`.
-- **Inventários**: `PlayerData.inventory` (principal), `toolBeltInventory` (ferramentas: pá, bisturi...). Estrutura:
-  `Inventory.Data` é um `Item` cujo `.Inventory` é a `List<Item>`. `Item.id`, `Count`, `Definition` (`ItemDef`:
-  `itemGroupIds`, `type`, `itemSize`), `Item.Inventory` (itens aninhados — ex.: órgãos dentro do corpo).
-- **Itens "sobre a cabeça"** (corpos, itens `ItemSize.Big`): `PlayerData.OverheadItems`, `HasOverheadItem`,
+## 2. Player
+- **Position**: `PlayerData.position.Value` (Vector3); direction `PlayerData.Direction`; scene `PlayerData.currentGameSceneId`.
+- **Resources (GameRes)**: `PlayerData.GetRes("energy" | "insanity" | "money" | "stamina" | "happiness")`;
+  max energy: `PlayerEnergyGameResSystem.GetSystem().Max`.
+- **Inventories**: `PlayerData.inventory` (main), `toolBeltInventory` (tools: shovel, scalpel...). Structure:
+  `Inventory.Data` is an `Item` whose `.Inventory` is the `List<Item>`. `Item.id`, `Count`, `Definition` (`ItemDef`:
+  `itemGroupIds`, `type`, `itemSize`), `Item.Inventory` (nested items — e.g. organs inside the body).
+- **"Overhead" items** (bodies, `ItemSize.Big` items): `PlayerData.OverheadItems`, `HasOverheadItem`,
   `HasFreeOverheadSlot`, `AddOverheadItem`, `DropOverheadItem()`.
-- **Controle**: `PlayerController.IsControlEnabledByType(TakenControlType)` — flags:
+- **Control**: `PlayerController.IsControlEnabledByType(TakenControlType)` — flags:
   `ByWork, ByUI, ByLadder, ByFlow, ByTeleport, BySleep, ByAttack, ByDeath, ByFishing, ByBuilding, BySelf, ByCinematics`.
 
-## 3. Movimento / pathfinding
-- O próprio jogo move o jogador em cenas roteirizadas (`Flow_GoTo`, `ReservoirInteractionHandler`) com:
+## 3. Movement / pathfinding
+- The game itself moves the player in scripted scenes (`Flow_GoTo`, `ReservoirInteractionHandler`) with:
   ```csharp
   MainGame.PlayerController.MovementComponent.StartPath(
-      destino, MainGame.PlayerData.currentGameSceneId, cenaDestino,
+      destination, MainGame.PlayerData.currentGameSceneId, destinationScene,
       MovementType.Recast, speed: 1.5f, "", onFinish,
       MainGame.PlayerController.PlayerLocalAreaMovement.Seeker);
   ```
-  Retorno `StartPathResult` (`Started`, `AlreadyAtDestinationPoint`, ...). `MovementComponent.IsMoving`, `ForceStop()`.
-  `MovementType`: `Direct, Recast, GDGraph, WorldZone` (A* Pathfinding Project, grafo Recast da cena).
-- Ao **trabalhar** num objeto, `PlayerWorkComponent` já anda sozinho até o *dock point* do objeto
-  (`PlayerLocalAreaMovement.StartMovement`) — o "último metro" é resolvido pelo jogo.
+  Returns `StartPathResult` (`Started`, `AlreadyAtDestinationPoint`, ...). `MovementComponent.IsMoving`, `ForceStop()`.
+  `MovementType`: `Direct, Recast, GDGraph, WorldZone` (A* Pathfinding Project, the scene's Recast graph).
+- When **working** on an object, `PlayerWorkComponent` already walks by itself to the object's *dock point*
+  (`PlayerLocalAreaMovement.StartMovement`) — the "last meter" is handled by the game.
 - Dock points: `Wgo.TryGetDockPointForWorker(findNearest, pos)` (view) / `WgoData.GetDockPointDataWorldPosition`.
 
-## 4. Objetos do mundo (WGO) e itens no chão
-- Cena atual: `MainGame.WorldData.GetGameSceneDataById(sceneId)` → `wgoDataList`, `droppedItems` (`DropData`).
+## 4. World objects (WGO) and items on the ground
+- Current scene: `MainGame.WorldData.GetGameSceneDataById(sceneId)` → `wgoDataList`, `droppedItems` (`DropData`).
 - `WgoData`: `id` (def), `UniqueId`, `Position`, `WorldId`, `Inventory`, `CraftComponent`, `Worker`, `CustomTag`,
   `Definition` (`WGODef`: `interactionType`, `wgoGroup`, `toolAction`, ...).
-- Buscas prontas: `WorldData.GetWgoDataList(defId)`, `GetWgoDataListByGroup(group)`, `GetWgoDataByCustomTag(tag)`.
-- View (GameObject) de um `WgoData`: `GameScene.GetWgoViewGlobal(uniqueId)` → `Wgo.InteractionHandler`.
-- `WGODef.InteractionType` relevantes: `Autopsy(11)`, `Grave(7)`, `Embalm(28)`, `Crematorium(42)`,
+- Ready-made lookups: `WorldData.GetWgoDataList(defId)`, `GetWgoDataListByGroup(group)`, `GetWgoDataByCustomTag(tag)`.
+- View (GameObject) of a `WgoData`: `GameScene.GetWgoViewGlobal(uniqueId)` → `Wgo.InteractionHandler`.
+- Relevant `WGODef.InteractionType` values: `Autopsy(11)`, `Grave(7)`, `Embalm(28)`, `Crematorium(42)`,
   `RiverDump(47)`, `Craft(2)`, `Work(1)`, `Chest(6)`, `Garden(13)`, `Zombie(15)`.
-- Itens grandes no chão (corpos) são `DropView` com `BigDropInteractionHandler`: `Interact()` remove o drop e
-  faz `PlayerData.AddOverheadItem(item)` (= pegar o corpo).
+- Big items on the ground (bodies) are `DropView` with `BigDropInteractionHandler`: `Interact()` removes the drop and
+  calls `PlayerData.AddOverheadItem(item)` (= picking up the body).
 
-## 5. Interação (o que acontece quando o jogador aperta teclas)
-- `PlayerInteractionComponent` escolhe o alvo pelo colisor à frente: `WgoUnderInteraction` / `BigDropUnderInteraction`.
+## 5. Interaction (what happens when the player presses keys)
+- `PlayerInteractionComponent` picks the target by the collider in front: `WgoUnderInteraction` / `BigDropUnderInteraction`.
 - `PlayerInputHandler`:
-  - `GameKey.Interaction` (**E**) → eventos de quest do WGO, senão `handler.HasInteraction()` → `handler.Interact(player)`.
-  - `GameKey.Action` (**segurar**) → `WorkPlayerState` → `PlayerWorkComponent.TryStartInteraction/UpdateInteraction`
-    (anda até o dock point, escolhe ferramenta, gasta energia, avança a receita).
-- **Input do jogo** = `LazyBearTechnology.LazyInput` (MonoBehaviour). Em `Update()` limpa e repreenche as listas
-  privadas `pressedKeys`/`holdedKeys`; `GetKeyDown/GetKey(GameKey)` só consultam essas listas; se
-  `IsInputActive()` for falso, o `Update` sai antes (o jogo bloqueou input).
-  ⇒ **Input virtual**: Postfix em `LazyInput.Update` acrescentando teclas do bot às listas. O jogo executa
-  exatamente o mesmo código de quando o jogador aperta a tecla (energia, ferramenta, animações, regras).
+  - `GameKey.Interaction` (**E**) → the WGO's quest events, otherwise `handler.HasInteraction()` → `handler.Interact(player)`.
+  - `GameKey.Action` (**hold**) → `WorkPlayerState` → `PlayerWorkComponent.TryStartInteraction/UpdateInteraction`
+    (walks to the dock point, picks the tool, spends energy, advances the recipe).
+- **Game input** = `LazyBearTechnology.LazyInput` (MonoBehaviour). In `Update()` it clears and refills the private
+  lists `pressedKeys`/`holdedKeys`; `GetKeyDown/GetKey(GameKey)` only query those lists; if
+  `IsInputActive()` is false, `Update` returns early (the game blocked input).
+  ⇒ **Virtual input**: Postfix on `LazyInput.Update` appending the bot's keys to the lists. The game runs
+  exactly the same code as when the player presses the key (energy, tool, animations, rules).
 
-## 6. Receitas (craft)
-- `WgoData.CraftComponent`: `CraftsIn` (receitas disponíveis), `IsStarted`, `Status`, `CurrentCraftElement`,
+## 6. Recipes (craft)
+- `WgoData.CraftComponent`: `CraftsIn` (available recipes), `IsStarted`, `Status`, `CurrentCraftElement`,
   `CraftElementsQueue`, `AddToQueue(CraftElement, addToQueueTop)`, `TryContinueFromQueue()`, `Cancel()`.
-- As janelas de craft usam classes de **dados** que funcionam sem abrir UI:
-  `new UICraftSelectionWindowData(wgoData, craftDef, onAddToQueue, onStartCraft)` calcula itens padrão
-  (`CurrentNeedItems`), `ParamsData` e `CanStartCraft`; `OnCraftStarted()` chama o callback igual ao botão.
-  O handler então faz `new CraftElement(id, count, needItems, params)` → `AddToQueue` → `TryContinueFromQueue`.
-- Progresso manual: o jogador **segura Action** perto do objeto (seção 5).
+- The craft windows use **data** classes that work without opening the UI:
+  `new UICraftSelectionWindowData(wgoData, craftDef, onAddToQueue, onStartCraft)` computes the default items
+  (`CurrentNeedItems`), `ParamsData` and `CanStartCraft`; `OnCraftStarted()` calls the callback just like the button.
+  The handler then does `new CraftElement(id, count, needItems, params)` → `AddToQueue` → `TryContinueFromQueue`.
+- Manual progress: the player **holds Action** near the object (section 5).
 
-## 7. Corpos (MVP "processar corpos")
-- Corpo = `Item` com `itemGroupIds` contendo `"body"`; corpo de zumbi também tem `"zombie"`; excluir `ItemType.Demon`.
-  Órgãos/bolsos ficam em `bodyItem.Inventory` (por `ItemType`). Definição: `BodyDef` (`linkedBodyItemId`).
-- **Pegar corpo do chão**: interagir com o `DropView` (seção 4).
-- **Mesa de autópsia** (`AutopsyInteractionHandler`):
-  - com corpo na cabeça e mesa vazia → `Interact` insere o corpo (`GlobalEvent PlayerInsertBodyToAutopsy`);
-  - senão abre `UIAutopsyWindow`. Lógica em `UIAutopsyWindowData`:
-    - extrair órgão: `GameBalance.GetAutopsyCraftDef(AutopsyTypeCraft.ExtractOrgan, organId)` → seleção de craft → fila;
-    - extrair do bolso: `AutopsyTypeCraft.PocketExtract`;
-    - **tirar corpo**: remove da mesa e `AddOverheadItem` (tecla `GameKey.ExtractBody`).
-  - Mesa ocupada com receita em andamento: `CraftComponent.IsStarted` → segurar Action para trabalhar.
-- **Túmulos** (ids em `GameConsts`): `grave_ground` (terreno), `grave_empty` (cova aberta), `grave_body`
-  (com corpo), `grave_exhume`. Inserir corpo em `grave_empty` toca o som `oh_corpse_grave_drop`; receitas exatas
-  do enterro virão do dump. `UIGraveWindow` mostra qualidade (caveiras) e exumação.
-- Outros destinos: `EmbalmInteractionHandler`, `CrematoriumInteractionHandler`, `RiverDumpInteractionHandler`
-  (todos consomem o corpo que está na cabeça).
-- Zumbis podem ser **trabalhadores** de estações de craft (`CraftInteractionHandler` + `ZombieSystemData`) —
-  o bot não mexe em zumbis no MVP.
+## 7. Bodies (MVP "process bodies")
+- Body = `Item` whose `itemGroupIds` contain `"body"`; a zombie body also has `"zombie"`; exclude `ItemType.Demon`.
+  Organs/pockets are in `bodyItem.Inventory` (by `ItemType`). Definition: `BodyDef` (`linkedBodyItemId`).
+- **Picking up a body from the ground**: interact with the `DropView` (section 4).
+- **Autopsy table** (`AutopsyInteractionHandler`):
+  - with a body overhead and an empty table → `Interact` inserts the body (`GlobalEvent PlayerInsertBodyToAutopsy`);
+  - otherwise it opens `UIAutopsyWindow`. Logic in `UIAutopsyWindowData`:
+    - extract organ: `GameBalance.GetAutopsyCraftDef(AutopsyTypeCraft.ExtractOrgan, organId)` → craft selection → queue;
+    - extract from a pocket: `AutopsyTypeCraft.PocketExtract`;
+    - **take the body off**: removes it from the table and `AddOverheadItem` (key `GameKey.ExtractBody`).
+  - Table busy with a recipe in progress: `CraftComponent.IsStarted` → hold Action to work.
+- **Graves** (ids in `GameConsts`): `grave_ground` (plot), `grave_empty` (open grave), `grave_body`
+  (with a body), `grave_exhume`. Inserting a body into `grave_empty` plays the sound `oh_corpse_grave_drop`; the exact
+  burial recipes will come from the dump. `UIGraveWindow` shows quality (skulls) and exhumation.
+- Other destinations: `EmbalmInteractionHandler`, `CrematoriumInteractionHandler`, `RiverDumpInteractionHandler`
+  (all of them consume the body carried overhead).
+- Zombies can be **workers** at craft stations (`CraftInteractionHandler` + `ZombieSystemData`) —
+  the bot does not touch zombies in the MVP.
 
-## 8. Estados que PAUSAM o bot
-`!IsInGame` · `MainGame.IsGamePaused` · `LazyWindowsStackController.ActiveWindow != null` (qualquer janela) ·
-`TakenControlType` desativado em `ByCinematics / ByFlow / ByUI / BySleep / ByTeleport / ByDeath / ByBuilding` ·
-`!LazyInput.IsInputActive()`. (Implementado em `GameApi.GetBlockReason()`.)
+## 8. States that PAUSE the bot
+`!IsInGame` · `MainGame.IsGamePaused` · `LazyWindowsStackController.ActiveWindow != null` (any window) ·
+`TakenControlType` disabled for `ByCinematics / ByFlow / ByUI / BySleep / ByTeleport / ByDeath / ByBuilding` ·
+`!LazyInput.IsInputActive()`. (Implemented in `GameApi.GetBlockReason()`.)
 
-## 9. Relógio
-`EnvironmentEngine.Instance.timeOfDay` (0..1), eventos `OnTimeOfDayChangedEvent`, `OnNewDayStarted`;
-`GameSave.environmentData.Day` e `CurrentDayNumber` (dia da semana). `gameplayDayInMinutes` (padrão 5).
+## 9. Clock
+`EnvironmentEngine.Instance.timeOfDay` (0..1), events `OnTimeOfDayChangedEvent`, `OnNewDayStarted`;
+`GameSave.environmentData.Day` and `CurrentDayNumber` (day of the week). `gameplayDayInMinutes` (default 5).
 
 ---
 
-## 10. Proposta de assinaturas da `GameApi` (para aprovação)
+## 10. Proposed `GameApi` signatures (for approval)
 
-Já implementado (somente leitura): `IsMainGameReady`, `IsInGame`, `GetGameVersion()`, `GetBlockReason()`,
+Already implemented (read-only): `IsMainGameReady`, `IsInGame`, `GetGameVersion()`, `GetBlockReason()`,
 `GetSceneId()`, `GetPlayerPosition()`, `GetEnergy()`, `GetEnergyMax()`, `GetPlayerRes()`, `GetOverheadItemIds()`,
 `CountPlayerItem()`, `GetTimeOfDay()`, `GetDay()`, `GetWeekDayNumber()`, `WriteDiscoveryDump()`.
 
-Proposto para o bot (o bot nunca recebe tipos do jogo — só *handles* e DTOs do mod):
+Proposed for the bot (the bot never receives game types — only the mod's *handles* and DTOs):
 
 ```csharp
-// Handles opacos: o bot guarda só o id único; GameApi resolve para WgoData/DropData a cada uso.
+// Opaque handles: the bot only keeps the unique id; GameApi resolves it to WgoData/DropData on every use.
 readonly struct WorldObjectRef { string Uid; string DefId; Vector3 Position; ObjectKind Kind; }
 enum ObjectKind { AutopsyTable, Grave, EmbalmTable, Crematorium, RiverDump, CraftStation, Chest, Other }
 readonly struct GroundItemRef { string Uid; string ItemId; Vector3 Position; bool IsBody; }
 
-// --- consulta de mundo (cena atual)
+// --- world queries (current scene)
 IReadOnlyList<WorldObjectRef> FindObjects(ObjectKind kind);
-IReadOnlyList<GroundItemRef> FindGroundBodies();                     // corpos no chão (exclui zumbi/demônio)
-bool TryGetObject(string uid, out WorldObjectRef obj);                // ainda existe?
-string GetObjectDefId(string uid);                                    // ex.: grave_empty -> grave_body
-bool ObjectHasBody(string uid);                                       // mesa/cova tem corpo dentro
+IReadOnlyList<GroundItemRef> FindGroundBodies();                     // bodies on the ground (excludes zombie/demon)
+bool TryGetObject(string uid, out WorldObjectRef obj);                // does it still exist?
+string GetObjectDefId(string uid);                                    // e.g. grave_empty -> grave_body
+bool ObjectHasBody(string uid);                                       // table/grave has a body inside
 bool IsCraftRunning(string uid);                                      // CraftComponent.IsStarted
-IReadOnlyList<string> GetBodyOrgans(string tableUid);                 // órgãos extraíveis do corpo na mesa
-bool IsCarryingBody();                                                // overhead com grupo "body"
+IReadOnlyList<string> GetBodyOrgans(string tableUid);                 // extractable organs of the body on the table
+bool IsCarryingBody();                                                // overhead with group "body"
 
-// --- movimento (pathfinding do próprio jogo)
-bool MoveTo(Vector3 target, float stopDistance);                      // StartPath(Recast) com o Seeker do jogador
-bool MoveToObject(string uid);                                        // até o dock point do objeto
+// --- movement (the game's own pathfinding)
+bool MoveTo(Vector3 target, float stopDistance);                      // StartPath(Recast) with the player's Seeker
+bool MoveToObject(string uid);                                        // to the object's dock point
 bool IsMoving { get; }
 void StopMoving();                                                    // ForceStop
 float DistanceTo(Vector3 p);
 
-// --- input virtual (mesmo caminho do teclado; ver Patches/VirtualInputPatch)
-bool IsTargetUnderInteraction(string uid);                            // WgoUnderInteraction/BigDrop == alvo
-void PressInteract();                                                 // GameKey.Interaction por 1 frame
-void SetHoldAction(bool hold);                                        // segura/solta GameKey.Action (trabalhar)
+// --- virtual input (same path as the keyboard; see Patches/VirtualInputPatch)
+bool IsTargetUnderInteraction(string uid);                            // WgoUnderInteraction/BigDrop == target
+void PressInteract();                                                 // GameKey.Interaction for 1 frame
+void SetHoldAction(bool hold);                                        // holds/releases GameKey.Action (work)
 void ReleaseAllVirtualKeys();
 
-// --- ações compostas equivalentes a cliques de UI (usam as classes de dados das janelas, sem abrir UI)
+// --- composite actions equivalent to UI clicks (use the windows' data classes, without opening UI)
 bool CanStartAutopsyExtract(string tableUid, string organId, out string reason);
-bool StartAutopsyExtract(string tableUid, string organId);            // = clicar no órgão + "iniciar"
-bool TakeBodyFromTable(string tableUid);                              // = botão "tirar corpo"
+bool StartAutopsyExtract(string tableUid, string organId);            // = click the organ + "start"
+bool TakeBodyFromTable(string tableUid);                              // = "take body out" button
 bool CanStartCraft(string uid, string craftId, out string reason);
-bool StartCraft(string uid, string craftId, int count = 1);           // = janela de craft + "iniciar"
+bool StartCraft(string uid, string craftId, int count = 1);           // = craft window + "start"
 ```
 
-Regras que valem para todos os métodos: checam `GetBlockReason()==null` antes de agir, validam distância
-(ação só perto do alvo, como o jogador), nunca criam itens nem mexem no save, e logam uma vez se o jogo mudou.
+Rules for all methods: check `GetBlockReason()==null` before acting, validate distance
+(act only near the target, like the player), never create items nor touch the save, and log once if the game changed.
 
-## 7b. O que o dump F10 mostrou (save do usuário, jogo 1.007)
-- Cena `RuinedTemple` contém a área externa **e** o interior do necrotério; eles são ligados por portas
-  (`tp_RT_morgue_exit` dentro / `tp_RT_morgue_enter` fora, CustomInteraction = teleporte).
-- **Corpos chegam em paletes** `pallet_corpse_1/2` (grupo `morgue_pallets`, CustomInteraction, até 2 corpos),
-  não no chão. Pegar = E no palete com as mãos livres.
-- Corpo = item `body_corpse`, grupos `body, corpse, overhead`, tamanho Big. Filhos: `body_certificate:N`
-  (grupo `burial_reward`), órgãos `skin_*, bones_*, skull_*, heart_*, brain_*, guts_*` e `flesh/blood/fat`.
-  Zumbis: `body_zombie` / `body_wild_zombie` (sem `corpse`).
-- Mesas `autopsy_table_1/2`: receitas `extract_<órgão>` **sem itens exigidos**, ferramenta padrão da mesa (kit cirúrgico).
-- `crematorium_1` (a ~12 m das mesas): E com corpo na cabeça insere e inicia `burn_crematorium_1` (auto, sem trabalho);
-  quando termina fica `ReadyToFinishAutoCraft` e a tecla **Ação** recolhe o resultado.
-- `embalm_table_1`: receitas `embalm_*` automáticas.
-- Cemitério fica fora do necrotério; as 12 covas do save são `grave_ground` (ocupadas, com tampa/cerca). Nenhuma
-  `grave_empty` no momento → enterro fica para a 0.3 (atravessar a porta + receita da cova vazia; o dump agora
-  inclui `defsOfInterest` com as definições de `grave_*`, paletes e portas).
+## 7b. What the F10 dump showed (user's save, game 1.007)
+- Scene `RuinedTemple` contains the outdoor area **and** the morgue interior; they are connected by doors
+  (`tp_RT_morgue_exit` inside / `tp_RT_morgue_enter` outside, CustomInteraction = teleport).
+- **Bodies arrive on pallets** `pallet_corpse_1/2` (group `morgue_pallets`, CustomInteraction, up to 2 bodies),
+  not on the ground. Pick up = E on the pallet with empty hands.
+- Body = item `body_corpse`, groups `body, corpse, overhead`, size Big. Children: `body_certificate:N`
+  (group `burial_reward`), organs `skin_*, bones_*, skull_*, heart_*, brain_*, guts_*` and `flesh/blood/fat`.
+  Zombies: `body_zombie` / `body_wild_zombie` (without `corpse`).
+- Tables `autopsy_table_1/2`: recipes `extract_<organ>` **with no required items**, the table's default tool (surgical kit).
+- `crematorium_1` (~12 m from the tables): E with a body overhead inserts it and starts `burn_crematorium_1` (automatic, no work);
+  when it finishes it becomes `ReadyToFinishAutoCraft` and the **Action** key collects the result.
+- `embalm_table_1`: automatic `embalm_*` recipes.
+- The graveyard is outside the morgue; the save's 12 graves are `grave_ground` (occupied, with lid/fence). No
+  `grave_empty` at the moment → burial postponed to 0.3 (go through the door + empty-grave recipe; the dump now
+  includes `defsOfInterest` with the definitions of `grave_*`, pallets and doors).
 
-## 11. Plano do MVP "processar corpos" (v1)
-Loop por corpo, com fim seguro (energia < `MinEnergy`, sem corpo, sem mesa livre, sem ferramenta → para):
-**Implementado na 0.2.0 (destino padrão = crematório, escolhido pelo usuário):**
-palete → mesa livre → extrair órgãos → tirar corpo → crematório (E) → recolher cinzas (Ação) quando pronto.
-O plano original abaixo continua valendo para a cova (0.3).
+## 11. Plan for the MVP "process bodies" (v1)
+Loop per body, with a safe end (energy < `MinEnergy`, no body, no free table, no tool → stop):
+**Implemented in 0.2.0 (default destination = crematorium, chosen by the user):**
+pallet → free table → extract organs → take the body off → crematorium (E) → collect ashes (Action) when ready.
+The original plan below still applies to the grave (0.3).
 
-1. Se não está carregando corpo: achar corpo no chão mais próximo → andar → **E** (pega).
-2. Achar mesa de autópsia vazia → andar → **E** (insere o corpo).
-3. Para cada órgão marcado na config (ex.: `ExtractOrgans = all | none | lista`) → iniciar extração →
-   **segurar Action** até a receita terminar (energia checada a cada tick).
-4. Tirar o corpo da mesa → destino configurável: `Grave` (cova `grave_empty` livre) / `RiverDump` / `Crematorium` /
-   `LeaveOnTable` → andar → **E** / receita de enterro com **Action**.
-5. Repetir. Overlay mostra o passo atual; F8 interrompe e solta tudo.
+1. If not carrying a body: find the nearest body on the ground → walk → **E** (picks it up).
+2. Find an empty autopsy table → walk → **E** (inserts the body).
+3. For each organ enabled in the config (e.g. `ExtractOrgans = all | none | list`) → start the extraction →
+   **hold Action** until the recipe finishes (energy checked every tick).
+4. Take the body off the table → configurable destination: `Grave` (free `grave_empty`) / `RiverDump` / `Crematorium` /
+   `LeaveOnTable` → walk → **E** / burial recipe with **Action**.
+5. Repeat. The overlay shows the current step; F8 interrupts and releases everything.
 
-**Dados que faltam (virão do dump F10 perto do necrotério/cemitério):** ids das mesas, receita de enterro em
-`grave_empty` e seus itens exigidos, onde os corpos chegam, ferramentas exigidas (`customItemTypeAction`).
+**Missing data (will come from the F10 dump near the morgue/graveyard):** table ids, burial recipe in
+`grave_empty` and its required items, where bodies arrive, required tools (`customItemTypeAction`).
 
-## 13. Cova (0.3.0) — definições reais do jogo 1.007 (dump F10, `defsOfInterest`)
-- `grave_empty`: `CustomInteraction`; hint `hint_place_body`; condição `HasPlayerOvrhdItemByGrp("body") && !wild_zombie && !zombie`;
-  execução `InsertOvrhdItem()` + `ChangeWgo("grave_body")` → **não é receita**: E com corpo na cabeça coloca o corpo.
-- `grave_body`, `grave_exhume`, `grave_empty_test`, `grave_empty_place`: `Work`, ferramenta `Shovel` (segurar Ação).
-- `grave_ground` (as covas fechadas do save): inventário = `body_corpse` + `grave_top_*` / `grave_bot_*`; `interactionType` Grave.
-- Cemitério em ~(30..37, 17..19); o save de teste não tinha `grave_empty` (12 `grave_ground` ocupadas).
-- Bot: Bury = PressInteract com corpo (pronto quando o jogador não carrega mais); FillGrave = SetHoldAction(true) até o
-  id do objeto deixar de ser `grave_body` (timeout 90 s).
-- `grave_empty_place` (Work, Shovel) é a cova **marcada** pelo construtor: receita de construção `grave_empty_place_p` em
-  `builder_graveyard` (área `temple_graveyard_module_area_grave`) → trabalhar com a pá vira `grave_empty`. Visto nos dados
-  (`resources.assets`) e confirmado no dump 0.3.15 (`defsOfInterest`): `grave_empty_place` hp 4 → `replaceToWgoOnDie`
-  `grave_empty`; `grave_body` hp 3 → `grave_ground` (ao morrer: `DropBurialRewards()`, `DecPPar("cur_bodies_count", 1)`);
-  `grave_exhume` hp 4 → `grave_empty` (`DropItemByGroup("body")`). Bot 0.3.14: DigGrave = segurar Ação até o id deixar
-  de ser `grave_empty_place`.
-- Ao trocar de objeto, a mira do jogo passa para o objeto novo: conferir o id ANTES da guarda de mira.
+## 13. Grave (0.3.0) — actual definitions from game 1.007 (F10 dump, `defsOfInterest`)
+- `grave_empty`: `CustomInteraction`; hint `hint_place_body`; condition `HasPlayerOvrhdItemByGrp("body") && !wild_zombie && !zombie`;
+  execution `InsertOvrhdItem()` + `ChangeWgo("grave_body")` → **not a recipe**: E with a body overhead places the body.
+- `grave_body`, `grave_exhume`, `grave_empty_test`, `grave_empty_place`: `Work`, tool `Shovel` (hold Action).
+- `grave_ground` (the save's closed graves): inventory = `body_corpse` + `grave_top_*` / `grave_bot_*`; `interactionType` Grave.
+- Graveyard at ~(30..37, 17..19); the test save had no `grave_empty` (12 occupied `grave_ground`).
+- Bot: Bury = PressInteract with a body (done when the player is no longer carrying it); FillGrave = SetHoldAction(true) until the
+  object's id stops being `grave_body` (90 s timeout).
+- `grave_empty_place` (Work, Shovel) is the grave **placed** with the builder: build recipe `grave_empty_place_p` in
+  `builder_graveyard` (area `temple_graveyard_module_area_grave`) → working it with the shovel turns it into `grave_empty`. Seen in the data
+  (`resources.assets`) and confirmed in the 0.3.15 dump (`defsOfInterest`): `grave_empty_place` hp 4 → `replaceToWgoOnDie`
+  `grave_empty`; `grave_body` hp 3 → `grave_ground` (on death: `DropBurialRewards()`, `DecPPar("cur_bodies_count", 1)`);
+  `grave_exhume` hp 4 → `grave_empty` (`DropItemByGroup("body")`). Bot 0.3.14: DigGrave = hold Action until the id is no
+  longer `grave_empty_place`.
+- When the object is swapped, the game's aim moves to the new object: check the id BEFORE the aim guard.
 
-## 14. Ponto de trabalho escolhido pelo jogo (0.3.13, IL do 1.007.1)
-- Segurar Ação → `PlayerWorkComponent.TryStartInteraction` → `FindWgoToWork([WgoUnderInteraction])` →
-  `FindNearestDockPoint(pos, dir, ignoreDir, lista)`: pontos ativos do objeto com `CanWorkOn` e
-  `PlayerLocalAreaMovement.IsReachable(ponto)` (GridGraph local de 4,4 m em volta do jogador + `PlayerColliderTester`);
-  custo = comprimento do caminho A* + ângulo × 0,00267. Se não está no ponto (`IsOnWorkingSpot`: < 0,1 m), o jogo anda
-  (`StartMovement`) ou teleporta (`SetPosition`) até ele e `AlignPlayerToDockPoint` vira o jogador.
-- Consequência: o ponto "fora-navmesh"/"apertado" do nosso `TryGetStandSpot` não coincide com o do jogo; o bot guarda
-  onde o jogo o colocou quando o trabalho avança (`workSpots`) e usa esse ponto depois.
-- Facing do jogador: `PlayerData.Direction` (Vector2).
+## 14. Work spot chosen by the game (0.3.13, IL of 1.007.1)
+- Holding Action → `PlayerWorkComponent.TryStartInteraction` → `FindWgoToWork([WgoUnderInteraction])` →
+  `FindNearestDockPoint(pos, dir, ignoreDir, list)`: the object's active points with `CanWorkOn` and
+  `PlayerLocalAreaMovement.IsReachable(point)` (local 4.4 m GridGraph around the player + `PlayerColliderTester`);
+  cost = A* path length + angle × 0.00267. If the player is not on the spot (`IsOnWorkingSpot`: < 0.1 m), the game walks
+  (`StartMovement`) or teleports (`SetPosition`) to it and `AlignPlayerToDockPoint` turns the player.
+- Consequence: the "off-navmesh"/"tight" spot from our `TryGetStandSpot` does not match the game's; the bot remembers
+  where the game put it when the work progresses (`workSpots`) and uses that spot afterwards.
+- Player facing: `PlayerData.Direction` (Vector2).
 
-## 15. Insanidade e sono (0.3.15)
-- Energia máxima = 100 − insanidade (dumps: 93,8+6,2; 49,1+50,9). Perto de 80 o jogo não deixa autópsia/cova avançar.
-- `EnergySystem.TrackTimeWithoutSleep`: `PlayerData.energySystem.timeWithoutSleep` (dias) ≥ 2 → perk
-  `lack_of_sleep_debuff` em `MainGame.Instance.GameSave.perkSystemData` (`HasPerk`). Com ele, energia gasta vira
-  insanidade (visto: 11 → 51 num corpo). Dormir até encher remove o debuff.
-- Regras exatas (IL, jogo 1.007.1, conferidas na 0.3.22):
-  - `PlayerEnergyGameResSystem.Add(v)`: com v < 0 e o debuff → `AddRes("insanity", -v / 2)` — **metade** da energia gasta vira insanidade.
-  - `EnergySystem.StartSleeping`: com energia cheia e **sem** o debuff o jogo recusa ("not required"); com o debuff dorme
-    mesmo de energia cheia. Ao começar: `timeWithoutSleep = 0`, tempo ×50 (`SetTimeSpeedMultiplier(50)`), controle
-    tomado (`TakenControlType.BySleep` → o bot pausa "dormindo").
-  - `RestoreEnergyWhileSleeping`: energia +400×Δdia enquanto não cheia; ao encher com o debuff → `DeactivateLackOfSleep`
-    (tira o perk, `timeWithoutSleep = 0`) e **insanidade −20**; acorda quando a energia está cheia e acabou o
-    `remainingSleepTime`. `StopSleeping` salva o jogo (exceto com `sleepWithoutSavingGame`).
-  - `timeWithoutSleep` anda no mesmo ritmo de `timeOfDay` (dumps 000209 → 000607: +0,4535 nos dois, em 3 min 58 s reais).
-- Teste 0.3.18 (dumps 20260930-142243 → 142433): pátio, dia 139 18:23, 2,03 dias acordado, Privação de Sono, energia 93,8/93,8,
-  insanidade 6,15 → bot foi pela porta "home enter" até `bed` (`customTag bed_home`), dormiu, acordou ~23h sem o debuff,
-  voltou pela porta "home basement enter" e continuou o corpo da mesa (4 extrações). Depois: dia 140 04:08, 0,21 dia
-  acordado, energia 28/92,8, insanidade 7,2 (as extrações de autópsia somam insanidade por conta própria), inventário
-  +1 bones, skull, heart, flesh.
+## 15. Insanity and sleep (0.3.15)
+- Max energy = 100 − insanity (dumps: 93.8+6.2; 49.1+50.9). Near 80 the game does not let autopsies/graves progress.
+- `EnergySystem.TrackTimeWithoutSleep`: `PlayerData.energySystem.timeWithoutSleep` (days) ≥ 2 → perk
+  `lack_of_sleep_debuff` in `MainGame.Instance.GameSave.perkSystemData` (`HasPerk`). With it, energy spent turns into
+  insanity (seen: 11 → 51 in one body). Sleeping until energy is full removes the debuff.
+- Exact rules (IL, game 1.007.1, checked in 0.3.22):
+  - `PlayerEnergyGameResSystem.Add(v)`: with v < 0 and the debuff → `AddRes("insanity", -v / 2)` — **half** of the energy spent turns into insanity.
+  - `EnergySystem.StartSleeping`: with full energy and **without** the debuff the game refuses ("not required"); with the debuff it sleeps
+    even at full energy. On start: `timeWithoutSleep = 0`, time ×50 (`SetTimeSpeedMultiplier(50)`), control
+    taken (`TakenControlType.BySleep` → the bot pauses as "sleeping").
+  - `RestoreEnergyWhileSleeping`: energy +400×Δday while not full; when it fills up with the debuff → `DeactivateLackOfSleep`
+    (removes the perk, `timeWithoutSleep = 0`) and **insanity −20**; wakes up when energy is full and
+    `remainingSleepTime` has run out. `StopSleeping` saves the game (except with `sleepWithoutSavingGame`).
+  - `timeWithoutSleep` advances at the same rate as `timeOfDay` (dumps 000209 → 000607: +0.4535 on both, in 3 min 58 s of real time).
+- Test 0.3.18 (dumps 20260930-142243 → 142433): yard, day 139 18:23, 2.03 days awake, Lack of sleep, energy 93.8/93.8,
+  insanity 6.15 → the bot went through the "home enter" door to `bed` (`customTag bed_home`), slept, woke up ~23h without
+  the debuff, came back through the "home basement enter" door and continued the body on the table (4 extractions).
+  Afterwards: day 140 04:08, 0.21 days awake, energy 28/92.8, insanity 7.2 (autopsy extractions add insanity on their
+  own), inventory +1 bones, skull, heart, flesh.

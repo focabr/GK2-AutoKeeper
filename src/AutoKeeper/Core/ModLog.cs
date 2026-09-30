@@ -5,10 +5,10 @@ using BepInEx.Logging;
 
 namespace AutoKeeper.Core
 {
-    /// <summary>Uma mensagem para a lista de eventos do painel.</summary>
+    /// <summary>A message for the status panel's event list.</summary>
     internal readonly struct LogEntry
     {
-        public readonly float At;          // Time.unscaledTime (para "há X s")
+        public readonly float At;          // Time.unscaledTime (for "X s ago")
         public readonly LogLevel Level;
         public readonly string Text;
 
@@ -21,8 +21,8 @@ namespace AutoKeeper.Core
     }
 
     /// <summary>
-    /// Log central: escreve no Logger do BepInEx e guarda as últimas mensagens para o painel.
-    /// Mensagens Debug só aparecem com [Debug] VerboseLogging = true. <see cref="Detail"/> vai só para o arquivo.
+    /// Central log: writes to the BepInEx Logger and keeps the latest messages for the status panel.
+    /// Debug messages only appear with [Debug] VerboseLogging = true. <see cref="Detail"/> goes only to the file.
     /// </summary>
     internal static class ModLog
     {
@@ -33,7 +33,7 @@ namespace AutoKeeper.Core
         private static readonly LinkedList<LogEntry> recent = new LinkedList<LogEntry>();
         private static readonly HashSet<string> onceKeys = new HashSet<string>();
 
-        /// <summary>Eventos para o painel, do mais antigo para o mais novo.</summary>
+        /// <summary>Events for the status panel, from oldest to newest.</summary>
         public static IEnumerable<LogEntry> Recent => recent;
 
         public static void Init(ManualLogSource logSource, Settings modSettings)
@@ -52,12 +52,12 @@ namespace AutoKeeper.Core
 
         public static void Info(string msg) => Write(LogLevel.Info, msg);
 
-        /// <summary>Informação técnica/passo a passo: vai para o LogOutput.log, mas não para a lista de eventos do painel.</summary>
+        /// <summary>Technical/step-by-step info: goes to LogOutput.log, but not to the status panel's event list.</summary>
         public static void Detail(string msg) => source?.Log(LogLevel.Info, msg);
         public static void Warn(string msg) => Write(LogLevel.Warning, msg);
         public static void Error(string msg) => Write(LogLevel.Error, msg);
 
-        /// <summary>Loga apenas na primeira vez para a mesma chave (evita spam a cada frame).</summary>
+        /// <summary>Logs only the first time for the same key (avoids spam every frame).</summary>
         public static void WarnOnce(string key, string msg)
         {
             if (onceKeys.Add(key))
@@ -66,14 +66,14 @@ namespace AutoKeeper.Core
             }
         }
 
-        /// <summary>Permite que o aviso "uma vez" da chave volte a aparecer (ex.: ao religar o bot).</summary>
+        /// <summary>Lets the key's "once" warning appear again (e.g. when the bot is turned back on).</summary>
         public static void ResetOnce(string key) => onceKeys.Remove(key);
 
         private static void Write(LogLevel level, string msg)
         {
             if (level == LogLevel.Debug)
             {
-                // O filtro padrão do LogOutput.log do BepInEx descarta Debug: grava como Info marcado, só no arquivo.
+                // BepInEx's default LogOutput.log filter drops Debug: writes it as tagged Info, only to the file.
                 source?.Log(LogLevel.Info, "[dbg] " + msg);
                 return;
             }

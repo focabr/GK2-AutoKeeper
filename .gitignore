@@ -7,14 +7,14 @@ dist/
 .idea/
 .vscode/
 
-# Configuração local (caminho do jogo)
+# Local configuration (game path)
 GamePath.props
 
-# DLLs do jogo / BepInEx NUNCA vão para o repositório
+# Game / BepInEx DLLs NEVER go into the repository
 lib/*.dll
 *.dll
 
-# Dumps de descoberta e logs copiados do jogo
+# Discovery dumps and logs copied from the game
 dumps/
 *.log
 tools/*/out/

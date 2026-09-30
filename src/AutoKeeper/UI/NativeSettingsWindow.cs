@@ -16,17 +16,17 @@ using UnityEngine.UI;
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Tela de configurações com o VISUAL NATIVO do jogo.
+    /// Settings window with the game's NATIVE LOOK.
     ///
-    /// Em vez de desenhar botões próprios, clonamos peças da janela de Configurações do próprio jogo
-    /// (UIGameSettingsWindow): moldura/cabeçalho, linhas "◀ valor ▶" (UISwitchButton), sliders (UISlider)
-    /// e botões de diálogo (UIDialogWindowButton) — mesmas sprites, fontes, cores e sons.
-    /// A janela é uma LazyWindow de verdade: entra na pilha de janelas do jogo, que pausa o jogo e bloqueia
-    /// o personagem enquanto ela está aberta; Esc fecha.
+    /// Instead of drawing our own buttons, we clone parts of the game's own Settings window
+    /// (UIGameSettingsWindow): frame/header, "◀ value ▶" rows (UISwitchButton), sliders (UISlider)
+    /// and dialog buttons (UIDialogWindowButton) — same sprites, fonts, colors and sounds.
+    /// The window is a real LazyWindow: it joins the game's window stack, which pauses the game and locks
+    /// the character while it is open; Esc closes it.
     ///
-    /// Exceção documentada à regra "só a GameApi toca o jogo": esta classe usa componentes de UI do jogo.
-    /// Se qualquer peça não for encontrada (jogo atualizado), TryCreate falha e o mod usa a janela simples (IMGUI).
-    /// Técnica de captura inspirada no GK2 Mod Framework (SuperMan4eg, MIT).
+    /// Documented exception to the "only GameApi touches the game" rule: this class uses the game's UI components.
+    /// If any part is not found (game updated), TryCreate fails and the mod uses the simple window (IMGUI).
+    /// Capture technique inspired by the GK2 Mod Framework (SuperMan4eg, MIT).
     /// </summary>
     internal sealed class NativeSettingsWindow : LazyWindow<LazyWidgetDataBase>
     {
@@ -60,10 +60,10 @@ namespace AutoKeeper.UI
         private bool lastBotOn;
         private bool pt;
 
-        /// <summary>Esperando o jogador apertar a nova tecla de um atalho.</summary>
+        /// <summary>Waiting for the player to press the new key for a shortcut.</summary>
         public bool IsCapturingKey => capturing != null || Time.frameCount == captureEndFrame;
 
-        // ------------------------------------------------------------------ criação
+        // ------------------------------------------------------------------ creation
 
         internal static NativeSettingsWindow TryCreate(Settings settings, BotController bot, out string error)
         {
@@ -73,7 +73,7 @@ namespace AutoKeeper.UI
                 UIGameSettingsWindow src = LazyUI.GetWindow<UIGameSettingsWindow>();
                 if (src == null)
                 {
-                    error = "janela de configurações do jogo indisponível";
+                    error = Lang.T("janela de configurações do jogo indisponível", "game settings window unavailable");
                     return null;
                 }
                 Transform srcLayout = src.transform.Find("GenericWIndowLayout");
@@ -83,7 +83,8 @@ namespace AutoKeeper.UI
                 if (srcLayout == null || srcSwitch == null || srcSlider == null || srcButton == null
                     || SwitchAmountField == null || SliderField == null || SliderAmountField == null)
                 {
-                    error = $"peças não encontradas (layout={srcLayout != null}, switch={srcSwitch != null}, slider={srcSlider != null}, button={srcButton != null})";
+                    error = Lang.T($"peças não encontradas (layout={srcLayout != null}, switch={srcSwitch != null}, slider={srcSlider != null}, button={srcButton != null})",
+                        $"parts not found (layout={srcLayout != null}, switch={srcSwitch != null}, slider={srcSlider != null}, button={srcButton != null})");
                     return null;
                 }
 
@@ -99,7 +100,7 @@ namespace AutoKeeper.UI
                 nav.navigationGroupSources = new List<GamepadNavigationController.NavigationGroupSource>();
                 nav.useGridSkippedIfListEmpty = true;
 
-                // Contêiner INATIVO: clones ficam aqui sem rodar Awake/Start até serem configurados.
+                // INACTIVE container: clones stay here without running Awake/Start until they are configured.
                 var stagingGo = new GameObject("AK_Templates", typeof(RectTransform));
                 stagingGo.transform.SetParent(root.transform, false);
                 stagingGo.SetActive(false);
@@ -112,10 +113,11 @@ namespace AutoKeeper.UI
                 w.sliderTemplate = CloneInactive(srcSlider.gameObject, w.staging);
                 w.buttonTemplate = CloneInactive(srcButton.gameObject, w.staging);
                 w.BuildChrome(srcLayout.gameObject);
-                w.Init(); // LazyWindow: controlador de input, canvas, esconde a janela
+                w.Init(); // LazyWindow: input controller, canvas, hides the window
                 error = null;
-                ModLog.Detail("Tela de configurações nativa criada (visual da janela de Configurações do jogo).");
-                ModLog.Detail("UI nativa: " + w.Describe());
+                ModLog.Detail(Lang.T("Tela de configurações nativa criada (visual da janela de Configurações do jogo).",
+                    "Native settings window created (look of the game's Settings window)."));
+                ModLog.Detail(Lang.T("UI nativa: ", "Native UI: ") + w.Describe());
                 return w;
             }
             catch (Exception e)
@@ -140,7 +142,7 @@ namespace AutoKeeper.UI
         {
             GameObject clone = Instantiate(template, inactiveParent, false);
             clone.name = template.name + "_AK";
-            // Textos com LocalizedLabel seriam retraduzidos pelo jogo e apagariam os nossos.
+            // Texts with a LocalizedLabel would be re-translated by the game and overwrite ours.
             foreach (LocalizedLabel l in clone.GetComponentsInChildren<LocalizedLabel>(true))
             {
                 DestroyImmediate(l);
@@ -158,16 +160,16 @@ namespace AutoKeeper.UI
             to.localScale = Vector3.one;
         }
 
-        /// <summary>Clona a moldura da janela de Configurações do jogo e esvazia a área de conteúdo.</summary>
+        /// <summary>Clones the frame of the game's Settings window and empties the content area.</summary>
         private void BuildChrome(GameObject srcLayout)
         {
             GameObject layout = CloneInactive(srcLayout, staging);
             Transform contentT = layout.transform.Find("Content");
             if (contentT == null)
             {
-                throw new InvalidOperationException("Content não encontrado na janela do jogo");
+                throw new InvalidOperationException(Lang.T("Content não encontrado na janela do jogo", "Content not found in the game's window"));
             }
-            // Remove as linhas do jogo (resolução, volume...) — ficam só moldura, cabeçalho e dicas.
+            // Removes the game's rows (resolution, volume...) — only the frame, header and tips remain.
             for (int i = contentT.childCount - 1; i >= 0; i--)
             {
                 DestroyImmediate(contentT.GetChild(i).gameObject);
@@ -183,11 +185,11 @@ namespace AutoKeeper.UI
                 v.childForceExpandHeight = false;
             }
 
-            // Título: o TMP do cabeçalho da moldura.
+            // Title: the TMP of the frame's header.
             Transform header = layout.transform.Find("Frame/HeaderGroup/Header");
             titleText = header != null ? header.GetComponent<TextMeshProUGUI>() : null;
 
-            // Botões da moldura (ex.: X) passam a fechar a NOSSA janela.
+            // Frame buttons (e.g. X) now close OUR window.
             foreach (LazyButton b in layout.GetComponentsInChildren<LazyButton>(true))
             {
                 b.onClick.RemoveAllListeners();
@@ -197,7 +199,7 @@ namespace AutoKeeper.UI
             layout.transform.SetParent(transform, false);
         }
 
-        /// <summary>Resumo da estrutura clonada (vai para o log para ajustar o layout sem ver a tela).</summary>
+        /// <summary>Summary of the cloned structure (goes to the log, to tune the layout without seeing the screen).</summary>
         private string Describe()
         {
             string Size(GameObject g) => g == null ? "-" : ((RectTransform)g.transform).rect.size.ToString("0");
@@ -205,10 +207,10 @@ namespace AutoKeeper.UI
             string children = string.Join(",", transform.Cast<Transform>().SelectMany(t => t.Cast<Transform>()).Select(t => t.name).Take(12));
             return $"content={(content != null ? content.rect.size.ToString("0") : "-")} layout={(lg != null ? lg.GetType().Name : "-")} "
                 + $"switch={Size(switchTemplate)} slider={Size(sliderTemplate)} button={Size(buttonTemplate)} "
-                + $"title={(titleText != null)} partes=[{children}]";
+                + $"title={(titleText != null)} {Lang.T("partes", "parts")}=[{children}]";
         }
 
-        // ------------------------------------------------------------------ ciclo de vida (LazyWindow)
+        // ------------------------------------------------------------------ lifecycle (LazyWindow)
 
         public override void Redraw()
         {
@@ -235,7 +237,7 @@ namespace AutoKeeper.UI
 
         protected override void PrintTips()
         {
-            // A janela do jogo imprime dicas de controle; sem o componente de dicas não há o que imprimir.
+            // The game's window prints control tips; without the tips component there is nothing to print.
             if (lazyButtonTips != null)
             {
                 base.PrintTips();
@@ -266,7 +268,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        // ------------------------------------------------------------------ conteúdo
+        // ------------------------------------------------------------------ content
 
         private void BuildContent()
         {
@@ -285,32 +287,32 @@ namespace AutoKeeper.UI
                 titleText.text = $"{Plugin.Name} {Plugin.Version}";
             }
 
-            // 1) Categoria (◀ Corpos ▶) — igual às opções da janela de Configurações do jogo.
+            // 1) Category (◀ Bodies ▶) — like the options in the game's Settings window.
             SettingTab[] tabs = (SettingTab[])Enum.GetValues(typeof(SettingTab));
-            // Sem rótulo e centralizada: parece um seletor de "páginas" acima de tudo, não mais uma opção da lista.
+            // No label and centered: it looks like a "page" selector above everything, not just another option in the list.
             UISwitchButton categorySwitch = AddSwitch("", tabs.Select(TabName).ToArray(), Array.IndexOf(tabs, tab),
                 i => { tab = tabs[i]; rebuildPending = true; },
                 T("Categoria: escolha o grupo de opções.", "Category: choose the group of options."));
 
-            // Divisor: deixa claro que as opções abaixo pertencem à categoria escolhida acima.
+            // Divider: makes it clear that the options below belong to the category chosen above.
             AddDivider();
 
-            // 2) Opções da categoria.
+            // 2) The category's options.
             foreach (SettingInfo s in settings.UiSettings.Where(x => x.Tab == tab).OrderBy(x => x.Order))
             {
                 AddSettingRow(s);
             }
 
-            // 3) Descrição da opção sob o mouse.
+            // 3) Description of the option under the mouse.
             hintText = AddHint();
 
-            // 4) Botões: ligar/desligar bot, restaurar padrões, fechar.
-            // 4) Ações da janela: ligar/desligar em destaque; restaurar e fechar lado a lado.
+            // 4) Buttons: start/stop bot, reset defaults, close.
+            // 4) Window actions: start/stop highlighted; reset and close side by side.
             AddDivider();
             lastBotOn = bot.State != BotController.BotState.Off;
             botButton = AddButton(BotButtonText(), bot.Toggle,
                 T("Liga ou desliga o bot agora (o mesmo que a tecla F8).", "Turns the bot on or off now (same as the F8 key)."));
-            FixWidth(botButton, 308f); // mesma largura das duas de baixo somadas
+            FixWidth(botButton, 308f); // same width as the two below combined
             AddButtonRow(
                 (T("Restaurar padrões", "Reset defaults"), () =>
                 {
@@ -324,7 +326,7 @@ namespace AutoKeeper.UI
             CenterSwitch(categorySwitch);
         }
 
-        /// <summary>Esconde o rótulo da linha e centraliza o conjunto ◀ valor ▶ na largura da linha.</summary>
+        /// <summary>Hides the row's label and centers the ◀ value ▶ group across the row's width.</summary>
         private static void CenterSwitch(UISwitchButton sw)
         {
             try
@@ -342,7 +344,7 @@ namespace AutoKeeper.UI
                 {
                     header.text = "";
                 }
-                // O valor do jogo (amountLabel) fica dentro de uma moldura maior; usa o pai dela como "campo" se existir.
+                // The game's value (amountLabel) sits inside a larger frame; use its parent as the "field" if there is one.
                 RectTransform field = amount.parent != null && amount.parent != row && amount.parent is RectTransform pr && pr.parent == inc.parent
                     ? pr
                     : amount;
@@ -372,7 +374,7 @@ namespace AutoKeeper.UI
             }
             catch (Exception e)
             {
-                ModLog.Debug("Não consegui centralizar a categoria: " + e.Message);
+                ModLog.Debug(Lang.T("Não consegui centralizar a categoria: " + e.Message, "Could not center the category: " + e.Message));
             }
         }
 
@@ -413,7 +415,7 @@ namespace AutoKeeper.UI
                     capturing = s;
                     DrawButton(b, $"{label}: {T("aperte a nova tecla… (Esc cancela)", "press the new key… (Esc cancels)")}", null);
                 }, help + " " + T("Clique e aperte a nova tecla.", "Click, then press the new key."));
-                FixWidth(b, 270f); // todos do mesmo tamanho, alinhados
+                FixWidth(b, 270f); // all the same size, aligned
             }
             else if (type == typeof(string))
             {
@@ -424,7 +426,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        // ------------------------------------------------------------------ fábricas de linhas (clones nativos)
+        // ------------------------------------------------------------------ row factories (native clones)
 
         private UISwitchButton AddSwitch(string label, string[] fields, int index, Action<int> onChanged, string help)
         {
@@ -444,7 +446,7 @@ namespace AutoKeeper.UI
             var inc = SliderIncField?.GetValue(ui) as Button;
             var dec = SliderDecField?.GetValue(ui) as Button;
             var amount = (TextMeshProUGUI)SliderAmountField.GetValue(ui);
-            // O UISlider do jogo só entende 0..100; trocamos a lógica pela nossa (faixa/passo de cada opção).
+            // The game's UISlider only understands 0..100; we replace its logic with ours (each option's range/step).
             DestroyImmediate(ui);
 
             float step = s.Step > 0f ? s.Step : 1f;
@@ -469,8 +471,8 @@ namespace AutoKeeper.UI
         }
 
         /// <summary>
-        /// Vários botões lado a lado, juntos e centralizados (mesmos botões do jogo). Sem LayoutGroup: cada botão
-        /// é posicionado à mão em torno do centro da linha, para não se espalhar pela largura da janela.
+        /// Several buttons side by side, close together and centered (the game's own buttons). No LayoutGroup: each button
+        /// is placed by hand around the row's center, so they don't spread across the window's width.
         /// </summary>
         private void AddButtonRow(params (string text, Action onPressed, string help)[] items)
         {
@@ -503,7 +505,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        /// <summary>Largura fixa para um botão do jogo (por padrão ele se ajusta ao texto).</summary>
+        /// <summary>Fixed width for a game button (by default it fits its text).</summary>
         private static void FixWidth(UIDialogWindowButton b, float width)
         {
             if (b == null)
@@ -537,13 +539,13 @@ namespace AutoKeeper.UI
             {
                 return;
             }
-            // replaceForGamepad=false e tecla None: o botão não "rouba" teclas do controle.
+            // replaceForGamepad=false and key None: the button doesn't "steal" gamepad keys.
             b.Draw(new UIDialogWindowData.ButtonData(onPressed, text, null, false, GameKey.None, text));
         }
 
         /// <summary>
-        /// Linha dourada fina com um pouco de espaço acima e abaixo. A altura/largura vêm do sizeDelta
-        /// (o layout do jogo não usa LayoutElement); 310 de largura = a mesma das linhas "◀ valor ▶".
+        /// Thin golden line with a little space above and below. Height/width come from sizeDelta
+        /// (the game's layout doesn't use LayoutElement); 310 wide = the same as the "◀ value ▶" rows.
         /// </summary>
         private void AddDivider()
         {
@@ -581,7 +583,7 @@ namespace AutoKeeper.UI
                 t.font = style.font;
                 t.fontSharedMaterial = style.fontSharedMaterial;
                 t.fontSize = Mathf.Max(12f, style.fontSize * 0.8f);
-                t.color = new Color(0.80f, 0.74f, 0.62f, 1f); // texto claro e opaco, legível sobre o fundo da janela
+                t.color = new Color(0.80f, 0.74f, 0.62f, 1f); // light, opaque text, readable over the window background
             }
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.Normal;
@@ -595,7 +597,7 @@ namespace AutoKeeper.UI
             return t;
         }
 
-        /// <summary>Move o clone para o conteúdo (ativa) e liga a descrição ao passar o mouse.</summary>
+        /// <summary>Moves the clone into the content (activating it) and shows its description on mouse hover.</summary>
         private void Place(GameObject go, string help, Transform parent = null)
         {
             go.transform.SetParent(parent != null ? parent : content, false);
@@ -615,7 +617,7 @@ namespace AutoKeeper.UI
             built.Add(go);
         }
 
-        /// <summary>Troca o texto do rótulo da linha (o TMP que não é o valor).</summary>
+        /// <summary>Replaces the text of the row's label (the TMP that is not the value).</summary>
         private static void SetHeader(GameObject row, TextMeshProUGUI header, TextMeshProUGUI amount, string label)
         {
             if (header == null)
@@ -628,7 +630,7 @@ namespace AutoKeeper.UI
             }
         }
 
-        // ------------------------------------------------------------------ captura de tecla
+        // ------------------------------------------------------------------ key capture
 
         private void HandleKeyCapture()
         {
@@ -658,7 +660,7 @@ namespace AutoKeeper.UI
                     ((ConfigEntry<KeyboardShortcut>)capturing.Entry).Value = new KeyboardShortcut(k, mods.ToArray());
                 }
                 capturing = null;
-                captureEndFrame = Time.frameCount; // a mesma tecla não aciona o atalho neste frame
+                captureEndFrame = Time.frameCount; // the same key doesn't trigger the shortcut in this frame
                 rebuildPending = true;
                 return;
             }
@@ -669,7 +671,7 @@ namespace AutoKeeper.UI
             || k == KeyCode.LeftAlt || k == KeyCode.RightAlt || k == KeyCode.LeftCommand || k == KeyCode.RightCommand
             || k == KeyCode.AltGr;
 
-        // ------------------------------------------------------------------ textos
+        // ------------------------------------------------------------------ texts
 
         private string T(string ptText, string enText) => pt ? ptText : enText;
 
