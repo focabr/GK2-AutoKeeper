@@ -47,6 +47,9 @@ namespace AutoKeeper.Core
             }
         }
 
+        /// <summary>Permite que o aviso "uma vez" da chave volte a aparecer (ex.: ao religar o bot).</summary>
+        public static void ResetOnce(string key) => onceKeys.Remove(key);
+
         private static void Write(LogLevel level, string msg)
         {
             if (level == LogLevel.Debug)

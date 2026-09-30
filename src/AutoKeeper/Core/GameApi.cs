@@ -176,6 +176,12 @@ namespace AutoKeeper.Core
 
         public static Vector3 GetPlayerPosition() => Safe(() => MainGame.PlayerData.position.Value, Vector3.zero, nameof(GetPlayerPosition));
 
+        /// <summary>Debuff "Falta de sono" do jogo (2 dias sem dormir: energia gasta vira insanidade).</summary>
+        public static bool HasLackOfSleep() => Safe(() => MainGame.Instance.GameSave.perkSystemData.HasPerk("lack_of_sleep_debuff"), false, nameof(HasLackOfSleep));
+
+        /// <summary>Dias de jogo desde a última vez que dormiu (o debuff entra em 2). -1 se não der para ler.</summary>
+        public static float GetDaysWithoutSleep() => Safe(() => MainGame.PlayerData.energySystem.timeWithoutSleep, -1f, nameof(GetDaysWithoutSleep));
+
         /// <summary>Para onde o jogador está virado (x,z). No trabalho, o jogo alinha ao ponto de trabalho dele.</summary>
         public static Vector2 GetPlayerFacing() => Safe(() => MainGame.PlayerData.Direction, Vector2.zero, nameof(GetPlayerFacing));
 

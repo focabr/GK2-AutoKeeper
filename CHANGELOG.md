@@ -4,6 +4,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.15] - 2026-09-29
+
+### Adicionado
+- **Proteção de insanidade e sono** (aba Bot):
+  - `MaxInsanity` (padrão 60): o bot desliga ao passar desse valor. Cada ponto de insanidade tira 1 da energia
+    máxima, e perto de 80 o jogo bloqueia autópsia e covas.
+  - `StopOnLackOfSleep` (ligado): com o debuff do jogo "Falta de sono" (`lack_of_sleep_debuff`, 2 dias sem dormir),
+    cada ponto de energia gasto vira meio ponto de insanidade; o bot desliga e pede para dormir. Com 1,75 dia sem
+    dormir, avisa uma vez no log.
+  - No teste da 0.3.12 a insanidade foi de 11 a 51 em um corpo (energia máxima 89 → 49) por causa desse debuff.
+- Dump (F10): `daysWithoutSleep` e `lackOfSleep` do jogador.
+- Pacote Thunderstore/Nexus: README e página do Nexus atualizados para a 0.3.x; `manifest.json` 0.3.15.
+
 ## [0.3.14] - 2026-09-29
 
 ### Adicionado

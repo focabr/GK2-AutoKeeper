@@ -91,6 +91,8 @@ namespace AutoKeeper.Config
         public ConfigEntry<bool> TravelEnabled { get; }
         public ConfigEntry<bool> AutoEat { get; }
         public ConfigEntry<float> EatBelowEnergy { get; }
+        public ConfigEntry<float> MaxInsanity { get; }
+        public ConfigEntry<bool> StopOnLackOfSleep { get; }
 
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
@@ -144,6 +146,14 @@ namespace AutoKeeper.Config
                 "Desligar o bot com energia abaixo de", "Turn bot off below energy",
                 "O bot desliga sozinho quando a energia fica abaixo deste valor (e não há comida na barra rápida).",
                 "The bot turns itself off when energy drops below this value (and there is no food in the hotbar).");
+            MaxInsanity = Slider(config, SettingTab.Bot, "Bot", "MaxInsanity", 60f, 10f, 80f, 1f,
+                "Desligar o bot com insanidade acima de", "Turn bot off above insanity",
+                "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e covas. O bot desliga ao passar deste valor.",
+                "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
+            StopOnLackOfSleep = Toggle(config, SettingTab.Bot, "Bot", "StopOnLackOfSleep", true,
+                "Desligar com falta de sono", "Turn off on lack of sleep",
+                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. O bot desliga e pede para você dormir.",
+                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. The bot turns off and asks you to sleep.");
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Atravessar portas até o trabalho", "Use doors to reach the work",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",

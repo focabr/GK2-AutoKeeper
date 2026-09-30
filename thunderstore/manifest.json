@@ -1,8 +1,8 @@
 {
   "name": "AutoKeeper",
-  "version_number": "0.2.8",
+  "version_number": "0.3.15",
   "website_url": "",
-  "description": "Automation bot for Graveyard Keeper 2. Runs routine chores using only actions the player could do. F8 toggles the bot, F9 the status overlay. Pauses in menus, dialogues and cutscenes.",
+  "description": "Automation bot for Graveyard Keeper 2: morgue bodies to autopsy, crematorium or grave, using only actions the player could do. F8 toggles the bot, F9 the status panel, F11 settings.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2305"
   ]

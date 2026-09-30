@@ -94,6 +94,7 @@ namespace AutoKeeper.Bot
             State = BotState.Idle;
             StateDetail = "aguardando";
             ModLog.Info("Bot LIGADO.");
+            ModLog.ResetOnce("SleepSoon");
             if (tasks.Count == 0)
             {
                 ModLog.Info("Nenhuma tarefa registrada ainda — o bot só monitora o estado.");
@@ -199,6 +200,23 @@ namespace AutoKeeper.Bot
             {
                 Stop($"energia baixa ({s.Energy:0} < {settings.MinEnergy.Value:0})");
                 return;
+            }
+
+            // 2b) Saúde: insanidade alta tira energia máxima e trava o trabalho; falta de sono transforma energia em insanidade.
+            if (s.Insanity > settings.MaxInsanity.Value)
+            {
+                Stop($"insanidade alta ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade ou descanse");
+                return;
+            }
+            if (settings.StopOnLackOfSleep.Value && GameApi.HasLackOfSleep())
+            {
+                Stop("falta de sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
+                return;
+            }
+            float awake = GameApi.GetDaysWithoutSleep();
+            if (settings.StopOnLackOfSleep.Value && awake >= 1.75f && awake < 2f)
+            {
+                ModLog.WarnOnce("SleepSoon", $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot desliga. Durma logo.");
             }
 
             // 3) Escolhe a primeira tarefa que pode rodar.

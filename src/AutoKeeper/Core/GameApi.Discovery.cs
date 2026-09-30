@@ -49,6 +49,8 @@ namespace AutoKeeper.Core
                     ["energy"] = GetEnergy(),
                     ["energyMax"] = GetEnergyMax(),
                     ["insanity"] = GetPlayerRes("insanity"),
+                    ["daysWithoutSleep"] = GetDaysWithoutSleep(),
+                    ["lackOfSleep"] = HasLackOfSleep(),
                     ["timeOfDay"] = GetTimeOfDay(),
                     ["day"] = GetDay(),
                     ["blockReason"] = GetBlockReason(),
