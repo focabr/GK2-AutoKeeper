@@ -160,11 +160,11 @@ namespace AutoKeeper.Config
                 "Come quando a energia fica abaixo deste valor. Deixe maior que o valor de desligar o bot.",
                 "Eats when energy drops below this value. Keep it above the turn-off value.");
             MinEnergy = Slider(config, SettingTab.Bot, "Bot", "MinEnergy", 10f, 0f, 100f, 1f,
-                "Desligar o bot com energia abaixo de", "Turn off the bot below energy",
+                "Parar com energia abaixo de", "Turn off the bot below energy",
                 "Sem comida na barra de atalhos (ou com \"Comer da barra de atalhos\" desligado), o bot desliga quando a energia fica abaixo deste valor.",
                 "With no food on the hot bar (or \"Eat from the hot bar\" off), the bot turns off when energy drops below this value.");
             MaxInsanity = Slider(config, SettingTab.Bot, "Bot", "MaxInsanity", 60f, 10f, 80f, 1f,
-                "Desligar o bot com insanidade acima de", "Turn off the bot above insanity",
+                "Parar com insanidade acima de", "Turn off the bot above insanity",
                 "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e túmulos. O bot desliga ao passar deste valor.",
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
             OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
@@ -173,7 +173,7 @@ namespace AutoKeeper.Config
                 "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped. Keep working: carries on (only the insanity limit protects).");
             MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
-                "Ir sozinho até o trabalho (pelas portas)", "Walk to the work (through doors)",
+                "Ir até o trabalho pelas portas", "Walk to the work (through doors)",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",
                 "Goes through doors (house, morgue…) along the shortest route to where there is work, pressing E on the door like the player.");
             // ---------------------------------------------------------------- Bodies
@@ -182,7 +182,7 @@ namespace AutoKeeper.Config
                 "Palete → mesa de autópsia → extrair órgãos → destino.",
                 "Pallet → autopsy table → extract organs → destination.");
             Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
-                "Destino do corpo depois da autópsia", "Body destination after autopsy",
+                "Destino após a autópsia", "Body destination after autopsy",
                 "Crematório (no necrotério) ou deixar na mesa. Enterrar no túmulo é o próximo passo do desenvolvimento.",
                 "Crematorium (inside the morgue) or leave on the table. Burying in a grave is the next development step.");
             KeepVisibleDestination();
@@ -199,20 +199,20 @@ namespace AutoKeeper.Config
                 "Como última tarefa (sem corpo no palete), o bot sai do necrotério pelas portas para buscar corpos largados no chão lá fora (ex.: entregues pela Inquisição) e os traz para a mesa ou para um palete vazio.",
                 "As a last task (no body on the pallets), the bot leaves the morgue through the doors to fetch bodies left on the ground outside (e.g. delivered by the Inquisition) and brings them to a table or an empty pallet.");
             CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
-                "Recolher o crematório antes de começar", "Collect the crematorium first",
+                "Recolher o crematório primeiro", "Collect the crematorium first",
                 "Ao chegar no necrotério, o bot recolhe o que já estiver pronto no crematório antes de começar (só vai lá se houver algo).",
                 "On arriving at the morgue, the bot collects anything already finished in the crematorium before starting (it only goes if there is something).");
             UseChest = Toggle(config, SettingTab.Bodies, "Bodies", "UseChest", true,
-                "Guardar no baú o que o bot recolheu", "Store what the bot collected",
+                "Guardar no baú o que recolheu", "Store what the bot collected",
                 "Com o inventário quase cheio (limite abaixo), leva ao baú mais próximo SÓ o que o bot recolheu (extrações e crematório). O resto do inventário nunca é mexido.",
                 "When the inventory is nearly full (limit below), moves ONLY what the bot collected (extractions and crematorium) to the nearest chest. The rest of your inventory is never touched.");
             ChestFreeSlots = SliderInt(config, SettingTab.Bodies, "Bodies", "ChestFreeSlots", 3, 1, 10,
-                "Ir ao baú com espaços livres abaixo de", "Go to the chest below free slots",
+                "Espaços livres mínimos", "Go to the chest below free slots",
                 "Vai ao baú quando sobrarem menos espaços livres que isso no inventário.",
                 "Goes to the chest when fewer free inventory slots than this remain.");
 
             RequireMastery = Toggle(config, SettingTab.Autopsy, "Bodies", "RequireMastery", true,
-                "Pular extrações com chance baixa", "Skip low-chance extractions",
+                "Pular extrações arriscadas", "Skip low-chance extractions",
                 "Vale por cima das opções abaixo: confere a chance de sucesso de cada item (a mesma da janela de extração do jogo) e pula o que ficar abaixo do mínimo.",
                 "Overrides the options below: checks each item's success chance (the same shown in the game's extraction window) and skips anything below the minimum.");
             MinMasteryChance = SliderInt(config, SettingTab.Autopsy, "Bodies", "MinMasteryChance", 100, 1, 100,

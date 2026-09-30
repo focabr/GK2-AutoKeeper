@@ -4,6 +4,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.25] - 2026-09-30
+- Shorter Brazilian Portuguese labels in the settings window (F11), so every option shows at the normal font size
+  (the longest ones were auto-shrunk and looked smaller and dimmer than the rest):
+  "Parar com energia abaixo de", "Parar com insanidade acima de", "Ir até o trabalho pelas portas",
+  "Destino após a autópsia", "Recolher o crematório primeiro", "Guardar no baú o que recolheu",
+  "Espaços livres mínimos" and "Pular extrações arriscadas". Log messages that quote these options use the new names.
+  English labels and all descriptions are unchanged.
+
 ## [0.3.24] - 2026-09-30
 - Fixed: the option description in the settings window (F11) had no width and ran down the middle of the screen one
   letter per line. It now sits in a box under the options; long descriptions shrink to fit the box.

@@ -240,7 +240,7 @@ namespace AutoKeeper.Bot.Tasks
             idleCheckedAt = Now;
             idleReason = settings.TravelEnabled.Value
                 ? Lang.T("sem corpos para processar (nem atrás das portas)", "no bodies to process (not even behind the doors)")
-                : Lang.T("sem corpos para processar nesta área (\"Ir sozinho até o trabalho (pelas portas)\" está desligado)",
+                : Lang.T("sem corpos para processar nesta área (\"Ir até o trabalho pelas portas\" está desligado)",
                     "no bodies to process in this area (\"Walk to the work (through doors)\" is off)");
             reason = idleReason;
             return false;
@@ -1250,7 +1250,7 @@ namespace AutoKeeper.Bot.Tasks
                     }
                     if (InventoryFullFor(partId))
                     {
-                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que o bot recolheu\") antes de extrair",
+                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que recolheu\") antes de extrair",
                             "inventory full: free up space (or turn on \"Store what the bot collected\") before extracting"));
                     }
                     if (GameApi.StartAutopsyExtract(targetUid, partId, out reason))
@@ -1267,7 +1267,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.ExtractPocket:
                     if (InventoryFullFor(partId))
                     {
-                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que o bot recolheu\") antes de extrair",
+                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que recolheu\") antes de extrair",
                             "inventory full: free up space (or turn on \"Store what the bot collected\") before extracting"));
                     }
                     if (GameApi.StartPocketExtract(targetUid, partId, out reason))
