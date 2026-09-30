@@ -240,7 +240,7 @@ namespace AutoKeeper.Bot.Tasks
             idleCheckedAt = Now;
             idleReason = settings.TravelEnabled.Value
                 ? "sem corpos para processar (nem atrás das portas)"
-                : "sem corpos para processar nesta área (\"Ir sozinho até o trabalho\" está desligado)";
+                : "sem corpos para processar nesta área (\"Ir sozinho até o trabalho (pelas portas)\" está desligado)";
             reason = idleReason;
             return false;
         }
@@ -544,12 +544,12 @@ namespace AutoKeeper.Bot.Tasks
                 {
                     if (sleepTries >= MaxSleepTries)
                     {
-                        return FailWith($"Falta de sono: apertei E na cama {MaxSleepTries} vezes e o personagem não dormiu — durma manualmente");
+                        return FailWith($"Privação de Sono: apertei E na cama {MaxSleepTries} vezes e o personagem não dormiu — durma manualmente");
                     }
                     Candidate? bed = FirstFree(Collect(ObjectKind.Bed, w), c => true);
                     return bed.HasValue
                         ? Act(Goal.Sleep, bed.Value, null)
-                        : FailWith("Falta de sono, mas não achei a cama de casa alcançável — durma manualmente");
+                        : FailWith("Privação de Sono, mas não achei a cama de casa alcançável — durma manualmente");
                 }
             }
 
@@ -664,9 +664,9 @@ namespace AutoKeeper.Bot.Tasks
                             {
                                 return Act(Goal.ParkOnPallet, parkForDig.Value, carried);
                             }
-                            return FailWith("carregando corpo e a cova marcada ainda precisa ser cavada — deixe o corpo num palete (não há palete vazio)");
+                            return FailWith("carregando corpo e o túmulo marcado ainda precisa ser cavado — deixe o corpo num palete (não há palete vazio)");
                         }
-                        return FailWith("carregando corpo, mas não há cova vazia (grave_empty) livre alcançável — marque uma cova no cemitério com o construtor");
+                        return FailWith("carregando corpo, mas não há túmulo aberto (grave_empty) alcançável — marque um túmulo no cemitério com o construtor");
                     default:
                         if (freeTable.HasValue)
                         {
@@ -964,7 +964,7 @@ namespace AutoKeeper.Bot.Tasks
             if (g == Goal.Sleep && !sleepAnnounced)
             {
                 sleepAnnounced = true;
-                ModLog.Info("Sono: Falta de sono — indo dormir na cama de casa; depois continuo de onde parei.");
+                ModLog.Info("Sono: Privação de Sono — indo dormir na cama de casa; depois continuo de onde parei.");
             }
 
             if (ground)
@@ -1158,7 +1158,7 @@ namespace AutoKeeper.Bot.Tasks
                     if (done)
                     {
                         buriedSpots.Add(targetPos);   // a cova virou "grave_body": falta fechá-la
-                        ModLog.Info("Corpos: corpo colocado na cova — falta fechar com a pá");
+                        ModLog.Info("Corpos: corpo colocado no túmulo — falta fechar com a pá");
                     }
                     break;
                 case Goal.Cremate:
@@ -1473,7 +1473,7 @@ namespace AutoKeeper.Bot.Tasks
             if (Now - stepStartedAt > FillTimeout)
             {
                 GameApi.SetHoldAction(false);
-                return Fail($"a cova não fechou em {FillTimeout:0}s (pá no cinto? energia? alvo do jogo: {GameApi.DescribeInteractionTarget()})");
+                return Fail($"o túmulo não fechou em {FillTimeout:0}s (pá no cinto? energia? alvo do jogo: {GameApi.DescribeInteractionTarget()})");
             }
             return TaskResult.Running;
         }
@@ -1485,7 +1485,7 @@ namespace AutoKeeper.Bot.Tasks
             if (id != "grave_empty_place")   // virou grave_empty (ou o objeto foi trocado): cova aberta
             {
                 GameApi.SetHoldAction(false);
-                ModLog.Info("Corpos: cova cavada — pronta para o corpo");
+                ModLog.Info("Corpos: túmulo cavado — pronto para o corpo");
                 return Replan(null);
             }
             TaskResult? guard = GuardAim();
@@ -1497,7 +1497,7 @@ namespace AutoKeeper.Bot.Tasks
             if (Now - stepStartedAt > FillTimeout)
             {
                 GameApi.SetHoldAction(false);
-                return Fail($"a cova não ficou pronta em {FillTimeout:0}s (pá no cinto? energia? alvo do jogo: {GameApi.DescribeInteractionTarget()})");
+                return Fail($"o túmulo não ficou pronto em {FillTimeout:0}s (pá no cinto? energia? alvo do jogo: {GameApi.DescribeInteractionTarget()})");
             }
             return TaskResult.Running;
         }
@@ -1673,8 +1673,8 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.CollectCrematorium: return "recolher o crematório";
                 case Goal.UseDoor: return "atravessar porta";
                 case Goal.InspectCrematorium: return "checar o crematório";
-                case Goal.FillGrave: return "fechar a cova";
-                case Goal.DigGrave: return "cavar a cova marcada";
+                case Goal.FillGrave: return "fechar o túmulo";
+                case Goal.DigGrave: return "cavar o túmulo marcado";
                 case Goal.Sleep: return "dormir na cama de casa";
                 case Goal.ParkOnPallet: return "deixar corpo no palete (crematório ocupado)";
                 case Goal.DepositChest: return "guardar itens no baú";

@@ -165,7 +165,7 @@ namespace AutoKeeper.UI
                     string sleep = pt ? $"{days} dia(s) sem dormir" : $"{days} day(s) without sleep";
                     if (s.LackOfSleep)
                     {
-                        sleep = Bad(sleep + (pt ? " — Falta de sono" : " — Lack of Sleep"));
+                        sleep = Bad(sleep + (pt ? " — Privação de Sono" : " — Lack of sleep"));
                     }
                     else
                     {
@@ -175,7 +175,7 @@ namespace AutoKeeper.UI
                 }
                 if (s.Overhead.Count > 0)
                 {
-                    rows.Add(Pair(pt ? "Nas mãos:" : "Carrying:", string.Join(", ", s.Overhead.Select(id => ItemName(id, pt)))));
+                    rows.Add(Pair(pt ? "Carregando:" : "Carrying:", string.Join(", ", s.Overhead.Select(id => ItemName(id, pt)))));
                 }
                 if (settings.OverlayDetailed.Value)
                 {
@@ -285,7 +285,7 @@ namespace AutoKeeper.UI
             switch (state)
             {
                 case BotController.BotState.Running: return "<color=" + GameUiTheme.GoodHex + "><b>" + (pt ? "TRABALHANDO" : "WORKING") + "</b></color>";
-                case BotController.BotState.Idle: return "<color=" + GameUiTheme.GoodHex + ">" + (pt ? "LIGADO" : "ON") + "</color>";
+                case BotController.BotState.Idle: return "<color=" + GameUiTheme.GoodHex + ">" + (pt ? "AGUARDANDO" : "WAITING") + "</color>";
                 case BotController.BotState.Paused: return "<color=" + GameUiTheme.ValueHex + ">" + (pt ? "PAUSADO" : "PAUSED") + "</color>";
                 default: return "<color=" + GameUiTheme.BadHex + ">" + (pt ? "DESLIGADO" : "OFF") + "</color>";
             }

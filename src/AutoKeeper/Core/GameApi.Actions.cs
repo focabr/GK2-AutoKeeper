@@ -20,7 +20,7 @@ namespace AutoKeeper.Core
         /// <summary>Chance (%) de cada golpe avançar, como a janela do jogo mostra. 0 = não dá para extrair.</summary>
         public int ChancePercent => Required <= 0 ? (Mastery > 0 ? 100 : 0) : System.Math.Min(100, (int)(100f * Mastery / Required));
 
-        public override string ToString() => $"maestria {Mastery}/{Required} ({ChancePercent}%)";
+        public override string ToString() => $"chance de sucesso {ChancePercent}% (maestria {Mastery}/{Required})";
     }
 
     /// <summary>

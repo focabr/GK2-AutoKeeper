@@ -701,7 +701,7 @@ namespace AutoKeeper.UI
                 {
                     case BodyDestination.Crematorium: return T("Crematório", "Crematorium");
                     case BodyDestination.LeaveOnTable: return T("Deixar na mesa", "Leave on table");
-                    case BodyDestination.Grave: return T("Cova (experimental)", "Grave (experimental)");
+                    case BodyDestination.Grave: return T("Túmulo (experimental)", "Grave (experimental)");
                 }
             }
             if (v is LackOfSleepAction ls)
@@ -709,7 +709,7 @@ namespace AutoKeeper.UI
                 switch (ls)
                 {
                     case LackOfSleepAction.Stop: return T("Desligar o bot", "Turn off the bot");
-                    case LackOfSleepAction.Sleep: return T("Ir dormir", "Go to bed");
+                    case LackOfSleepAction.Sleep: return T("Dormir e continuar", "Sleep, then resume");
                     case LackOfSleepAction.KeepWorking: return T("Continuar trabalhando", "Keep working");
                 }
             }

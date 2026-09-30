@@ -62,7 +62,7 @@ The settings window and panel follow the game language (English or Brazilian Por
 | General | `[Bot] EatBelowEnergy` | 20 | energy that triggers eating |
 | General | `[Bot] MinEnergy` | 10 | turn off below this energy (when there is no food) |
 | General | `[Bot] MaxInsanity` | 60 | turn off above this insanity (each point lowers max energy by 1; near 80 the game blocks autopsy) |
-| General | `[Bot] OnLackOfSleep` | Stop | Lack of Sleep debuff (2 days awake: spent energy becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then continue) or `KeepWorking` |
+| General | `[Bot] OnLackOfSleep` | Stop | when the game's Lack of sleep hits (2 days awake: spent energy becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
 | General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
 | Bodies | `[Bodies] Enabled` | on | body routine on/off |
 | Bodies | `[Bodies] Destination` | Crematorium | `Crematorium`, `LeaveOnTable` or `Grave` |

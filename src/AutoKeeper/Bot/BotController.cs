@@ -81,7 +81,7 @@ namespace AutoKeeper.Bot
             }
             else
             {
-                Stop("desligado pelo jogador (hotkey)");
+                Stop($"desligado pelo jogador ({settings.ToggleBotKey.Value})");
             }
         }
 
@@ -211,19 +211,19 @@ namespace AutoKeeper.Bot
                 Stop($"insanidade alta ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade ou descanse");
                 return;
             }
-            // "Com falta de sono": Desligar → para aqui; Ir dormir → a tarefa vai até a cama; Continuar → só o limite de insanidade.
+            // "Ao ficar com Privação de Sono": Desligar → para aqui; Dormir e continuar → a tarefa vai até a cama; Continuar → só o limite de insanidade.
             LackOfSleepAction onLack = settings.OnLackOfSleep.Value;
             if (onLack == LackOfSleepAction.Stop && GameApi.HasLackOfSleep())
             {
-                Stop("falta de sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
+                Stop("Privação de Sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
                 return;
             }
             float awake = GameApi.GetDaysWithoutSleep();
             if (onLack != LackOfSleepAction.KeepWorking && awake >= 1.75f && awake < 2f)
             {
                 ModLog.WarnOnce("SleepSoon", onLack == LackOfSleepAction.Sleep
-                    ? $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot vai dormir na cama de casa."
-                    : $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot desliga. Durma logo.");
+                    ? $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot vai dormir na cama de casa."
+                    : $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot desliga. Durma logo.");
             }
             else if (awake >= 0f && awake < 1.75f)
             {

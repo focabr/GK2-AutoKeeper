@@ -4,6 +4,27 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.20] - 2026-09-30
+
+### Alterado
+- **Revisão de todos os textos** (tela F11, valores, painel e mensagens) com o vocabulário oficial do jogo e rótulos que
+  dizem o que a opção faz. As chaves do `.cfg` não mudam. Principais trocas (pt-BR):
+  - "Com falta de sono" → **"Ao ficar com Privação de Sono"** (nome do efeito no jogo); "Ir dormir" → **"Dormir e continuar"**.
+  - "barra rápida" → **barra de atalhos**; "cova" → **túmulo**; "crânio" → **caveira**; "vísceras" → **entranhas**.
+  - "Respeitar a maestria" → **"Pular extrações com chance baixa"**; "Chance mínima de sucesso" → **"Chance de sucesso
+    mínima"**; a ajuda cita a janela de extração do jogo (não "Remover…", que não existe em pt-BR).
+  - "Guardar no baú com inventário cheio" → **"Guardar no baú o que o bot recolheu"**; "Ir ao baú com menos de (espaços
+    livres)" → **"Ir ao baú com espaços livres abaixo de"**; "Checar o crematório primeiro" → **"Recolher o crematório
+    antes de começar"**; "Buscar corpos no chão até (m)" → **"Alcance para corpos no chão (m)"**.
+  - "Atravessar portas até o trabalho" → **"Ir sozinho até o trabalho (pelas portas)"** (o aviso de ocioso já usava esse nome).
+  - "Comer quando a energia estiver abaixo de" → **"Comer com energia abaixo de"**; "Extrair demais itens" →
+    **"Extrair o resto de "Outros""**; "Salvar diagnóstico (dump)" → **"Salvar arquivo de diagnóstico"**;
+    "Linhas de log no painel" → **"Eventos no painel"**; "Tempo máximo andando" → **"Tempo máximo para chegar"**.
+  - Painel: estado ocioso "LIGADO" → **AGUARDANDO**; "Nas mãos" → **Carregando**; "desligado pelo jogador (hotkey)" →
+    "(F8)" com a tecla configurada.
+  - Inglês no mesmo critério ("Eat from the hot bar", "When Lack of sleep hits", "Sleep, then resume", "Dig graves you
+    placed", "Skip low-chance extractions", "Store what the bot collected"…).
+
 ## [0.3.19] - 2026-09-30
 
 ### Alterado

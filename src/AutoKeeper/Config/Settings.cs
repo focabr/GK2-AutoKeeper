@@ -143,28 +143,28 @@ namespace AutoKeeper.Config
         {
             // ---------------------------------------------------------------- Avançado
             AutoEat = Toggle(config, SettingTab.Bot, "Bot", "AutoEat", true,
-                "Comer da barra rápida", "Eat from the hotbar",
-                "Com energia baixa, usa um item que recupera energia da barra rápida (teclas 1–4), como o jogador faria. Pula itens que aumentam a insanidade.",
-                "When energy is low, uses an energy item from the hotbar (keys 1–4), like the player would. Skips items that raise insanity.");
+                "Comer da barra de atalhos", "Eat from the hot bar",
+                "Com energia baixa, usa um item que recupera energia da barra de atalhos (teclas 1–4), como o jogador faria. Come vários seguidos sem passar do máximo e pula itens que aumentam a insanidade.",
+                "When energy is low, uses an energy item from the hot bar (keys 1–4), like the player would. Eats several in a row without going over the maximum and skips items that raise insanity.");
             EatBelowEnergy = Slider(config, SettingTab.Bot, "Bot", "EatBelowEnergy", 20f, 1f, 100f, 1f,
-                "Comer quando a energia estiver abaixo de", "Eat when energy is below",
+                "Comer com energia abaixo de", "Eat below energy",
                 "Come quando a energia fica abaixo deste valor. Deixe maior que o valor de desligar o bot.",
                 "Eats when energy drops below this value. Keep it above the turn-off value.");
             MinEnergy = Slider(config, SettingTab.Bot, "Bot", "MinEnergy", 10f, 0f, 100f, 1f,
-                "Desligar o bot com energia abaixo de", "Turn bot off below energy",
-                "O bot desliga sozinho quando a energia fica abaixo deste valor (e não há comida na barra rápida).",
-                "The bot turns itself off when energy drops below this value (and there is no food in the hotbar).");
+                "Desligar o bot com energia abaixo de", "Turn off the bot below energy",
+                "Sem comida na barra de atalhos (ou com \"Comer da barra de atalhos\" desligado), o bot desliga quando a energia fica abaixo deste valor.",
+                "With no food on the hot bar (or \"Eat from the hot bar\" off), the bot turns off when energy drops below this value.");
             MaxInsanity = Slider(config, SettingTab.Bot, "Bot", "MaxInsanity", 60f, 10f, 80f, 1f,
-                "Desligar o bot com insanidade acima de", "Turn bot off above insanity",
-                "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e covas. O bot desliga ao passar deste valor.",
+                "Desligar o bot com insanidade acima de", "Turn off the bot above insanity",
+                "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e túmulos. O bot desliga ao passar deste valor.",
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
             OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
-                "Com falta de sono", "On lack of sleep",
-                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. Desligar o bot (padrão); Ir dormir: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e continua de onde parou; Continuar: segue trabalhando (só o limite de insanidade protege).",
-                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. Turn off the bot (default); Go to bed: finishes placing any body it carries, walks to the home bed, sleeps and continues where it stopped; Keep working: continues (only the insanity limit protects).");
+                "Ao ficar com Privação de Sono", "When Lack of sleep hits",
+                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: cada ponto de energia gasto vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou. Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
+                "Lack of sleep is the game's effect after 2 days awake: every energy point spent adds insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped. Keep working: carries on (only the insanity limit protects).");
             MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
-                "Atravessar portas até o trabalho", "Use doors to reach the work",
+                "Ir sozinho até o trabalho (pelas portas)", "Walk to the work (through doors)",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",
                 "Goes through doors (house, morgue…) along the shortest route to where there is work, pressing E on the door like the player.");
             // ---------------------------------------------------------------- Avançado
@@ -174,71 +174,71 @@ namespace AutoKeeper.Config
                 "Pallet → autopsy table → extract organs → destination.");
             Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
                 "Destino do corpo depois da autópsia", "Body destination after autopsy",
-                "Crematório (no necrotério), deixar na mesa, ou enterrar numa cova vazia (o bot vai ao cemitério pelas portas, coloca o corpo e fecha a cova com a pá).",
+                "Crematório (no necrotério), deixar na mesa, ou enterrar num túmulo aberto (o bot vai ao cemitério pelas portas, coloca o corpo e fecha o túmulo com a pá).",
                 "Crematorium (inside the morgue), leave on the table, or bury in an empty grave (the bot goes to the graveyard through the doors, places the body and fills the grave with the shovel).");
             DigGraves = Toggle(config, SettingTab.Bodies, "Bodies", "DigGraves", true,
-                "Cavar covas marcadas", "Dig marked graves",
-                "Com destino Cova e nenhuma cova aberta, o bot cava com a pá uma cova que você já marcou com o construtor do cemitério (a cova ainda por cavar). Ele nunca marca covas novas nem desenterra corpos.",
-                "With the Grave destination and no open grave, the bot digs with the shovel a grave you already marked with the graveyard builder (the not-yet-dug grave). It never marks new graves nor exhumes bodies.");
+                "Cavar túmulos já marcados", "Dig graves you placed",
+                "Com destino Túmulo e nenhum túmulo aberto, o bot cava com a pá um túmulo que você já marcou com o construtor do cemitério. Ele nunca marca túmulos novos nem desenterra corpos.",
+                "With the Grave destination and no open grave, the bot digs with the shovel a grave you already placed with the graveyard builder. It never places new graves nor exhumes bodies.");
             SearchRadius = Slider(config, SettingTab.Bodies, "Bodies", "SearchRadius", 80f, 5f, 300f, 5f,
-                "Buscar corpos no chão até (m)", "Search ground bodies up to (m)",
-                "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
-                "Maximum distance to pick up loose bodies from the ground. Pallets, tables and crematorium are found anywhere reachable.");
+                "Alcance para corpos no chão (m)", "Ground body range (m)",
+                "Distância máxima para pegar corpos soltos no chão da área onde o bot está. Paletes, mesas e crematório são achados em qualquer lugar alcançável; corpos em outras áreas dependem de \"Buscar corpos em outras áreas\".",
+                "Maximum distance to pick up loose bodies on the ground of the bot's current area. Pallets, tables and crematorium are found anywhere reachable; bodies in other areas depend on \"Fetch bodies from other areas\".");
             FetchRemoteBodies = Toggle(config, SettingTab.Bodies, "Bodies", "FetchRemoteBodies", true,
                 "Buscar corpos em outras áreas", "Fetch bodies from other areas",
                 "Como última tarefa (sem corpo no palete), o bot sai do necrotério pelas portas para buscar corpos largados no chão lá fora (ex.: entregues pela Inquisição) e os traz para a mesa ou para um palete vazio.",
                 "As a last task (no body on the pallets), the bot leaves the morgue through the doors to fetch bodies left on the ground outside (e.g. delivered by the Inquisition) and brings them to a table or an empty pallet.");
             CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
-                "Checar o crematório primeiro", "Check crematorium first",
+                "Recolher o crematório antes de começar", "Collect the crematorium first",
                 "Ao chegar no necrotério, o bot recolhe o que já estiver pronto no crematório antes de começar (só vai lá se houver algo).",
                 "On arriving at the morgue, the bot collects anything already finished in the crematorium before starting (it only goes if there is something).");
             UseChest = Toggle(config, SettingTab.Bodies, "Bodies", "UseChest", true,
-                "Guardar no baú com inventário cheio", "Store in chest when inventory is full",
-                "Com o inventário quase cheio, leva ao baú mais próximo SÓ o que o bot recolheu (extrações e crematório). O resto do inventário nunca é mexido.",
-                "When the inventory is nearly full, moves ONLY what the bot collected (extractions and crematorium) to the nearest chest. The rest of your inventory is never touched.");
+                "Guardar no baú o que o bot recolheu", "Store what the bot collected",
+                "Com o inventário quase cheio (limite abaixo), leva ao baú mais próximo SÓ o que o bot recolheu (extrações e crematório). O resto do inventário nunca é mexido.",
+                "When the inventory is nearly full (limit below), moves ONLY what the bot collected (extractions and crematorium) to the nearest chest. The rest of your inventory is never touched.");
             ChestFreeSlots = SliderInt(config, SettingTab.Bodies, "Bodies", "ChestFreeSlots", 3, 1, 10,
-                "Ir ao baú com menos de (espaços livres)", "Go to chest below (free slots)",
+                "Ir ao baú com espaços livres abaixo de", "Go to the chest below free slots",
                 "Vai ao baú quando sobrarem menos espaços livres que isso no inventário.",
                 "Goes to the chest when fewer free inventory slots than this remain.");
 
             RequireMastery = Toggle(config, SettingTab.Autopsy, "Bodies", "RequireMastery", true,
-                "Respeitar a maestria", "Respect mastery",
-                "Vale por cima das opções abaixo: confere a maestria item por item (como na janela \"Remover …\") e pula o que ficar abaixo da chance mínima.",
-                "Overrides the options below: checks mastery item by item (like the \"Remove …\" window) and skips anything below the minimum chance.");
+                "Pular extrações com chance baixa", "Skip low-chance extractions",
+                "Vale por cima das opções abaixo: confere a chance de sucesso de cada item (a mesma da janela de extração do jogo) e pula o que ficar abaixo do mínimo.",
+                "Overrides the options below: checks each item's success chance (the same shown in the game's extraction window) and skips anything below the minimum.");
             MinMasteryChance = SliderInt(config, SettingTab.Autopsy, "Bodies", "MinMasteryChance", 100, 1, 100,
-                "Chance mínima de sucesso (%)", "Minimum success chance (%)",
-                "100 = só com maestria total (sem %). Ex.: 60 aceita o cérebro a 62% mas pula as entranhas a 38%.",
-                "100 = full mastery only (no %). E.g. 60 accepts the brain at 62% but skips guts at 38%.");
+                "Chance de sucesso mínima (%)", "Minimum success chance (%)",
+                "100 = só quando o sucesso é garantido (o jogo não mostra %). Ex.: 60 aceita o cérebro a 62% mas pula as entranhas a 38%.",
+                "100 = only guaranteed success (the game shows no %). E.g. 60 accepts the brain at 62% but skips guts at 38%.");
             ExtractSkin = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractSkin", true, "Extrair pele", "Extract skin",
                 "Extrai a pele na autópsia.", "Extract skin during autopsy.");
             ExtractBones = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBones", true, "Extrair ossos", "Extract bones",
                 "Extrai os ossos na autópsia.", "Extract bones during autopsy.");
-            ExtractSkull = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractSkull", true, "Extrair crânio", "Extract skull",
-                "Extrai o crânio na autópsia.", "Extract the skull during autopsy.");
+            ExtractSkull = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractSkull", true, "Extrair caveira", "Extract skull",
+                "Extrai a caveira na autópsia.", "Extract the skull during autopsy.");
             ExtractHeart = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractHeart", true, "Extrair coração", "Extract heart",
                 "Extrai o coração na autópsia.", "Extract the heart during autopsy.");
             ExtractBrain = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBrain", true, "Extrair cérebro", "Extract brain",
                 "Extrai o cérebro na autópsia.", "Extract the brain during autopsy.");
-            ExtractGuts = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractGuts", true, "Extrair vísceras", "Extract guts",
-                "Extrai as vísceras na autópsia.", "Extract guts during autopsy.");
+            ExtractGuts = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractGuts", true, "Extrair entranhas", "Extract guts",
+                "Extrai as entranhas na autópsia.", "Extract guts during autopsy.");
             ExtractFlesh = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractFlesh", true, "Extrair carne", "Extract flesh",
                 "Tira a carne (seção \"Outros\" da mesa de autópsia).", "Takes out the flesh (\"Others\" section of the autopsy table).");
             ExtractFat = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractFat", true, "Extrair gordura", "Extract fat",
                 "Tira a gordura (seção \"Outros\").", "Takes out the fat (\"Others\" section).");
             ExtractBlood = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBlood", true, "Extrair sangue", "Extract blood",
                 "Tira o sangue (seção \"Outros\").", "Takes out the blood (\"Others\" section).");
-            ExtractOtherPocket = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractOtherPocket", false, "Extrair demais itens", "Extract remaining items",
+            ExtractOtherPocket = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractOtherPocket", false, "Extrair o resto de \"Outros\"", "Extract the rest of \"Others\"",
                 "Tira qualquer outro item da seção \"Outros\" que não seja carne, gordura ou sangue.",
                 "Takes out any other item of the \"Others\" section that is not flesh, fat or blood.");
             // ---------------------------------------------------------------- Avançado
             ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
                 "Ligar/desligar o bot", "Toggle bot",
-                "Kill switch: liga ou desliga o bot na hora.", "Kill switch: turns the bot on or off immediately.");
+                "Liga ou desliga o bot na hora (parada imediata).", "Turns the bot on or off immediately (instant stop).");
             ToggleOverlayKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleOverlay", new KeyboardShortcut(KeyCode.F9),
                 "Mostrar/esconder painel", "Toggle status panel",
                 "Mostra ou esconde o painel de status no canto da tela.", "Shows or hides the status panel.");
             DumpKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "DiscoveryDump", new KeyboardShortcut(KeyCode.F10),
-                "Salvar diagnóstico (dump)", "Save diagnostic (dump)",
+                "Salvar arquivo de diagnóstico", "Save diagnostic file",
                 "Salva um JSON (somente leitura) da cena atual em BepInEx/config/AutoKeeper/dumps.",
                 "Writes a read-only JSON of the current scene to BepInEx/config/AutoKeeper/dumps.");
             OpenSettingsKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "OpenSettings", new KeyboardShortcut(KeyCode.F11),
@@ -248,18 +248,18 @@ namespace AutoKeeper.Config
             // ---------------------------------------------------------------- Avançado
             ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,
                 "Mostrar painel de status", "Show status panel",
-                "Painel no canto superior esquerdo com o estado do bot.", "Top-left panel with the bot state.");
+                "Painel com o estado do bot, no canto escolhido em \"Posição do painel\".", "Panel with the bot state, in the corner chosen in \"Panel position\".");
             OverlayPosition = Bind(config, SettingTab.Overlay, "Overlay", "Position", OverlayCorner.TopLeft,
                 "Posição do painel", "Panel position",
                 "Canto da tela onde o painel aparece (para não cobrir o HUD do jogo).",
                 "Screen corner for the panel (so it does not cover the game HUD).");
             OverlayDetailed = Toggle(config, SettingTab.Overlay, "Overlay", "Detailed", false,
                 "Painel com detalhes técnicos", "Panel with technical details",
-                "Mostra também posição, sanidade, dinheiro e ids técnicos (útil para depurar).",
-                "Also shows position, sanity, money and technical ids (debugging).");
+                "Mostra também posição, zona, cena e dinheiro (útil para depurar).",
+                "Also shows position, zone, scene and money (debugging).");
             OverlayLogLines = SliderInt(config, SettingTab.Overlay, "Overlay", "LogLines", 3, 0, 20,
-                "Linhas de log no painel", "Log lines in panel",
-                "Quantas mensagens recentes aparecem no painel.", "How many recent messages the panel shows.");
+                "Eventos no painel", "Events in panel",
+                "Quantos eventos recentes aparecem no painel (0 = nenhum).", "How many recent events the panel shows (0 = none).");
 
             // ---------------------------------------------------------------- Avançado
             VerboseLogging = Toggle(config, SettingTab.Advanced, "Debug", "VerboseLogging", false,
@@ -270,7 +270,7 @@ namespace AutoKeeper.Config
                 "De quanto em quanto tempo o bot decide o próximo passo. Menor = mais rápido, mais CPU.",
                 "How often the bot decides its next step. Lower = faster, more CPU.");
             MoveTimeoutSeconds = Slider(config, SettingTab.Advanced, "Bot", "MoveTimeoutSeconds", 45f, 5f, 300f, 5f,
-                "Tempo máximo andando (s)", "Max walking time (s)",
+                "Tempo máximo para chegar (s)", "Max time to arrive (s)",
                 "Desiste de um alvo se não chegar nele neste tempo.",
                 "Gives up on a target if it cannot reach it within this time.");
             WorkStallSeconds = Slider(config, SettingTab.Advanced, "Bot", "WorkStallSeconds", 20f, 5f, 120f, 5f,
