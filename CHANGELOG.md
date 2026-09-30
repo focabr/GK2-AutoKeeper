@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.16] - 2026-09-30
+
+### Alterado
+- Baú: o log de "guardado" mostra também os espaços livres no baú, e o que o bot recolheu e **não coube** (baú cheio,
+  pilha cheia ou filtro do baú) aparece numa linha "não coube em …; ficam no inventário até um baú aceitar". No teste da
+  0.3.15 o baú do necrotério encheu e cinza, sal, certificados, sangue e um crânio ficaram no inventário sem aviso.
+- Log de depuração: "Navegação: N portas úteis" só aparece quando a cena ou o número de portas muda (antes repetia a
+  cada renovação do cache).
+
 ## [0.3.15] - 2026-09-29
 
 ### Adicionado

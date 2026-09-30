@@ -1,6 +1,6 @@
 {
   "name": "AutoKeeper",
-  "version_number": "0.3.15",
+  "version_number": "0.3.16",
   "website_url": "",
   "description": "Automation bot for Graveyard Keeper 2: morgue bodies to autopsy, crematorium or grave, using only actions the player could do. F8 toggles the bot, F9 the status panel, F11 settings.",
   "dependencies": [

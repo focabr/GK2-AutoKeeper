@@ -65,6 +65,13 @@ namespace AutoKeeper.Core
             return Mathf.Max(0, inv.InventorySize - inv.InventoryFillSize);
         }, 99, nameof(PlayerFreeSlots));
 
+        /// <summary>Espaços livres no inventário do baú (-1 se não der para ler).</summary>
+        public static int ChestFreeSlots(string chestUid) => Safe(() =>
+        {
+            Item data = FindWgoByUid(chestUid)?.Inventory?.Data;
+            return data == null ? -1 : Mathf.Max(0, data.InventorySize - data.InventoryFillSize);
+        }, -1, nameof(ChestFreeSlots));
+
         /// <summary>O baú aceita pelo menos uma unidade de algum dos itens (espaço + filtros do jogo)?</summary>
         public static bool ChestCanTakeAny(string chestUid, IEnumerable<string> itemIds) => Safe(() =>
         {

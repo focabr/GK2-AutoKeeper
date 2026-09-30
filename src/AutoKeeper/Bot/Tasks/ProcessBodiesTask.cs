@@ -1212,7 +1212,22 @@ namespace AutoKeeper.Bot.Tasks
                 if (left > 0) { ledger[kv.Key] = left; } else { ledger.Remove(kv.Key); }
             }
             freeAfterDeposit = GameApi.PlayerFreeSlots();
-            ModLog.Info("Baú: guardado " + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}")) + $" (livres agora: {freeAfterDeposit})");
+            int chestFree = GameApi.ChestFreeSlots(targetUid);
+            ModLog.Info("Baú: guardado " + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}"))
+                + $" (livres agora: {freeAfterDeposit} no inventário" + (chestFree >= 0 ? $", {chestFree} no baú)" : ")"));
+
+            // O que o bot recolheu e não coube (baú sem espaço/pilha cheia): fica no inventário e o próximo baú que aceitar leva.
+            Dictionary<string, int> inInventory = GameApi.SnapshotPlayerItems();
+            List<string> notStored = ledger
+                .Select(kv => new KeyValuePair<string, int>(kv.Key, Math.Min(kv.Value, inInventory.TryGetValue(kv.Key, out int h) ? h : 0)))
+                .Where(kv => kv.Value > 0)
+                .Select(kv => $"{kv.Key} x{kv.Value}")
+                .ToList();
+            if (notStored.Count > 0)
+            {
+                ModLog.Info($"Baú: não coube em {GameApi.GetObjectDefId(targetUid)}: {string.Join(", ", notStored)}"
+                    + (chestFree == 0 ? " — baú cheio" : " — o baú recusou (pilha cheia ou filtro)") + "; ficam no inventário até um baú aceitar.");
+            }
             return Replan(null);
         }
 

@@ -46,6 +46,7 @@ namespace AutoKeeper.Bot
         private readonly Dictionary<string, uint> areaByUid = new Dictionary<string, uint>();
         private float doorsCachedAt = -999f;
         private string cachedScene;
+        private string loggedDoors;     // "cena:quantidade" já registrado no log de depuração
 
         /// <summary>Aumenta a cada religada do bot; tarefas usam para saber que devem refazer verificações iniciais.</summary>
         public int Generation { get; private set; }
@@ -186,7 +187,12 @@ namespace AutoKeeper.Bot
                 }
                 doors.Add(new DoorNode { Door = d, Area = area, LandingArea = landing });
             }
-            ModLog.Debug($"Navegação: {doors.Count} portas úteis na cena {scene}");
+            string key = $"{scene}:{doors.Count}";
+            if (key != loggedDoors)   // o cache renova a cada poucos segundos: só registra quando muda
+            {
+                loggedDoors = key;
+                ModLog.Debug($"Navegação: {doors.Count} portas úteis na cena {scene}");
+            }
         }
 
         /// <summary>Resumo para o dump/log: portas e regiões.</summary>

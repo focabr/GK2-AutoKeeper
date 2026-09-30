@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — texto da página do Nexus (copiar e colar)
 
 **Nome:** GK2 AutoKeeper
-**Versão:** 0.3.15 · **Arquivo:** `AutoKeeper-0.3.15.zip` (o mesmo zip do Thunderstore serve para o Nexus)
+**Versão:** 0.3.16 · **Arquivo:** `AutoKeeper-0.3.16.zip` (o mesmo zip do Thunderstore serve para o Nexus)
 **Resumo (curto):** Automation bot for the morgue: bodies → autopsy → crematorium or grave, using only actions the player could do.
 **Categoria sugerida:** Gameplay / Utilities · **Requisitos:** BepInEx 5.4.23.x (BepInExPack 5.4.2305)
 
@@ -9,7 +9,7 @@
 
 **GK2 AutoKeeper** is a BepInEx 5 automation mod for **Graveyard Keeper 2**. It runs routine chores using only actions the player could do — no item spawning, no save editing, no game files modified.
 
-**What it does (0.3.15)**
+**What it does (0.3.16)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium, grave or leave on the table.
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.
