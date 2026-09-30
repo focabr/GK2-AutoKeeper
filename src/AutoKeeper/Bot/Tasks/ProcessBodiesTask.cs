@@ -101,6 +101,7 @@ namespace AutoKeeper.Bot.Tasks
         private const float NearEnough = 2.2f;        // distância do ponto de parada considerada "cheguei"
         private const float AimTimeout = 2.5f;
         private const float InteractTimeout = 3f;
+        private const float ChestPreferSlack = 15f;   // m a mais que se aceita andar para usar o baú que já guarda os mesmos itens
         private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
         private const float SameRoomDistance = 20f;  // objeto sem região conhecida mas perto = mesma sala
@@ -374,9 +375,17 @@ namespace AutoKeeper.Bot.Tasks
             // Inventário quase cheio: leva ao baú só o que o bot recolheu.
             if (settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value)
             {
-                // Prefere o baú que já guarda esses itens (o "baú de guardar" do necrotério); senão o mais perto que aceite.
+                // O baú mais perto que aceite os itens. Um baú que já guarda esses itens só ganha a preferência se estiver
+                // na mesma área e quase tão perto (antes, um baú a 400 m que tinha ossos vencia o baú vazio do necrotério).
                 Func<Candidate, bool> usable = c => !failedChests.Contains(c.Obj.Uid) && GameApi.ChestCanTakeAny(c.Obj.Uid, ledger.Keys);
-                Candidate? chest = FirstFree(w.Chests, c => usable(c) && GameApi.ChestHasAny(c.Obj.Uid, ledger.Keys)) ?? FirstFree(w.Chests, usable);
+                Candidate? nearest = FirstFree(w.Chests, usable);
+                Candidate? chest = nearest;
+                if (nearest.HasValue)
+                {
+                    Candidate n = nearest.Value;
+                    chest = FirstFree(w.Chests, c => c.Area == n.Area && c.Cost <= n.Cost + ChestPreferSlack
+                        && usable(c) && GameApi.ChestHasAny(c.Obj.Uid, ledger.Keys)) ?? nearest;
+                }
                 if (chest.HasValue)
                 {
                     return Act(Goal.DepositChest, chest.Value, null);

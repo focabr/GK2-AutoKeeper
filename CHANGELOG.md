@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-09-29
+
+### Corrigido
+- Guardar no baú: o bot saía do necrotério atrás de um baú distante (a ~400 m) só porque ele já tinha ossos, em vez de
+  usar o baú vazio ao lado das mesas. Agora vale o baú mais perto que aceite os itens; um baú que já guarda os mesmos
+  itens só tem preferência se estiver na mesma área e no máximo 15 m mais longe.
+
 ## [0.3.5] - 2026-09-29
 
 ### Adicionado
