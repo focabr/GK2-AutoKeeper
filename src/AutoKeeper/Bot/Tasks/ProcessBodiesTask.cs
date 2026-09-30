@@ -35,6 +35,7 @@ namespace AutoKeeper.Bot.Tasks
             DepositChest,
             FillGrave,
             ParkOnPallet,
+            DigGrave,
         }
 
         private enum Step
@@ -79,6 +80,7 @@ namespace AutoKeeper.Bot.Tasks
             public List<Candidate> Pallets;
             public List<Candidate> Crematoriums;
             public List<Candidate> Graves;
+            public List<Candidate> GravePlaces;
             public List<GroundItemRef> GroundBodies;
             public List<Decision> RemoteBodies;   // corpos no chão fora do alcance local (outras áreas), do mais barato ao mais caro
             public List<Candidate> Chests;
@@ -375,6 +377,9 @@ namespace AutoKeeper.Bot.Tasks
             parkedPallets.RemoveWhere(uid => !GameApi.ObjectHasBody(uid)); // palete esvaziado (pelo bot ou pelo jogador)
             w.Crematoriums = Collect(ObjectKind.Crematorium, w);
             w.Graves = settings.Destination.Value == BodyDestination.Grave ? Collect(ObjectKind.EmptyGrave, w) : new List<Candidate>();
+            w.GravePlaces = settings.Destination.Value == BodyDestination.Grave && settings.DigGraves.Value && w.Graves.Count == 0
+                ? Collect(ObjectKind.GravePlace, w)
+                : new List<Candidate>();
             bool wantsChest = settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value;
             w.Chests = wantsChest ? Collect(ObjectKind.Chest, w) : new List<Candidate>();
             w.GraveBodies = settings.Destination.Value == BodyDestination.Grave && buriedSpots.Count > 0
@@ -592,7 +597,17 @@ namespace AutoKeeper.Bot.Tasks
                         {
                             return Act(Goal.Bury, grave.Value, carried);
                         }
-                        return FailWith("carregando corpo, mas não há cova vazia (grave_empty) livre alcançável — abra/construa uma cova no cemitério");
+                        if (w.GravePlaces.Count > 0)
+                        {
+                            // Com o corpo na cabeça não dá para cavar: deixa num palete vazio, cava e volta para buscá-lo.
+                            Candidate? parkForDig = EmptyPallet(w);
+                            if (parkForDig.HasValue)
+                            {
+                                return Act(Goal.ParkOnPallet, parkForDig.Value, carried);
+                            }
+                            return FailWith("carregando corpo e a cova marcada ainda precisa ser cavada — deixe o corpo num palete (não há palete vazio)");
+                        }
+                        return FailWith("carregando corpo, mas não há cova vazia (grave_empty) livre alcançável — marque uma cova no cemitério com o construtor");
                     default:
                         if (freeTable.HasValue)
                         {
@@ -657,6 +672,16 @@ namespace AutoKeeper.Bot.Tasks
                 {
                     doneTable = t;
                     doneBody = body;
+                }
+            }
+
+            // 3c') Destino Cova sem cova aberta: cava uma cova já marcada pelo jogador, se há corpo esperando enterro.
+            if (dest == BodyDestination.Grave && !grave.HasValue && w.GravePlaces.Count > 0 && BodyAwaitingGrave(w, doneTable.HasValue, wantsParts))
+            {
+                Candidate? place = FirstFree(w.GravePlaces, g => !GameApi.HasOtherWorker(g.Obj.Uid));
+                if (place.HasValue)
+                {
+                    return Act(Goal.DigGrave, place.Value, null);
                 }
             }
 
@@ -730,6 +755,28 @@ namespace AutoKeeper.Bot.Tasks
             }
             string b = GameApi.GetBodyUidInObject(pallet.Obj.Uid);
             return b == null || !autopsyDone.Contains(b);
+        }
+
+        /// <summary>Há corpo pronto para ir à cova (autopsiado na mesa/palete ou, sem autópsia, qualquer corpo por perto)?</summary>
+        private bool BodyAwaitingGrave(WorldView w, bool autopsiedOnTable, bool wantsParts)
+        {
+            if (autopsiedOnTable)
+            {
+                return true;
+            }
+            foreach (Candidate p in w.Pallets)
+            {
+                if (!GameApi.ObjectHasPlainBody(p.Obj.Uid))
+                {
+                    continue;
+                }
+                string b = GameApi.GetBodyUidInObject(p.Obj.Uid);
+                if (!wantsParts || parkedPallets.Contains(p.Obj.Uid) || (b != null && autopsyDone.Contains(b)))
+                {
+                    return true;
+                }
+            }
+            return !wantsParts && w.GroundBodies.Count > 0;
         }
 
         /// <summary>Ainda há corpo esperando autópsia (palete ou chão)?</summary>
@@ -864,7 +911,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 return Fail($"alvo {WorldObjectRef.ShortUid(uid)} sumiu") != TaskResult.Failed;
             }
-            if ((g == Goal.Bury || g == Goal.FillGrave) && standFacing == Vector2.zero)
+            if ((g == Goal.Bury || g == Goal.FillGrave || g == Goal.DigGrave) && standFacing == Vector2.zero)
             {
                 // Covas não têm ponto de trabalho: para ao lado, vindo do lado do jogador, de frente para ela.
                 standSpot = GameApi.GetNearestWalkablePoint(GameApi.GetApproachSpot(pos, 1.0f));
@@ -971,9 +1018,9 @@ namespace AutoKeeper.Bot.Tasks
             if (aimed)
             {
                 GameApi.StopMoving();
-                if (goal == Goal.FillGrave)
+                if (goal == Goal.FillGrave || goal == Goal.DigGrave)
                 {
-                    // Fechar a cova é trabalho com pá: segurar Ação de frente para ela (a pá precisa estar no cinto).
+                    // Cavar/fechar a cova é trabalho com pá: segurar Ação de frente para ela (a pá precisa estar no cinto).
                     GameApi.SetHoldAction(true);
                     GoTo(Step.Work);
                     return TaskResult.Running;
@@ -1258,11 +1305,7 @@ namespace AutoKeeper.Bot.Tasks
 
         private TaskResult TickFill()
         {
-            TaskResult? guard = GuardAim();
-            if (guard.HasValue)
-            {
-                return guard.Value;
-            }
+            // Primeiro o id: quando a cova muda de objeto, a mira do jogo passa para o objeto novo (não é "mira errada").
             string id = GameApi.GetObjectDefId(targetUid);
             if (id != "grave_body")   // virou grave_ground (ou o objeto foi trocado): cova fechada
             {
@@ -1274,6 +1317,11 @@ namespace AutoKeeper.Bot.Tasks
                 Status = "corpo enterrado";
                 return TaskResult.Succeeded; // um ciclo completo
             }
+            TaskResult? guard = GuardAim();
+            if (guard.HasValue)
+            {
+                return guard.Value;
+            }
             Status = $"{GoalText()}: trabalhando ({Now - stepStartedAt:0}s)";
             if (Now - stepStartedAt > FillTimeout)
             {
@@ -1283,11 +1331,39 @@ namespace AutoKeeper.Bot.Tasks
             return TaskResult.Running;
         }
 
+        private TaskResult TickDig()
+        {
+            // Primeiro o id: quando a cova muda de objeto, a mira do jogo passa para o objeto novo (não é "mira errada").
+            string id = GameApi.GetObjectDefId(targetUid);
+            if (id != "grave_empty_place")   // virou grave_empty (ou o objeto foi trocado): cova aberta
+            {
+                GameApi.SetHoldAction(false);
+                ModLog.Info("Corpos: cova cavada — pronta para o corpo");
+                return Replan(null);
+            }
+            TaskResult? guard = GuardAim();
+            if (guard.HasValue)
+            {
+                return guard.Value;
+            }
+            Status = $"{GoalText()}: trabalhando ({Now - stepStartedAt:0}s)";
+            if (Now - stepStartedAt > FillTimeout)
+            {
+                GameApi.SetHoldAction(false);
+                return Fail($"a cova não ficou pronta em {FillTimeout:0}s (pá no cinto? energia? alvo do jogo: {GameApi.DescribeInteractionTarget()})");
+            }
+            return TaskResult.Running;
+        }
+
         private TaskResult TickWork()
         {
             if (goal == Goal.FillGrave)
             {
                 return TickFill();
+            }
+            if (goal == Goal.DigGrave)
+            {
+                return TickDig();
             }
             // Terminou quando a receita saiu da fila (ou a cova virou outra coisa).
             bool finished = !GameApi.IsCraftActive(targetUid);
@@ -1451,6 +1527,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.UseDoor: return "atravessar porta";
                 case Goal.InspectCrematorium: return "checar o crematório";
                 case Goal.FillGrave: return "fechar a cova";
+                case Goal.DigGrave: return "cavar a cova marcada";
                 case Goal.ParkOnPallet: return "deixar corpo no palete (crematório ocupado)";
                 case Goal.DepositChest: return "guardar itens no baú";
                 default: return "-";

@@ -254,6 +254,9 @@ namespace AutoKeeper.Core
                     ["toolAction"] = d.toolAction?.actionableTool.ToString(),
                     ["customInteraction"] = CustomInteractionToJson(d.customInteraction),
                     ["customInteraction2"] = CustomInteractionToJson(d.customInteraction2),
+                    ["hp"] = d.hp,
+                    ["replaceToWgoOnDie"] = d.replaceToWgoOnDie?.ToString(),
+                    ["executeOnDeath"] = new JArray((d.executeOnDeath ?? new List<LazyExpression>()).Select(e => (object)e?.ToString())),
                     ["crafts"] = crafts,
                 });
             }
@@ -378,7 +381,7 @@ namespace AutoKeeper.Core
                 }
                 j["doors"] = doors;
                 var targets = new JArray();
-                foreach (ObjectKind k in new[] { ObjectKind.AutopsyTable, ObjectKind.MorguePallet, ObjectKind.Crematorium, ObjectKind.EmptyGrave })
+                foreach (ObjectKind k in new[] { ObjectKind.AutopsyTable, ObjectKind.MorguePallet, ObjectKind.Crematorium, ObjectKind.EmptyGrave, ObjectKind.GravePlace, ObjectKind.GraveBody })
                 {
                     foreach (WorldObjectRef o in FindObjects(k, float.MaxValue))
                     {

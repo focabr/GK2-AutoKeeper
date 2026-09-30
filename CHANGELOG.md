@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-09-29
+
+### Adicionado
+- **Cavar covas marcadas** (`[Bodies] DigGraves`, ligado por padrão): com destino Cova e nenhuma cova aberta
+  (`grave_empty`), o bot cava com a pá uma cova que o jogador já marcou com o construtor do cemitério
+  (`grave_empty_place` → `grave_empty`) — só quando há corpo esperando enterro. Nunca marca covas novas nem desenterra.
+  Se estiver carregando um corpo e a cova ainda precisar ser cavada, deixa o corpo num palete vazio antes.
+- Dump (F10): definições com `hp`, `replaceToWgoOnDie` e `executeOnDeath`; alvos de navegação incluem covas marcadas e
+  covas com corpo.
+
+### Corrigido
+- Fechar a cova: o bot conferia a mira antes de ver se a cova já tinha virado outro objeto; quando o jogo troca o
+  objeto, a mira passa para o novo e isso contava como "mira errada" (podia terminar em falha depois de 6 s).
+
 ## [0.3.13] - 2026-09-29
 
 ### Corrigido

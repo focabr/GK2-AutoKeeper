@@ -95,6 +95,7 @@ namespace AutoKeeper.Config
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
         public ConfigEntry<BodyDestination> Destination { get; }
+        public ConfigEntry<bool> DigGraves { get; }
         public ConfigEntry<bool> RequireMastery { get; }
         public ConfigEntry<int> MinMasteryChance { get; }
         public ConfigEntry<bool> ExtractSkin { get; }
@@ -156,6 +157,10 @@ namespace AutoKeeper.Config
                 "Destino do corpo depois da autópsia", "Body destination after autopsy",
                 "Crematório (no necrotério), deixar na mesa, ou enterrar numa cova vazia (o bot vai ao cemitério pelas portas, coloca o corpo e fecha a cova com a pá).",
                 "Crematorium (inside the morgue), leave on the table, or bury in an empty grave (the bot goes to the graveyard through the doors, places the body and fills the grave with the shovel).");
+            DigGraves = Toggle(config, SettingTab.Bodies, "Bodies", "DigGraves", true,
+                "Cavar covas marcadas", "Dig marked graves",
+                "Com destino Cova e nenhuma cova aberta, o bot cava com a pá uma cova que você já marcou com o construtor do cemitério (a cova ainda por cavar). Ele nunca marca covas novas nem desenterra corpos.",
+                "With the Grave destination and no open grave, the bot digs with the shovel a grave you already marked with the graveyard builder (the not-yet-dug grave). It never marks new graves nor exhumes bodies.");
             SearchRadius = Slider(config, SettingTab.Bodies, "Bodies", "SearchRadius", 80f, 5f, 300f, 5f,
                 "Buscar corpos no chão até (m)", "Search ground bodies up to (m)",
                 "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
