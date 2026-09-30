@@ -133,6 +133,16 @@ namespace AutoKeeper.Bot.Tasks
         private bool chestWarned;
         private int freeAfterDeposit = int.MaxValue;   // espaços livres logo após o último "guardar no baú"
 
+        // Ponto de trabalho que o PRÓPRIO JOGO usou (ele leva o jogador ao ponto dele ao segurar Ação). Sem isso o bot
+        // andava de volta ao ponto que ele escolheu antes de cada órgão e o jogo o levava de novo ao outro lado da mesa.
+        private readonly Dictionary<string, WorkSpot> workSpots = new Dictionary<string, WorkSpot>();
+
+        private struct WorkSpot
+        {
+            public Vector3 Pos;
+            public Vector2 Facing;
+        }
+
         // Objetivo atual.
         private Goal goal;
         private Step step;
@@ -266,6 +276,7 @@ namespace AutoKeeper.Bot.Tasks
             chestWatchGen = -1;
             chestWarned = false;
             freeAfterDeposit = int.MaxValue;
+            workSpots.Clear();
             misaimSince = -1f;
             invBefore = null;
             idleCheckedAt = -999f;
@@ -862,6 +873,11 @@ namespace AutoKeeper.Bot.Tasks
             {
                 standSpot = GameApi.GetNearestWalkablePoint(standSpot); // a porta fica na parede, fora do navmesh
             }
+            if (!ground && workSpots.TryGetValue(uid, out WorkSpot learned))
+            {
+                standSpot = learned.Pos;   // onde o jogo pôs o jogador da última vez: nada de ir e voltar entre órgãos
+                standFacing = learned.Facing;
+            }
 
             ModLog.Info($"Corpos: objetivo {GoalText()}");
             GoTo(Step.Move);
@@ -1296,6 +1312,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 lastProgress = progress;
                 lastProgressAt = Now;
+                LearnWorkSpot();
             }
             Status = $"{GoalText()}: trabalhando (progresso {Math.Max(progress, 0)})";
             if (Now - lastProgressAt > settings.WorkStallSeconds.Value)
@@ -1307,6 +1324,34 @@ namespace AutoKeeper.Bot.Tasks
         }
 
         // ------------------------------------------------------------------ utilitários
+
+        /// <summary>O trabalho avançou: o jogador está no ponto de trabalho que o jogo escolheu. Guarda para os próximos objetivos no mesmo objeto.</summary>
+        private void LearnWorkSpot()
+        {
+            if (targetIsGround || targetUid == null)
+            {
+                return;
+            }
+            Vector3 pos = GameApi.GetPlayerPosition();
+            Vector2 facing = GameApi.GetPlayerFacing();
+            if (pos == Vector3.zero)
+            {
+                return;
+            }
+            bool known = workSpots.TryGetValue(targetUid, out WorkSpot old);
+            if (known && Vector3.Distance(old.Pos, pos) < 0.05f)
+            {
+                return;
+            }
+            workSpots[targetUid] = new WorkSpot { Pos = pos, Facing = facing.sqrMagnitude > 0.01f ? facing.normalized : standFacing };
+            if (Vector3.Distance(pos, standSpot) > 0.3f)
+            {
+                ModLog.Info($"Corpos: o jogo trabalha em {GameApi.GetObjectDefId(targetUid)} a partir de {pos.x:0.00},{pos.z:0.00} "
+                    + $"(o bot tinha ido a {standSpot.x:0.00},{standSpot.z:0.00}) — uso o ponto do jogo daqui em diante");
+            }
+            standSpot = pos;
+            standFacing = workSpots[targetUid].Facing;
+        }
 
         private void FaceTarget()
         {

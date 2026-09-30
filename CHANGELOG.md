@@ -4,6 +4,24 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-09-29
+
+### Corrigido
+- Vai e volta na mesa entre cada órgão: ao segurar Ação, o próprio jogo leva o jogador ao ponto de trabalho que ele
+  escolhe (`PlayerWorkComponent.FindNearestDockPoint`, com a checagem de alcance dele), e esse ponto podia ser o outro
+  lado da mesa. No órgão seguinte o bot voltava ao ponto que ele tinha escolhido, e o jogo o levava de novo. Agora,
+  quando o trabalho avança, o bot guarda o ponto onde o jogo o colocou e usa esse ponto nos próximos objetivos do mesmo
+  objeto (log: "o jogo trabalha em … — uso o ponto do jogo daqui em diante").
+- `[Debug] VerboseLogging` não gravava nada no `LogOutput.log` (o filtro padrão do BepInEx descarta Debug); agora grava
+  como Info com o prefixo `[dbg]`.
+
+### Alterado
+- Comida: numa parada para comer, o bot segue comendo enquanto a comida couber inteira na energia que falta
+  (ex.: 19 → 49 → 79 de 86 com torta de +30), em vez de interromper o trabalho a cada extração para comer uma só.
+  Nada que passe do máximo é comido nessa sequência.
+- Log: menu → Continuar disparava até três avisos "Memória do bot zerada" seguidos (menu, troca do `PlayerData`,
+  partida carregada). A memória continua sendo zerada em todos, mas o aviso sai uma vez só enquanto o bot não rodar.
+
 ## [0.3.12] - 2026-09-29
 
 ### Alterado

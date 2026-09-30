@@ -42,7 +42,9 @@ namespace AutoKeeper.Bot
         private int eatsInARow;
         private bool eatBroken;             // a tecla não teve efeito: não tenta de novo até religar o bot
         private float eatRetryAt;           // carregando algo, a tecla pode não funcionar: tenta de novo depois
+        private bool toppingUp;             // já comeu nesta parada: continua enquanto a comida couber inteira na energia
         private readonly HashSet<string> skippedFoodLogged = new HashSet<string>();
+        private bool memoryClean;           // memória já zerada e o bot não rodou desde então (evita avisos repetidos)
 
         public BotState State { get; private set; } = BotState.Off;
 
@@ -86,7 +88,9 @@ namespace AutoKeeper.Bot
             eatBroken = false;
             eatRetryAt = 0f;
             eatsInARow = 0;
+            toppingUp = false;
             Navigator.Reset();
+            memoryClean = false;
             State = BotState.Idle;
             StateDetail = "aguardando";
             ModLog.Info("Bot LIGADO.");
@@ -104,6 +108,7 @@ namespace AutoKeeper.Bot
             }
             AbortCurrent();
             eating = false;
+            toppingUp = false;
             State = BotState.Off;
             StateDetail = reason;
             ModLog.Info($"Bot DESLIGADO: {reason}");
@@ -143,7 +148,17 @@ namespace AutoKeeper.Bot
             skippedFoodLogged.Clear();
             eatBroken = false;
             eatsInARow = 0;
-            ModLog.Info($"Memória do bot zerada ({why}). Ligue de novo com a tecla do bot quando quiser.");
+            toppingUp = false;
+            // Menu → Continuar dispara até 3 eventos seguidos (menu, troca do PlayerData, partida carregada): zera em
+            // todos, mas só avisa uma vez enquanto o bot não tiver rodado de novo.
+            string msg = $"Memória do bot zerada ({why}).";
+            if (memoryClean)
+            {
+                ModLog.Debug(msg + " (já estava zerada)");
+                return;
+            }
+            memoryClean = true;
+            ModLog.Info(msg + " Ligue de novo com a tecla do bot quando quiser.");
         }
 
         private void Tick(GameSnapshot s)
@@ -169,10 +184,13 @@ namespace AutoKeeper.Bot
                 return;
             }
             bool energyKnown = s.EnergyMax > 0f && s.Energy >= 0f;
-            if (energyKnown && s.Energy < settings.EatBelowEnergy.Value && TryStartEating(s))
+            // Uma parada só para comer: abaixo do limite come e segue comendo enquanto a comida couber inteira na energia
+            // que falta (ex.: 19 → 49 → 79 de 86), em vez de interromper o trabalho a cada extração.
+            if (energyKnown && (s.Energy < settings.EatBelowEnergy.Value || toppingUp) && TryStartEating(s))
             {
                 return;
             }
+            toppingUp = false;
             if (energyKnown && s.Energy >= settings.EatBelowEnergy.Value)
             {
                 eatsInARow = 0;
@@ -266,11 +284,16 @@ namespace AutoKeeper.Bot
                 return false;
             }
 
-            // Menos desperdício: o maior item que cabe na energia que falta; se nenhum cabe, o menor.
+            // Menos desperdício: o maior item que cabe na energia que falta; se nenhum cabe, o menor (só abaixo do limite;
+            // completando a energia, nada que passe do máximo).
             float missing = Mathf.Max(0f, s.EnergyMax - s.Energy);
             HotBarFood pick = foods.Where(f => f.Energy <= missing).OrderByDescending(f => f.Energy).FirstOrDefault();
             if (pick.ItemId == null)
             {
+                if (s.Energy >= settings.EatBelowEnergy.Value)
+                {
+                    return false;
+                }
                 pick = foods.OrderBy(f => f.Energy).First();
             }
 
@@ -309,6 +332,7 @@ namespace AutoKeeper.Bot
             if (energyUp || itemUsed)
             {
                 eating = false;
+                toppingUp = true;
                 ModLog.Info($"Comida: comeu {eatingFood.ItemId} — energia {energyBeforeEat:0} → {s.Energy:0}");
                 return;
             }
@@ -321,6 +345,7 @@ namespace AutoKeeper.Bot
                     return;
                 }
                 eating = false;
+                toppingUp = false;
                 eatsInARow--;
                 if (GameApi.IsCarryingAnything())
                 {

@@ -176,6 +176,9 @@ namespace AutoKeeper.Core
 
         public static Vector3 GetPlayerPosition() => Safe(() => MainGame.PlayerData.position.Value, Vector3.zero, nameof(GetPlayerPosition));
 
+        /// <summary>Para onde o jogador está virado (x,z). No trabalho, o jogo alinha ao ponto de trabalho dele.</summary>
+        public static Vector2 GetPlayerFacing() => Safe(() => MainGame.PlayerData.Direction, Vector2.zero, nameof(GetPlayerFacing));
+
         /// <summary>Energia atual (GameRes "energy").</summary>
         public static float GetEnergy() => Safe(() => MainGame.PlayerData.GetRes("energy"), -1f, nameof(GetEnergy));
 

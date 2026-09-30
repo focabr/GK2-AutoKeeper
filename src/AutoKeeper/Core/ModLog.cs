@@ -49,11 +49,13 @@ namespace AutoKeeper.Core
 
         private static void Write(LogLevel level, string msg)
         {
-            source?.Log(level, msg);
             if (level == LogLevel.Debug)
             {
+                // O filtro padrão do LogOutput.log do BepInEx descarta Debug: grava como Info marcado, só no arquivo.
+                source?.Log(LogLevel.Info, "[dbg] " + msg);
                 return;
             }
+            source?.Log(level, msg);
             recent.AddLast($"{DateTime.Now:HH:mm:ss} {LevelTag(level)}{msg}");
             while (recent.Count > MaxRecent)
             {
