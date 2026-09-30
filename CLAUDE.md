@@ -3,7 +3,7 @@
 Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
 
 ## Estado (2026-09-29)
-- Versão instalada: **0.3.7** (tag v0.3.7). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`).
+- Versão instalada: **0.3.8** (tag v0.3.8). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`).
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
 - Não testado em jogo: guardar no baú (sem linha "Baú: guardado" no log ainda) e destino Cova (falta `grave_empty` + pá).
 
@@ -26,4 +26,5 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 - O layout do jogo ignora LayoutElement: usar `RectTransform.sizeDelta`.
 - Tela nativa só abre com jogo carregado (menu principal cai no IMGUI).
 - Baús de missão (customTag) e de esteira/jardim são ignorados de propósito.
+- NUNCA segurar Ação sem conferir o alvo do jogo (`GuardAim`): Ação num baú = pegar tudo.
 - Crematório: estado lido à distância (`GetCraftState`); só visitar se `ReadyToCollect`.

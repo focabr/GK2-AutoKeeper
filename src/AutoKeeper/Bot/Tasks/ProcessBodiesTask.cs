@@ -102,6 +102,7 @@ namespace AutoKeeper.Bot.Tasks
         private const float NearEnough = 2.2f;        // distância do ponto de parada considerada "cheguei"
         private const float AimTimeout = 2.5f;
         private const float InteractTimeout = 3f;
+        private const float MisaimTimeout = 6f;       // s tentando voltar a mirar o alvo antes de desistir
         private const float ChestPreferSlack = 15f;   // m a mais que se aceita andar para usar o baú que já guarda os mesmos itens
         private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
@@ -146,6 +147,7 @@ namespace AutoKeeper.Bot.Tasks
         private int moveRetries;
         private int lastProgress;
         private float lastProgressAt;
+        private float misaimSince = -1f;   // desde quando o jogo mira outro objeto durante o trabalho (-1 = mirando certo)
         private bool planFailed;
         private bool nudged;
         private uint doorFromArea;
@@ -775,9 +777,12 @@ namespace AutoKeeper.Bot.Tasks
             GoTo(Step.Move);
             float dist = GameApi.DistanceTo(standSpot);
             moveTimeout = Mathf.Max(settings.MoveTimeoutSeconds.Value, dist / 3.3f * 2f + 10f);
-            if (dist <= NearEnough)
+            // Com ponto de trabalho conhecido, só pula a caminhada se já estiver nele: "perto" não basta
+            // (parado ao lado do baú, o jogo mirava o baú em vez da mesa).
+            float near = standFacing != Vector2.zero ? 0.5f : NearEnough;
+            if (dist <= near)
             {
-                GoTo(Step.Aim); // já está perto
+                GoTo(Step.Aim); // já está no lugar
             }
             else if (!GameApi.StartMoveTo(standSpot))
             {
@@ -989,6 +994,10 @@ namespace AutoKeeper.Bot.Tasks
                         StartWork();
                         return TaskResult.Running;
                     }
+                    if (InventoryFullFor(partId))
+                    {
+                        return Fail("inventário cheio: libere espaço (ou ligue \"Guardar no baú\") antes de extrair");
+                    }
                     if (GameApi.StartAutopsyExtract(targetUid, partId, out reason))
                     {
                         ModLog.Info($"Corpos: extraindo {partId}");
@@ -1000,6 +1009,10 @@ namespace AutoKeeper.Bot.Tasks
                     return Replan(null);
 
                 case Goal.ExtractPocket:
+                    if (InventoryFullFor(partId))
+                    {
+                        return Fail("inventário cheio: libere espaço (ou ligue \"Guardar no baú\") antes de extrair");
+                    }
                     if (GameApi.StartPocketExtract(targetUid, partId, out reason))
                     {
                         ModLog.Info($"Corpos: tirando {partId} (Outros)");
@@ -1073,14 +1086,76 @@ namespace AutoKeeper.Bot.Tasks
         private void StartWork()
         {
             FaceTarget();
-            GameApi.SetHoldAction(true);
             lastProgress = GameApi.GetCraftProgressTicks(targetUid);
             lastProgressAt = Now;
+            misaimSince = -1f;
             GoTo(Step.Work);
+            if (AimedElsewhere(out _))
+            {
+                BeginMisaim(); // não segura Ação: primeiro corrige a mira
+                return;
+            }
+            GameApi.SetHoldAction(true);
+        }
+
+        /// <summary>Sem espaço livre e sem pilha do mesmo item para somar: a extração não teria onde cair.</summary>
+        private static bool InventoryFullFor(string itemId)
+            => GameApi.PlayerFreeSlots() == 0 && !GameApi.SnapshotPlayerItems().ContainsKey(itemId);
+
+        /// <summary>O jogo está mirando OUTRO objeto (não o alvo)? Sem alvo nenhum não conta.</summary>
+        private bool AimedElsewhere(out string what)
+        {
+            string cur = GameApi.GetInteractionTargetUid();
+            what = cur == null ? null : GameApi.DescribeInteractionTarget();
+            return cur != null && cur != targetUid;
+        }
+
+        private void BeginMisaim()
+        {
+            GameApi.SetHoldAction(false);
+            if (misaimSince < 0f)
+            {
+                misaimSince = Now;
+                ModLog.Warn($"Corpos: o jogo está mirando em {GameApi.DescribeInteractionTarget()}, não no alvo — soltei a Ação e vou reposicionar.");
+                GameApi.StartMoveTo(standSpot);
+            }
+            FaceTarget();
+        }
+
+        /// <summary>
+        /// Guarda de segurança do trabalho: se a mira sair do alvo, solta a Ação na hora (segurar Ação num baú
+        /// pega tudo dele para o inventário). Devolve um resultado quando o passo deve parar aqui.
+        /// </summary>
+        private TaskResult? GuardAim()
+        {
+            if (AimedElsewhere(out string what))
+            {
+                BeginMisaim();
+                lastProgressAt = Now; // não conta como trabalho travado enquanto corrige a mira
+                if (Now - misaimSince > MisaimTimeout)
+                {
+                    return Fail($"o jogo continua mirando em {what}, não no alvo (soltei a Ação para não mexer nele)");
+                }
+                return TaskResult.Running;
+            }
+            if (misaimSince >= 0f)
+            {
+                misaimSince = -1f;
+                GameApi.StopMoving();
+                FaceTarget();
+                GameApi.SetHoldAction(true);
+                lastProgressAt = Now;
+            }
+            return null;
         }
 
         private TaskResult TickFill()
         {
+            TaskResult? guard = GuardAim();
+            if (guard.HasValue)
+            {
+                return guard.Value;
+            }
             string id = GameApi.GetObjectDefId(targetUid);
             if (id != "grave_body")   // virou grave_ground (ou o objeto foi trocado): cova fechada
             {
@@ -1109,6 +1184,14 @@ namespace AutoKeeper.Bot.Tasks
             }
             // Terminou quando a receita saiu da fila (ou a cova virou outra coisa).
             bool finished = !GameApi.IsCraftActive(targetUid);
+            if (!finished)
+            {
+                TaskResult? guard = GuardAim();
+                if (guard.HasValue)
+                {
+                    return guard.Value;
+                }
+            }
             if (finished)
             {
                 GameApi.SetHoldAction(false);

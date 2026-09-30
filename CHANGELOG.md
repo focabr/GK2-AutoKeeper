@@ -4,6 +4,17 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-09-29
+
+### Corrigido
+- **Grave:** o bot podia esvaziar o baú do necrotério no inventário. Depois de guardar itens, ele começava a
+  extração parado ao lado do baú (considerava "perto" da mesa a até 2,2 m) e segurava Ação com o jogo mirando o baú,
+  o que no jogo é "pegar tudo". Agora:
+  - com ponto de trabalho conhecido, o bot sempre anda até ele (tolerância de 0,5 m);
+  - nunca segura Ação se o jogo estiver mirando outro objeto; se a mira sair do alvo no meio do trabalho, solta a
+    Ação na hora, reposiciona e, se não conseguir em 6 s, para com aviso (vale para mesa e cova).
+- Com o inventário cheio (sem espaço nem pilha do mesmo item), o bot para com aviso claro em vez de travar a extração.
+
 ## [0.3.7] - 2026-09-29
 
 ### Adicionado

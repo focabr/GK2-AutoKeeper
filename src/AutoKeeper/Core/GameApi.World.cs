@@ -394,6 +394,21 @@ namespace AutoKeeper.Core
             return w != null && w.HasData && w.Data.UniqueId.Id == uid;
         }, false, nameof(IsObjectUnderInteraction));
 
+        /// <summary>
+        /// Uid do alvo de interação atual do jogo (objeto ou item grande no chão), ou null se não há alvo.
+        /// Usado para nunca segurar Ação mirando outra coisa (Ação num baú = "pegar tudo").
+        /// </summary>
+        public static string GetInteractionTargetUid() => Safe(() =>
+        {
+            PlayerInteractionComponent pic = MainGame.PlayerController.PlayerInteractionComponent;
+            if (pic.BigDropUnderInteraction?.Data != null)
+            {
+                return pic.BigDropUnderInteraction.Data.UniqueId.Id;
+            }
+            Wgo w = pic.WgoUnderInteraction;
+            return w != null && w.HasData ? w.Data.UniqueId.Id : null;
+        }, null, nameof(GetInteractionTargetUid));
+
         /// <summary>O item no chão é o alvo de interação atual?</summary>
         public static bool IsGroundItemUnderInteraction(string uid) => Safe(() =>
         {
