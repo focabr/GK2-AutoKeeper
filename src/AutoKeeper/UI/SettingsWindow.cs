@@ -153,7 +153,7 @@ namespace AutoKeeper.UI
 
             // Rodapé.
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(T(pt, "Restaurar padrões desta aba", "Reset this tab to defaults"), buttonStyle))
+            if (GUILayout.Button(T(pt, "Restaurar padrões", "Reset defaults"), buttonStyle))
             {
                 settings.ResetTab(tab);
                 textBuffers.Clear();
@@ -304,8 +304,7 @@ namespace AutoKeeper.UI
             {
                 case SettingTab.Bot: return T(pt, "Geral", "General");
                 case SettingTab.Bodies: return T(pt, "Corpos", "Bodies");
-                case SettingTab.Autopsy: return T(pt, "Órgãos", "Organs");
-                case SettingTab.AutopsyOthers: return T(pt, "Outros itens", "Other items");
+                case SettingTab.Autopsy: return T(pt, "Extração", "Extraction");
                 case SettingTab.Hotkeys: return T(pt, "Teclas", "Hotkeys");
                 case SettingTab.Overlay: return T(pt, "Painel", "Panel");
                 default: return T(pt, "Avançado", "Advanced");

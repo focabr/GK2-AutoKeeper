@@ -67,7 +67,7 @@ Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instala
 | F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
 | F11 | abre/fecha a tela de configurações |
 
-Categorias da tela (F11): **Geral · Corpos · Órgãos · Outros itens · Teclas · Painel · Avançado** (escolha com ◀ ▶ no topo).
+Categorias da tela (F11): **Geral · Corpos · Extração · Teclas · Painel · Avançado** (escolha com ◀ ▶ no topo).
 
 ### Geral (`[Bot]` no .cfg)
 | Opção (tela) | Chave | Padrão | O que faz |
@@ -87,7 +87,7 @@ Categorias da tela (F11): **Geral · Corpos · Órgãos · Outros itens · Tecla
 | Guardar no baú com inventário cheio | `UseChest` | `true` | leva ao baú SÓ o que o bot recolheu (extrações/crematório); prefere o baú que já guarda esses itens; ignora baús de missão |
 | Ir ao baú com menos de (espaços livres) | `ChestFreeSlots` | `3` | quando ir ao baú |
 
-### Órgãos e Outros itens (`[Bodies]`)
+### Extração (`[Bodies]`)
 | Opção (tela) | Chave | Padrão | O que faz |
 |---|---|---|---|
 | Respeitar a maestria | `RequireMastery` | `true` | confere a maestria item por item (como na janela "Remover …") e pula o que ficar abaixo da chance mínima |

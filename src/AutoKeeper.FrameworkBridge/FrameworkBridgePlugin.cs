@@ -99,7 +99,7 @@ namespace AutoKeeper.FrameworkBridge
                 // Opções de corpos ficam acinzentadas quando a rotina está desligada.
                 foreach (SettingInfo s in main.Settings.UiSettings)
                 {
-                    if ((s.Tab == SettingTab.Bodies || s.Tab == SettingTab.Autopsy || s.Tab == SettingTab.AutopsyOthers) && s.Entry != main.Settings.BodiesEnabled)
+                    if ((s.Tab == SettingTab.Bodies || s.Tab == SettingTab.Autopsy) && s.Entry != main.Settings.BodiesEnabled)
                     {
                         ui.SetEnabledCondition(s.Entry.Definition.Section, s.Entry.Definition.Key, () => main.Settings.BodiesEnabled.Value);
                     }

@@ -305,14 +305,19 @@ namespace AutoKeeper.UI
             hintText = AddHint();
 
             // 4) Botões: ligar/desligar bot, restaurar padrões, fechar.
+            // 4) Ações da janela: ligar/desligar em destaque; restaurar e fechar lado a lado.
+            AddDivider();
             lastBotOn = bot.State != BotController.BotState.Off;
-            botButton = AddButton(BotButtonText(), bot.Toggle, T("Liga ou desliga o bot agora.", "Turns the bot on or off now."));
-            AddButton(T("Restaurar padrões desta categoria", "Reset this category"), () =>
-            {
-                settings.ResetTab(tab);
-                rebuildPending = true;
-            }, T("Volta as opções desta categoria ao padrão.", "Restores this category's defaults."));
-            AddButton(T("Fechar", "Close"), Close, T("Fecha (Esc). As alterações já estão salvas.", "Closes (Esc). Changes are already saved."));
+            botButton = AddButton(BotButtonText(), bot.Toggle,
+                T("Liga ou desliga o bot agora (o mesmo que a tecla F8).", "Turns the bot on or off now (same as the F8 key)."));
+            AddButtonRow(
+                (T("Restaurar padrões", "Reset defaults"), () =>
+                {
+                    settings.ResetTab(tab);
+                    rebuildPending = true;
+                }, T("Volta só as opções desta categoria ao valor original.", "Resets only this category's options to their original values.")),
+                (T("Fechar", "Close"), Close,
+                    T("Fecha a janela (Esc). As alterações já ficam salvas.", "Closes the window (Esc). Changes are already saved.")));
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             CenterSwitch(categorySwitch);
@@ -461,6 +466,35 @@ namespace AutoKeeper.UI
             Place(go, help);
         }
 
+        /// <summary>Vários botões lado a lado numa linha (mesmos botões do jogo, largura fixa).</summary>
+        private void AddButtonRow(params (string text, Action onPressed, string help)[] items)
+        {
+            var row = new GameObject("AK_ButtonRow", typeof(RectTransform));
+            row.transform.SetParent(content, false);
+            ((RectTransform)row.transform).sizeDelta = new Vector2(340f, 26f);
+            HorizontalLayoutGroup h = row.AddComponent<HorizontalLayoutGroup>();
+            h.spacing = 8f;
+            h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = true;
+            h.childControlHeight = false;
+            h.childForceExpandWidth = false;
+            h.childForceExpandHeight = false;
+            LayoutElement rowLe = row.AddComponent<LayoutElement>();
+            rowLe.minHeight = 26f;
+            rowLe.preferredHeight = 26f;
+            built.Add(row);
+            foreach ((string text, Action onPressed, string help) in items)
+            {
+                GameObject go = Instantiate(buttonTemplate, staging, false);
+                UIDialogWindowButton b = go.GetComponent<UIDialogWindowButton>();
+                LayoutElement le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+                le.minWidth = 150f;
+                le.preferredWidth = 150f;
+                Place(go, help, row.transform);
+                DrawButton(b, text, onPressed);
+            }
+        }
+
         private UIDialogWindowButton AddButton(string text, Action onPressed, string help)
         {
             GameObject go = Instantiate(buttonTemplate, staging, false);
@@ -520,7 +554,7 @@ namespace AutoKeeper.UI
                 t.font = style.font;
                 t.fontSharedMaterial = style.fontSharedMaterial;
                 t.fontSize = Mathf.Max(12f, style.fontSize * 0.8f);
-                t.color = style.color;
+                t.color = new Color(0.80f, 0.74f, 0.62f, 1f); // texto claro e opaco, legível sobre o fundo da janela
             }
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.Normal;
@@ -535,9 +569,9 @@ namespace AutoKeeper.UI
         }
 
         /// <summary>Move o clone para o conteúdo (ativa) e liga a descrição ao passar o mouse.</summary>
-        private void Place(GameObject go, string help)
+        private void Place(GameObject go, string help, Transform parent = null)
         {
-            go.transform.SetParent(content, false);
+            go.transform.SetParent(parent != null ? parent : content, false);
             if (!string.IsNullOrEmpty(help))
             {
                 EventTrigger trigger = go.GetComponent<EventTrigger>() ?? go.AddComponent<EventTrigger>();
@@ -625,8 +659,7 @@ namespace AutoKeeper.UI
             {
                 case SettingTab.Bot: return T("Geral", "General");
                 case SettingTab.Bodies: return T("Corpos", "Bodies");
-                case SettingTab.Autopsy: return T("Órgãos", "Organs");
-                case SettingTab.AutopsyOthers: return T("Outros itens", "Other items");
+                case SettingTab.Autopsy: return T("Extração", "Extraction");
                 case SettingTab.Hotkeys: return T("Teclas", "Hotkeys");
                 case SettingTab.Overlay: return T("Painel", "Panel");
                 default: return T("Avançado", "Advanced");

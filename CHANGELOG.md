@@ -4,6 +4,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-29
+
+### Alterado
+- Categorias "Órgãos" e "Outros itens" viraram uma só: **Extração** (maestria, órgãos e itens de "Outros").
+- Botões da janela: "Ligar bot" em destaque, com divisor em cima; "Restaurar padrões" e "Fechar" lado a lado; textos de ajuda revisados; a descrição da opção sob o mouse agora tem cor legível.
+
 ## [0.3.0] - 2026-09-29
 
 ### Adicionado

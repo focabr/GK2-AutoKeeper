@@ -28,7 +28,6 @@ namespace AutoKeeper.Config
         Bot,
         Bodies,
         Autopsy,
-        AutopsyOthers,
         Hotkeys,
         Overlay,
         Advanced,
@@ -193,13 +192,13 @@ namespace AutoKeeper.Config
                 "Extrai o cérebro na autópsia.", "Extract the brain during autopsy.");
             ExtractGuts = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractGuts", true, "Extrair vísceras", "Extract guts",
                 "Extrai as vísceras na autópsia.", "Extract guts during autopsy.");
-            ExtractFlesh = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractFlesh", true, "Extrair carne", "Extract flesh",
+            ExtractFlesh = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractFlesh", true, "Extrair carne", "Extract flesh",
                 "Tira a carne (seção \"Outros\" da mesa de autópsia).", "Takes out the flesh (\"Others\" section of the autopsy table).");
-            ExtractFat = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractFat", true, "Extrair gordura", "Extract fat",
+            ExtractFat = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractFat", true, "Extrair gordura", "Extract fat",
                 "Tira a gordura (seção \"Outros\").", "Takes out the fat (\"Others\" section).");
-            ExtractBlood = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractBlood", true, "Extrair sangue", "Extract blood",
+            ExtractBlood = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractBlood", true, "Extrair sangue", "Extract blood",
                 "Tira o sangue (seção \"Outros\").", "Takes out the blood (\"Others\" section).");
-            ExtractOtherPocket = Toggle(config, SettingTab.AutopsyOthers, "Bodies", "ExtractOtherPocket", false, "Extrair demais itens", "Extract remaining items",
+            ExtractOtherPocket = Toggle(config, SettingTab.Autopsy, "Bodies", "ExtractOtherPocket", false, "Extrair demais itens", "Extract remaining items",
                 "Tira qualquer outro item da seção \"Outros\" que não seja carne, gordura ou sangue.",
                 "Takes out any other item of the \"Others\" section that is not flesh, fat or blood.");
             // ---------------------------------------------------------------- Avançado
