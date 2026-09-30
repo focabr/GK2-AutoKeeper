@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using Pathfinding;
 using UnityEngine;
 
 namespace AutoKeeper.Core
@@ -308,6 +309,14 @@ namespace AutoKeeper.Core
         /// Onde o jogador deve ficar para usar o objeto: o dock point livre mais próximo (preferindo os de jogador,
         /// não os de zumbi). Se o objeto ainda não foi instanciado na tela, devolve a posição dele.
         /// </summary>
+        private const float DockClearRadius = 0.2f;   // raio do jogador para checar se o ponto de trabalho está livre
+        private static readonly HashSet<string> LoggedDockTargets = new HashSet<string>();
+
+        private static bool SafeBool(Func<bool> f)
+        {
+            try { return f(); } catch { return true; } // na dúvida, não descarta o ponto
+        }
+
         public static bool TryGetStandSpot(string uid, out Vector3 spot, out Vector2 facing)
         {
             Vector3 s = Vector3.zero;
@@ -327,20 +336,33 @@ namespace AutoKeeper.Core
                     return true;
                 }
                 Vector3 p = MainGame.PlayerData.position.Value;
+                RecastGraph rg = PlayerNavGraph() as RecastGraph;
                 DockPoint best = null;
                 float bestScore = float.MaxValue;
+                var diag = new System.Text.StringBuilder();
                 foreach (DockPoint d in docks)
                 {
                     if (d == null || !d.gameObject.activeInHierarchy || d.DontUseForWorkerPlacement)
                     {
                         continue;
                     }
-                    float score = Vector3.Distance(d.transform.position, p) + (d.IsForZombie ? 1000f : 0f);
+                    // Ponto de trabalho que o jogador não alcança: outro objeto em cima (colisor sólido de outro Wgo,
+                    // ex.: baú encostado) ou fora do navmesh. O bot anda por caminho roteirizado e passaria por cima.
+                    bool free = SafeBool(() => d.IsReachable(DockClearRadius));
+                    bool onMesh = rg == null || SafeBool(() => d.IsReachable(rg));
+                    Vector3 dp = d.transform.position;
+                    diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? " zumbi" : "")}{(free ? "" : " BLOQUEADO")}{(onMesh ? "" : " FORA-NAVMESH")}]");
+                    float score = Vector3.Distance(dp, p) + (d.IsForZombie ? 1000f : 0f) + (free ? 0f : 500f) + (onMesh ? 0f : 500f);
                     if (score < bestScore)
                     {
                         bestScore = score;
                         best = d;
                     }
+                }
+                if (best != null && LoggedDockTargets.Add(uid))
+                {
+                    Vector3 bp = best.transform.position;
+                    ModLog.Info($"Pontos de trabalho de {w.id}:{diag} → escolhido {bp.x:0.00},{bp.z:0.00}");
                 }
                 if (best != null)
                 {

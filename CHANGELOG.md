@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-09-29
+
+### Corrigido
+- Ponto de trabalho que o jogador não alcança: o bot anda por caminho roteirizado e chegava a lugares onde o jogador
+  não consegue ir (ex.: encostado/em cima do baú ao lado da mesa). Agora descarta pontos com colisor sólido de outro
+  objeto em cima (`DockPoint.IsReachable` do próprio jogo) ou fora do navmesh, preferindo um ponto livre.
+
+### Adicionado
+- Log (uma vez por objeto) dos pontos de trabalho considerados e do escolhido, para diagnosticar posição.
+
 ## [0.3.8] - 2026-09-29
 
 ### Corrigido
