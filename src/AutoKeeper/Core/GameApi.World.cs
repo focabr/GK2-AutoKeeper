@@ -16,6 +16,7 @@ namespace AutoKeeper.Core
         Chest,
         GraveBody,
         GravePlace,
+        Bed,
     }
 
     /// <summary>Estado resumido da receita de um objeto (sem expor o enum do jogo ao bot).</summary>
@@ -208,6 +209,8 @@ namespace AutoKeeper.Core
                     return w.Definition.interactionType == WGODef.InteractionType.Crematorium;
                 case ObjectKind.GraveBody:
                     return w.id == "grave_body"; // cova com corpo ainda por fechar (trabalho com pá)
+                case ObjectKind.Bed:
+                    return w.CustomTag == "bed_home"; // a cama da casa do jogador (dump: id "bed", interação Script)
                 case ObjectKind.GravePlace:
                     return w.id == "grave_empty_place"; // cova marcada pelo construtor, ainda por cavar (pá → grave_empty)
                 case ObjectKind.Chest:
@@ -255,6 +258,13 @@ namespace AutoKeeper.Core
             CraftComponent cc = FindWgoByUid(uid)?.CraftComponent;
             return cc != null && (cc.IsStarted || cc.HasCraftsInQueue);
         }, false, nameof(IsCraftActive));
+
+        /// <summary>Item que a receita de autópsia em andamento vai dar (ex.: "skull_2_2:2"); null se não for extração de órgão.</summary>
+        public static string GetActiveAutopsyItemId(string uid) => Safe(() =>
+        {
+            CraftDef def = FindWgoByUid(uid)?.CraftComponent?.CurrentCraftElement?.Def as CraftDef;
+            return def == null || string.IsNullOrEmpty(def.autopsyItemId) ? null : def.autopsyItemId;
+        }, null, nameof(GetActiveAutopsyItemId));
 
         /// <summary>Estado da receita do objeto: parado, rodando, pronto para recolher (auto-craft terminado).</summary>
         public static CraftState GetCraftState(string uid) => Safe(() =>

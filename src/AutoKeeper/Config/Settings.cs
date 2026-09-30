@@ -93,6 +93,7 @@ namespace AutoKeeper.Config
         public ConfigEntry<float> EatBelowEnergy { get; }
         public ConfigEntry<float> MaxInsanity { get; }
         public ConfigEntry<bool> StopOnLackOfSleep { get; }
+        public ConfigEntry<bool> SleepWhenTired { get; }
 
         // [Bodies]
         public ConfigEntry<bool> BodiesEnabled { get; }
@@ -152,8 +153,12 @@ namespace AutoKeeper.Config
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
             StopOnLackOfSleep = Toggle(config, SettingTab.Bot, "Bot", "StopOnLackOfSleep", true,
                 "Desligar com falta de sono", "Turn off on lack of sleep",
-                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. O bot desliga e pede para você dormir.",
-                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. The bot turns off and asks you to sleep.");
+                "Depois de 2 dias sem dormir, o jogo dá o debuff Falta de sono: cada ponto de energia gasto vira meio ponto de insanidade. O bot desliga e pede para você dormir (com \"Ir dormir com falta de sono\" ligado, ele vai dormir em vez de desligar).",
+                "After 2 days without sleep the game adds the Lack of Sleep debuff: every energy point spent adds half an insanity point. The bot turns off and asks you to sleep (with \"Go to bed on lack of sleep\" on, it goes to bed instead).");
+            SleepWhenTired = Toggle(config, SettingTab.Bot, "Bot", "SleepWhenTired", false,
+                "Ir dormir com falta de sono", "Go to bed on lack of sleep",
+                "Com a Falta de sono (2 dias sem dormir), o bot termina de levar o corpo que estiver carregando, volta para casa, deita na cama (E, como o jogador) e dorme; ao acordar, continua de onde parou.",
+                "With Lack of Sleep (2 days awake), the bot finishes placing any body it is carrying, walks home, uses the bed (E, like the player) and sleeps; after waking up it continues where it stopped.");
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Atravessar portas até o trabalho", "Use doors to reach the work",
                 "Atravessa portas (casa, necrotério…) pelo caminho mais curto até onde há trabalho, apertando E na porta como o jogador.",

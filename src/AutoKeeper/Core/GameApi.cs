@@ -179,6 +179,9 @@ namespace AutoKeeper.Core
         /// <summary>Debuff "Falta de sono" do jogo (2 dias sem dormir: energia gasta vira insanidade).</summary>
         public static bool HasLackOfSleep() => Safe(() => MainGame.Instance.GameSave.perkSystemData.HasPerk("lack_of_sleep_debuff"), false, nameof(HasLackOfSleep));
 
+        /// <summary>O personagem está dormindo (sistema de energia do jogo).</summary>
+        public static bool IsSleeping() => Safe(() => MainGame.PlayerData.energySystem.IsSleeping, false, nameof(IsSleeping));
+
         /// <summary>Dias de jogo desde a última vez que dormiu (o debuff entra em 2). -1 se não der para ler.</summary>
         public static float GetDaysWithoutSleep() => Safe(() => MainGame.PlayerData.energySystem.timeWithoutSleep, -1f, nameof(GetDaysWithoutSleep));
 

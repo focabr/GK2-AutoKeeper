@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.18] - 2026-09-30
+
+### Adicionado
+- **Ir dormir com falta de sono** (`[Bot] SleepWhenTired`, **desligado por padrão**): com o debuff Falta de sono
+  (2 dias sem dormir), o bot termina de levar o corpo que estiver carregando, vai até a cama de casa (`bed_home`),
+  aperta E como o jogador e dorme; ao acordar, continua de onde parou ("Sono: descansado — voltando ao trabalho").
+  Tem prioridade sobre "Desligar com falta de sono". Se apertar E 3 vezes e o personagem não dormir, o bot para com aviso.
+
+### Corrigido
+- Registro do que o bot recolheu (o que vai para o baú): o jogo entrega o item um instante depois de a receita
+  terminar (sai do objeto e voa até o jogador), e o bot conferia o inventário na hora. Resultado no teste da 0.3.16:
+  cinza, sal e certificados do crematório nunca iam para o baú, e parte das extrações também não. Agora cada coleta
+  é somada ~2 s depois (extração: só o item esperado, 1 unidade; crematório: o que chegou), inclusive quando comer
+  interrompe o trabalho no instante em que a receita termina.
+- Nome no jogo: a tela F11 e o painel mostravam "AutoKeeper"; agora mostram **GK2 AutoKeeper**.
+
 ## [0.3.17] - 2026-09-30
 
 Versão de publicação: o código do bot é o mesmo da 0.3.16.

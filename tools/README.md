@@ -5,8 +5,8 @@ Lista tipos/membros e desmonta IL de `Assembly-CSharp.dll` (System.Reflection.Me
 
 ```
 dotnet build tools/Inspect -c Release -o tools/Inspect/out
-dotnet tools/Inspect/out/inspect.dll <Managed>/Assembly-CSharp.dll "^PlayerWorkComponent$" "FindNearestDockPoint" --il
-dotnet tools/Inspect/out/inspect.dll --refs <plugin>.dll GK2.Framework   # referências de uma DLL a outro assembly
+dotnet tools/Inspect/out/Inspect.dll <Managed>/Assembly-CSharp.dll "^PlayerWorkComponent$" "FindNearestDockPoint" --il
+dotnet tools/Inspect/out/Inspect.dll --refs <plugin>.dll GK2.Framework   # referências de uma DLL a outro assembly
 ```
 Argumentos: `<dll> <regex do tipo> [regex do membro] [--il]`.
 

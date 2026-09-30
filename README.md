@@ -27,7 +27,8 @@ no save editing, no game files modified.
 | Safety: never holds Action while the game aims at another object; stops if a nearby chest loses items | 0.3.8 / 0.3.10 | ✅ |
 | Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
-| Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | 🧪 (values read correctly; stop not triggered yet) |
+| Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | ✅ |
+| Optional (off by default): on Lack of Sleep, walks home, sleeps in the bed and resumes the work | 0.3.18 | 🧪 |
 | **Grave destination** (experimental): digs a grave you marked with the builder, places the body, fills it | 0.3.0 / 0.3.14 | 🧪 |
 
 The bot pauses by itself in menus, pause, UI windows, dialogues, cutscenes and sleep, and stops with the reason shown
@@ -61,6 +62,7 @@ The settings window and panel follow the game language (English or Brazilian Por
 | General | `[Bot] MinEnergy` | 10 | turn off below this energy (when there is no food) |
 | General | `[Bot] MaxInsanity` | 60 | turn off above this insanity (each point lowers max energy by 1; near 80 the game blocks autopsy) |
 | General | `[Bot] StopOnLackOfSleep` | on | turn off on the Lack of Sleep debuff (2 days awake: spent energy becomes insanity) |
+| General | `[Bot] SleepWhenTired` | **off** | on Lack of Sleep, go home, sleep in the bed and then continue (takes priority over turning off) |
 | General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
 | Bodies | `[Bodies] Enabled` | on | body routine on/off |
 | Bodies | `[Bodies] Destination` | Crematorium | `Crematorium`, `LeaveOnTable` or `Grave` |

@@ -3,7 +3,7 @@
 Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
 
 ## Estado (2026-09-30)
-- Versão instalada: **0.3.17** (tag v0.3.17). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/GK2_AutoKeeper-0.3.17.zip`.
+- Versão instalada: **0.3.18** (tag v0.3.18). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/GK2_AutoKeeper-0.3.18.zip`.
 - Publicação: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categorias Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guia: projeto Claude "GK2" → `claude/publicacao.md`.
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
@@ -45,4 +45,6 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 - Segurar Ação faz o JOGO levar o jogador ao ponto de trabalho dele (`PlayerWorkComponent.FindNearestDockPoint`, alcance
   pelo `PlayerLocalAreaMovement.IsReachable`); o bot aprende esse ponto (`workSpots`) — não brigar com ele.
 - Energia máx = 100 − insanidade. "Falta de sono" (`lack_of_sleep_debuff`, 2 dias acordado): energia gasta vira insanidade.
+- Itens extraídos/recolhidos chegam ao inventário um instante DEPOIS da receita terminar: o registro do bot (`ledger`)
+  soma por pendências (`QueueCredit`/`SettleCredits`, ~2 s), nunca na hora.
 - `LogOutput.log` descarta Debug do BepInEx: `ModLog.Debug` grava como Info com `[dbg]` (só com VerboseLogging).

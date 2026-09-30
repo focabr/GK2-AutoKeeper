@@ -208,15 +208,22 @@ namespace AutoKeeper.Bot
                 Stop($"insanidade alta ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade ou descanse");
                 return;
             }
-            if (settings.StopOnLackOfSleep.Value && GameApi.HasLackOfSleep())
+            // Com "Ir dormir com falta de sono" ligado, quem cuida é a tarefa (vai até a cama); senão, desliga.
+            if (!settings.SleepWhenTired.Value && settings.StopOnLackOfSleep.Value && GameApi.HasLackOfSleep())
             {
                 Stop("falta de sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
                 return;
             }
             float awake = GameApi.GetDaysWithoutSleep();
-            if (settings.StopOnLackOfSleep.Value && awake >= 1.75f && awake < 2f)
+            if ((settings.StopOnLackOfSleep.Value || settings.SleepWhenTired.Value) && awake >= 1.75f && awake < 2f)
             {
-                ModLog.WarnOnce("SleepSoon", $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot desliga. Durma logo.");
+                ModLog.WarnOnce("SleepSoon", settings.SleepWhenTired.Value
+                    ? $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot vai dormir na cama de casa."
+                    : $"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica Falta de sono e o bot desliga. Durma logo.");
+            }
+            else if (awake >= 0f && awake < 1.75f)
+            {
+                ModLog.ResetOnce("SleepSoon"); // dormiu: o aviso volta a valer no próximo ciclo
             }
 
             // 3) Escolhe a primeira tarefa que pode rodar.

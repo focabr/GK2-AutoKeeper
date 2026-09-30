@@ -36,6 +36,7 @@ namespace AutoKeeper.Bot.Tasks
             FillGrave,
             ParkOnPallet,
             DigGrave,
+            Sleep,
         }
 
         private enum Step
@@ -127,6 +128,26 @@ namespace AutoKeeper.Bot.Tasks
         private readonly HashSet<string> parkedPallets = new HashSet<string>();      // paletes onde o bot deixou um corpo já autopsiado
         private readonly Dictionary<string, int> ledger = new Dictionary<string, int>();   // itemId → unidades recolhidas pelo bot
         private Dictionary<string, int> invBefore;                                          // foto do inventário antes de extrair/recolher
+        private string workItemId;                                                          // item esperado da coleta atual (null = qualquer)
+
+        // O jogo entrega o que foi extraído/recolhido um instante DEPOIS (o item sai do objeto e voa até o jogador):
+        // cada coleta vira uma pendência que só é somada ao registro depois de alguns segundos.
+        private sealed class PendingCredit
+        {
+            public Dictionary<string, int> Before;
+            public string ItemId;   // só este item (extração); null = qualquer item novo (crematório)
+            public int Cap;         // máximo de unidades (extração = 1); 0 = sem limite
+            public float Due;
+        }
+        private readonly List<PendingCredit> pendingCredits = new List<PendingCredit>();
+        private const float CreditDelay = 2f;
+        private const float CreditMaxAge = 20f;   // pendência velha (bot parado/pausado muito tempo): descarta
+
+        // Sono: ir dormir na cama de casa com a Falta de sono ([Bot] SleepWhenTired).
+        private bool sleepAnnounced;
+        private int sleepTries;
+        private const int MaxSleepTries = 3;
+        private const float SleepStartTimeout = 6f;
         private uint prevHere;
         private readonly List<Vector3> buriedSpots = new List<Vector3>();   // covas onde o bot colocou corpo e que ainda precisam ser fechadas
         private const float FillTimeout = 90f;
@@ -189,6 +210,7 @@ namespace AutoKeeper.Bot.Tasks
 
         public bool CanRun(out string reason)
         {
+            SettleCredits(); // também com a tarefa ociosa (ex.: logo depois de recolher o crematório)
             if (!settings.BodiesEnabled.Value)
             {
                 reason = "desativada na config";
@@ -225,6 +247,7 @@ namespace AutoKeeper.Bot.Tasks
 
         public TaskResult Tick()
         {
+            SettleCredits();
             if (!WatchChests())
             {
                 return TaskResult.Failed;
@@ -271,6 +294,10 @@ namespace AutoKeeper.Bot.Tasks
             failedPallets.Clear();
             parkedPallets.Clear();
             ledger.Clear();
+            pendingCredits.Clear();
+            workItemId = null;
+            sleepAnnounced = false;
+            sleepTries = 0;
             buriedSpots.Clear();
             chestWatch.Clear();
             prevHere = 0;
@@ -288,6 +315,12 @@ namespace AutoKeeper.Bot.Tasks
 
         public void Abort()
         {
+            // Interrompido (comer, pausa, desligar) no meio da coleta: a receita pode ter terminado nesse instante.
+            if (invBefore != null && (step == Step.Work || step == Step.AwaitInteract || step == Step.Act))
+            {
+                QueueCredit();
+            }
+            invBefore = null;
             GameApi.ReleaseAllVirtualKeys();
             GameApi.StopMoving();
             ResetGoal();
@@ -494,6 +527,32 @@ namespace AutoKeeper.Bot.Tasks
         /// <summary>Regras de "antes de tudo" (checar crematório, guardar no baú) por cima do plano normal.</summary>
         private Decision Decide(WorldView w)
         {
+            // Sono: com a Falta de sono e a opção ligada, larga o que está fazendo (sem corpo nas mãos) e vai dormir.
+            if (settings.SleepWhenTired.Value)
+            {
+                bool lack = GameApi.HasLackOfSleep();
+                if (!lack)
+                {
+                    if (sleepAnnounced)
+                    {
+                        sleepAnnounced = false;
+                        ModLog.Info("Sono: descansado — voltando ao trabalho de onde parei.");
+                    }
+                    sleepTries = 0;
+                }
+                else if (!GameApi.IsCarryingBody())
+                {
+                    if (sleepTries >= MaxSleepTries)
+                    {
+                        return FailWith($"Falta de sono: apertei E na cama {MaxSleepTries} vezes e o personagem não dormiu — durma manualmente");
+                    }
+                    Candidate? bed = FirstFree(Collect(ObjectKind.Bed, w), c => true);
+                    return bed.HasValue
+                        ? Act(Goal.Sleep, bed.Value, null)
+                        : FailWith("Falta de sono, mas não achei a cama de casa alcançável — durma manualmente");
+                }
+            }
+
             Decision d = DecideCore(w);
             if (d.Kind == DecisionKind.None || d.Kind == DecisionKind.Fail || GameApi.IsCarryingBody())
             {
@@ -901,6 +960,12 @@ namespace AutoKeeper.Bot.Tasks
             invBefore = g == Goal.ExtractOrgan || g == Goal.ExtractPocket || g == Goal.CollectCrematorium
                 ? GameApi.SnapshotPlayerItems()
                 : null;
+            workItemId = part ?? (g == Goal.ExtractOrgan ? GameApi.GetActiveAutopsyItemId(uid) : null);
+            if (g == Goal.Sleep && !sleepAnnounced)
+            {
+                sleepAnnounced = true;
+                ModLog.Info("Sono: Falta de sono — indo dormir na cama de casa; depois continuo de onde parei.");
+            }
 
             if (ground)
             {
@@ -911,7 +976,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 return Fail($"alvo {WorldObjectRef.ShortUid(uid)} sumiu") != TaskResult.Failed;
             }
-            if ((g == Goal.Bury || g == Goal.FillGrave || g == Goal.DigGrave) && standFacing == Vector2.zero)
+            if ((g == Goal.Bury || g == Goal.FillGrave || g == Goal.DigGrave || g == Goal.Sleep) && standFacing == Vector2.zero)
             {
                 // Covas não têm ponto de trabalho: para ao lado, vindo do lado do jogador, de frente para ela.
                 standSpot = GameApi.GetNearestWalkablePoint(GameApi.GetApproachSpot(pos, 1.0f));
@@ -1031,6 +1096,10 @@ namespace AutoKeeper.Bot.Tasks
                 }
                 else
                 {
+                    if (goal == Goal.Sleep)
+                    {
+                        sleepTries++;
+                    }
                     GameApi.PressInteract();
                 }
                 GoTo(Step.AwaitInteract);
@@ -1106,6 +1175,19 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.CollectCrematorium:
                     done = GameApi.GetCraftState(targetUid) != CraftState.ReadyToCollect;
                     break;
+                case Goal.Sleep:
+                    // Normalmente o jogo tira o controle (sono) e o bot pausa antes disso; ao acordar ele replaneja.
+                    done = GameApi.IsSleeping();
+                    if (!done && Now - stepStartedAt > SleepStartTimeout)
+                    {
+                        ModLog.Warn($"Sono: apertei E na cama e o personagem não dormiu (tentativa {sleepTries}/{MaxSleepTries}).");
+                        return Replan(null);
+                    }
+                    if (!done)
+                    {
+                        return TaskResult.Running;
+                    }
+                    break;
                 case Goal.UseDoor:
                     // Normalmente o jogo tira o controle (fade) e o bot pausa antes disso; aqui é o caso sem fade.
                     uint now = GameApi.GetPlayerNavArea();
@@ -1123,7 +1205,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 if (goal == Goal.CollectCrematorium)
                 {
-                    CreditCollected();
+                    QueueCredit();
                 }
                 ModLog.Info($"Corpos: {GoalText()} — ok");
                 return Replan(null);
@@ -1231,26 +1313,76 @@ namespace AutoKeeper.Bot.Tasks
             return Replan(null);
         }
 
-        /// <summary>Soma ao registro o que entrou no inventário desde a foto (o que o bot recolheu).</summary>
-        private void CreditCollected()
+        /// <summary>Fecha a janela de coleta atual; o que chegar ao inventário nos próximos segundos conta como recolhido pelo bot.</summary>
+        private void QueueCredit()
         {
             if (invBefore == null)
             {
                 return;
             }
-            Dictionary<string, int> after = GameApi.SnapshotPlayerItems();
-            foreach (KeyValuePair<string, int> kv in after)
+            bool extraction = goal == Goal.ExtractOrgan || goal == Goal.ExtractPocket;
+            pendingCredits.Add(new PendingCredit
             {
-                invBefore.TryGetValue(kv.Key, out int before);
-                int gained = kv.Value - before;
-                if (gained > 0)
-                {
-                    ledger.TryGetValue(kv.Key, out int have);
-                    ledger[kv.Key] = have + gained;
-                }
-            }
+                Before = invBefore,
+                ItemId = extraction ? workItemId : null,
+                Cap = extraction ? 1 : 0,
+                Due = Now + CreditDelay,
+            });
             invBefore = null;
         }
+
+        /// <summary>Soma ao registro (o que o bot recolheu) as pendências vencidas: ganho no inventário desde a foto.</summary>
+        private void SettleCredits()
+        {
+            if (pendingCredits.Count == 0)
+            {
+                return;
+            }
+            Dictionary<string, int> now = null;
+            for (int i = 0; i < pendingCredits.Count; i++)
+            {
+                PendingCredit p = pendingCredits[i];
+                if (Now < p.Due)
+                {
+                    continue;
+                }
+                pendingCredits.RemoveAt(i--);
+                if (Now - p.Due > CreditMaxAge)
+                {
+                    continue; // o bot ficou parado: o que entrou no inventário pode ser do jogador
+                }
+                if (now == null)
+                {
+                    now = GameApi.SnapshotPlayerItems();
+                }
+                int budget = p.Cap > 0 ? p.Cap : int.MaxValue;
+                foreach (KeyValuePair<string, int> kv in now)
+                {
+                    if (p.ItemId != null ? kv.Key != p.ItemId : ExpectedElsewhere(kv.Key))
+                    {
+                        continue;
+                    }
+                    p.Before.TryGetValue(kv.Key, out int before);
+                    int gained = Math.Min(kv.Value - before, budget);
+                    if (gained <= 0)
+                    {
+                        continue;
+                    }
+                    ledger.TryGetValue(kv.Key, out int have);
+                    ledger[kv.Key] = have + gained;
+                    budget -= gained;
+                    ModLog.Debug($"Registro: +{gained} {kv.Key} (recolhido pelo bot; total {ledger[kv.Key]})");
+                    if (budget <= 0)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Item esperado por outra coleta (extração pendente ou em andamento): não conta na janela "qualquer item".</summary>
+        private bool ExpectedElsewhere(string itemId)
+            => itemId == workItemId || pendingCredits.Any(p => p.ItemId == itemId);
 
         private void StartWork()
         {
@@ -1394,7 +1526,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 GameApi.SetHoldAction(false);
                 ModLog.Info($"Corpos: {GoalText()} concluído");
-                CreditCollected();
+                QueueCredit();
                 return Replan(null);
             }
 
@@ -1543,6 +1675,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.InspectCrematorium: return "checar o crematório";
                 case Goal.FillGrave: return "fechar a cova";
                 case Goal.DigGrave: return "cavar a cova marcada";
+                case Goal.Sleep: return "dormir na cama de casa";
                 case Goal.ParkOnPallet: return "deixar corpo no palete (crematório ocupado)";
                 case Goal.DepositChest: return "guardar itens no baú";
                 default: return "-";

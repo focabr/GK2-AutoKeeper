@@ -282,7 +282,7 @@ namespace AutoKeeper.UI
 
             if (titleText != null)
             {
-                titleText.text = $"AutoKeeper {Plugin.Version}";
+                titleText.text = $"{Plugin.Name} {Plugin.Version}";
             }
 
             // 1) Categoria (◀ Corpos ▶) — igual às opções da janela de Configurações do jogo.

@@ -94,7 +94,7 @@ namespace AutoKeeper.UI
             GameSnapshot s = bot.LastSnapshot ?? new GameSnapshot();
             var sb = new StringBuilder();
 
-            sb.Append("<color=").Append(GameUiTheme.TitleHex).Append("><b>AutoKeeper ").Append(Plugin.Version).Append("</b></color>   ")
+            sb.Append("<color=").Append(GameUiTheme.TitleHex).Append("><b>").Append(Plugin.Name).Append(" ").Append(Plugin.Version).Append("</b></color>   ")
               .Append(StateColored(bot.State, pt));
             if (bot.State != BotController.BotState.Off && !string.IsNullOrEmpty(bot.StateDetail))
             {

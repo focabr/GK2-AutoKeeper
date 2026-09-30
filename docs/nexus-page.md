@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — página do Nexus (copiar e colar)
 
 **Nome do mod:** GK2 AutoKeeper
-**Versão:** 0.3.17 · **Arquivo principal:** `GK2_AutoKeeper-0.3.17.zip` (o mesmo zip do Thunderstore)
+**Versão:** 0.3.18 · **Arquivo principal:** `GK2_AutoKeeper-0.3.18.zip` (o mesmo zip do Thunderstore)
 **Resumo (campo curto):** Automation bot for the morgue: carries bodies to the autopsy table, extracts organs and sends them to the crematorium or a grave, using only actions the player could do. F8 on/off, F11 settings.
 **Categoria sugerida:** Gameplay (ou Utilities, se existir) · **Idioma:** English (UI também em pt-BR)
 **Requisitos (aba Requirements):** BepInEx for Graveyard Keeper 2 — https://www.nexusmods.com/graveyardkeeper2/mods/48
@@ -16,7 +16,7 @@
 
 *Code written with Claude (Anthropic) and tested in-game by the author.*
 
-**What it does (0.3.17)**
+**What it does (0.3.18)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium, grave or leave on the table.
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.
@@ -24,7 +24,7 @@
 - Walks by itself to where the work is and works from the same spot the game uses.
 - Eats from your hotbar when energy is low, several items in a row without going over the maximum (skips items that raise insanity).
 - Stores only what it collected in the nearest chest when your inventory is nearly full. It never takes items out of chests and stops at once if a nearby chest loses items while it runs.
-- Insanity and sleep guard: turns itself off above a configurable insanity (default 60) and when the game's Lack of Sleep debuff is active.
+- Insanity and sleep guard: turns itself off above a configurable insanity (default 60) and when the game's Lack of Sleep debuff is active. Optional (off by default): go home, sleep in the bed and continue the work afterwards.
 - Grave destination (experimental): digs a grave you marked with the graveyard builder, places the body and fills it with the shovel. It never marks new graves and never exhumes.
 - Pauses automatically in menus, dialogues, cutscenes and sleep; turns itself off and forgets everything when you load a save.
 - Settings window and panel in English or Brazilian Portuguese (follows the game language); log messages in Portuguese.
