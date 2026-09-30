@@ -17,3 +17,6 @@ lib/*.dll
 # Dumps de descoberta e logs copiados do jogo
 dumps/
 *.log
+tools/*/out/
+tools/*/bin/
+tools/*/obj/

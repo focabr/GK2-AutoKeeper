@@ -199,4 +199,24 @@ O plano original abaixo continua valendo para a cova (0.3).
 - `grave_ground` (as covas fechadas do save): inventário = `body_corpse` + `grave_top_*` / `grave_bot_*`; `interactionType` Grave.
 - Cemitério em ~(30..37, 17..19); o save de teste não tinha `grave_empty` (12 `grave_ground` ocupadas).
 - Bot: Bury = PressInteract com corpo (pronto quando o jogador não carrega mais); FillGrave = SetHoldAction(true) até o
-  id do objeto deixar de ser `grave_body` (timeout 90 s). Cava não implementado (`grave_empty_place` seria o "cavar").
+  id do objeto deixar de ser `grave_body` (timeout 90 s).
+- `grave_empty_place` (Work, Shovel) é a cova **marcada** pelo construtor: receita de construção `grave_empty_place_p` em
+  `builder_graveyard` (área `temple_graveyard_module_area_grave`) → trabalhar com a pá vira `grave_empty`. Visto nos dados
+  (`resources.assets`), ainda não em jogo. Bot 0.3.14: DigGrave = segurar Ação até o id deixar de ser `grave_empty_place`.
+- Ao trocar de objeto, a mira do jogo passa para o objeto novo: conferir o id ANTES da guarda de mira.
+
+## 14. Ponto de trabalho escolhido pelo jogo (0.3.13, IL do 1.007.1)
+- Segurar Ação → `PlayerWorkComponent.TryStartInteraction` → `FindWgoToWork([WgoUnderInteraction])` →
+  `FindNearestDockPoint(pos, dir, ignoreDir, lista)`: pontos ativos do objeto com `CanWorkOn` e
+  `PlayerLocalAreaMovement.IsReachable(ponto)` (GridGraph local de 4,4 m em volta do jogador + `PlayerColliderTester`);
+  custo = comprimento do caminho A* + ângulo × 0,00267. Se não está no ponto (`IsOnWorkingSpot`: < 0,1 m), o jogo anda
+  (`StartMovement`) ou teleporta (`SetPosition`) até ele e `AlignPlayerToDockPoint` vira o jogador.
+- Consequência: o ponto "fora-navmesh"/"apertado" do nosso `TryGetStandSpot` não coincide com o do jogo; o bot guarda
+  onde o jogo o colocou quando o trabalho avança (`workSpots`) e usa esse ponto depois.
+- Facing do jogador: `PlayerData.Direction` (Vector2).
+
+## 15. Insanidade e sono (0.3.15)
+- Energia máxima = 100 − insanidade (dumps: 93,8+6,2; 49,1+50,9). Perto de 80 o jogo não deixa autópsia/cova avançar.
+- `EnergySystem.TrackTimeWithoutSleep`: `PlayerData.energySystem.timeWithoutSleep` (dias) ≥ 2 → perk
+  `lack_of_sleep_debuff` em `MainGame.Instance.GameSave.perkSystemData` (`HasPerk`). Com ele, energia gasta vira
+  insanidade (visto: 11 → 51 num corpo). Dormir até encher remove o debuff.

@@ -3,9 +3,11 @@
 Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
 
 ## Estado (2026-09-29)
-- Versão instalada: **0.3.12** (tag v0.3.12). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`).
+- Versão instalada: **0.3.15** (tag v0.3.15). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/AutoKeeper-0.3.15.zip`.
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
-- Não testado em jogo: zerar memória no novo load (0.3.11), busca de corpo lá fora (0.3.7), destino Cova (falta `grave_empty` + pá).
+- Validado em jogo: zerar memória no novo load (0.3.11), busca de corpo lá fora (0.3.7).
+- Não testado em jogo: ponto de trabalho do jogo e comer em sequência (0.3.13), cavar/enterrar/fechar cova (0.3.14),
+  insanidade/falta de sono (0.3.15), idas ao baú (0.3.12 — inventário nunca chegou a < 3 livres).
 
 ## Mapa (Grep por estes nomes)
 - `src/AutoKeeper/Plugin.cs` — entrada, hotkeys (F8 bot, F9 painel, F10 dump, F11 config), versão.
@@ -19,7 +21,10 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 
 ## Build / entrega
 - `dotnet build src/AutoKeeper/AutoKeeper.csproj -c Release "-p:GamePath=<jogo>"`; a ponte precisa de `-p:FrameworkDll=<GK2.Framework.dll>`.
-- Na nuvem: `apt install dotnet-sdk-8.0`, `nuget.config` com `<clear/>` (sem NuGet), stage de `Managed/` + `BepInEx/core`; ponte com stub `GK2.Framework` 0.1.14.0 (GUID `superman4eg.gk2.framework`).
+- Na nuvem: `apt install dotnet-sdk-8.0`, `nuget.config` com `<clear/>` (sem NuGet), stage de `Managed/` + `BepInEx/core`;
+  ponte com `tools/FrameworkStub`; ler código do jogo (membros + IL) com `tools/Inspect` (ver `tools/README.md`).
+- Commits feitos na nuvem → device: `git bundle` → `device_commit_files` em `D:\Claude\GK2\_xfer\` →
+  `git fetch <bundle> main:refs/remotes/xfer/main --tags && git merge --ff-only xfer/main`.
 - Entrega ao PC: copiar para uma pasta NOVA em `/mnt/user-data/outputs/` e `device_commit_files` (pasta repetida entrega cache velho). Conferir versão: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
 - O jogo só carrega o DLL novo ao reiniciar: antes de analisar um teste, conferir `Loading [GK2 AutoKeeper x.y.z]` no `LogOutput.log`.
 - Fechar versão: subir `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; atualizar o handoff do projeto.
@@ -32,3 +37,7 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 - NUNCA segurar Ação sem conferir o alvo do jogo (`GuardAim`): Ação num baú = pegar tudo.
 - Memória de mundo (sets da tarefa, Navigator, caches estáticos) tem de ser zerada em `ResetMemory` — novo load não reinicia o plugin.
 - Crematório: estado lido à distância (`GetCraftState`); só visitar se `ReadyToCollect`.
+- Segurar Ação faz o JOGO levar o jogador ao ponto de trabalho dele (`PlayerWorkComponent.FindNearestDockPoint`, alcance
+  pelo `PlayerLocalAreaMovement.IsReachable`); o bot aprende esse ponto (`workSpots`) — não brigar com ele.
+- Energia máx = 100 − insanidade. "Falta de sono" (`lack_of_sleep_debuff`, 2 dias acordado): energia gasta vira insanidade.
+- `LogOutput.log` descarta Debug do BepInEx: `ModLog.Debug` grava como Info com `[dbg]` (só com VerboseLogging).
