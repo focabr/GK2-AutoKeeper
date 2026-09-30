@@ -131,6 +131,7 @@ namespace AutoKeeper.Bot.Tasks
         private const float SameSpot = 1.6f;
         private int seenGeneration = -1;
         private bool chestWarned;
+        private int freeAfterDeposit = int.MaxValue;   // espaços livres logo após o último "guardar no baú"
 
         // Objetivo atual.
         private Goal goal;
@@ -264,6 +265,7 @@ namespace AutoKeeper.Bot.Tasks
             seenGeneration = -1;
             chestWatchGen = -1;
             chestWarned = false;
+            freeAfterDeposit = int.MaxValue;
             misaimSince = -1f;
             invBefore = null;
             idleCheckedAt = -999f;
@@ -346,6 +348,7 @@ namespace AutoKeeper.Bot.Tasks
                 failedChests.Clear();
                 failedPallets.Clear();
                 chestWarned = false;
+                freeAfterDeposit = int.MaxValue;
             }
             if (w.Here != 0 && w.Here != prevHere)
             {
@@ -494,8 +497,14 @@ namespace AutoKeeper.Bot.Tasks
                 }
             }
 
-            // Inventário quase cheio: leva ao baú só o que o bot recolheu.
-            if (settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value)
+            // Inventário quase cheio: leva ao baú só o que o bot recolheu. Depois de guardar, só volta ao baú se o
+            // inventário encheu mais (evita ir ao baú a cada item quando o resto do inventário é do jogador).
+            int freeNow = GameApi.PlayerFreeSlots();
+            if (freeNow > freeAfterDeposit)
+            {
+                freeAfterDeposit = freeNow; // o jogador liberou espaço: acompanha
+            }
+            if (settings.UseChest.Value && LedgerTotal() > 0 && freeNow < settings.ChestFreeSlots.Value && freeNow < freeAfterDeposit)
             {
                 // O baú mais perto que aceite os itens. Um baú que já guarda esses itens só ganha a preferência se estiver
                 // na mesma área e quase tão perto (antes, um baú a 400 m que tinha ossos vencia o baú vazio do necrotério).
@@ -1139,7 +1148,8 @@ namespace AutoKeeper.Bot.Tasks
                 int left = have - kv.Value;
                 if (left > 0) { ledger[kv.Key] = left; } else { ledger.Remove(kv.Key); }
             }
-            ModLog.Info("Baú: guardado " + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}")) + $" (livres agora: {GameApi.PlayerFreeSlots()})");
+            freeAfterDeposit = GameApi.PlayerFreeSlots();
+            ModLog.Info("Baú: guardado " + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}")) + $" (livres agora: {freeAfterDeposit})");
             return Replan(null);
         }
 

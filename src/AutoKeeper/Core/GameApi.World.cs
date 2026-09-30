@@ -372,13 +372,10 @@ namespace AutoKeeper.Core
                     bool free = SafeBool(() => d.IsReachable(DockClearRadius));
                     bool onMesh = rg == null || SafeBool(() => d.IsReachable(rg));
                     Vector3 dp = d.transform.position;
-                    diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? " zumbi" : "")}{(free ? "" : " BLOQUEADO")}{(onMesh ? "" : " FORA-NAVMESH")}]");
                     // Espremido entre objetos (ex.: vão entre as duas mesas): o jogador não passa, o caminho roteirizado passa.
                     string crowd = CrowdingObject(dp, w.UniqueId.Id);
-                    if (crowd != null)
-                    {
-                        diag.Append($" [{dp.x:0.00},{dp.z:0.00} APERTADO por {crowd}]");
-                    }
+                    diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? " zumbi" : "")}{(free ? "" : " BLOQUEADO")}"
+                        + $"{(crowd != null ? " APERTADO por " + crowd : "")}{(onMesh ? "" : " fora-navmesh")}]");
                     float score = Vector3.Distance(dp, p) + (d.IsForZombie ? 1000f : 0f) + (free ? 0f : 500f)
                         + (crowd != null ? 300f : 0f) + (onMesh ? 0f : 5f);
                     if (score < bestScore)

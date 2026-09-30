@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-09-29
+
+### Alterado
+- Guardar no baú: depois de guardar, o bot só volta ao baú se o inventário encher mais que isso (antes ia ao baú a
+  cada item quando o resto do inventário era do jogador e o número de espaços livres não subia).
+- Log dos pontos de trabalho: uma entrada por ponto (antes o ponto "apertado" aparecia duplicado).
+
 ## [0.3.11] - 2026-09-29
 
 ### Corrigido
