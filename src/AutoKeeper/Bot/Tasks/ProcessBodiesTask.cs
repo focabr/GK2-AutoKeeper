@@ -80,6 +80,7 @@ namespace AutoKeeper.Bot.Tasks
             public List<Candidate> Crematoriums;
             public List<Candidate> Graves;
             public List<GroundItemRef> GroundBodies;
+            public List<Decision> RemoteBodies;   // corpos no chão fora do alcance local (outras áreas), do mais barato ao mais caro
             public List<Candidate> Chests;
             public List<Candidate> GraveBodies;
         }
@@ -285,7 +286,45 @@ namespace AutoKeeper.Bot.Tasks
             w.GroundBodies = GameApi.FindGroundBodies(Radius)
                 .Where(b => w.Here == 0 || GameApi.GetNavArea(b.Position) == w.Here)
                 .ToList();
+            w.RemoteBodies = CollectRemoteBodies(w);
             return w;
+        }
+
+        /// <summary>Corpos no chão em qualquer área alcançável (a cena inteira é conhecida), menos os já vistos por perto.</summary>
+        private List<Decision> CollectRemoteBodies(WorldView w)
+        {
+            var list = new List<Decision>();
+            if (!settings.FetchRemoteBodies.Value || w.Here == 0)
+            {
+                return list;
+            }
+            var near = new HashSet<string>(w.GroundBodies.Select(b => b.Uid));
+            var cost = new Dictionary<string, float>();
+            foreach (GroundItemRef b in GameApi.FindGroundBodies(float.MaxValue))
+            {
+                if (near.Contains(b.Uid))
+                {
+                    continue;
+                }
+                uint area = GameApi.GetNavArea(b.Position);
+                float c;
+                if (area == w.Here)
+                {
+                    c = GameApi.DistanceTo(b.Position);
+                }
+                else if (area != 0 && w.Routes.TryGetValue(area, out AreaRoute route))
+                {
+                    c = Navigator.CostTo(route, b.Position);
+                }
+                else
+                {
+                    continue; // área sem caminho conhecido (sem portas liberadas): ignora
+                }
+                cost[b.Uid] = c;
+                list.Add(new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = area, Ground = true });
+            }
+            list.Sort((a, b) => cost[a.Uid].CompareTo(cost[b.Uid]));
+            return list;
         }
 
         /// <summary>Objetos do tipo alcançáveis (nesta área ou atrás de portas), do mais barato ao mais caro.</summary>
@@ -434,7 +473,9 @@ namespace AutoKeeper.Bot.Tasks
                             return Act(Goal.Cremate, crem.Value, carried);
                         }
                         // Crematório ocupado e ainda há corpos novos: deixa este num palete vazio e segue com as autópsias.
-                        if (wantsParts && HasFreshBodyWaiting(w))
+                        // Corpo ainda sem autópsia e sem mesa livre (ex.: trazido lá de fora): também vai para o palete.
+                        bool freshCarried = carried != null && !autopsyDone.Contains(carried);
+                        if (wantsParts && (freshCarried || HasFreshBodyWaiting(w)))
                         {
                             Candidate? park = EmptyPallet(w);
                             if (park.HasValue)
@@ -545,6 +586,12 @@ namespace AutoKeeper.Bot.Tasks
                 : (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
             if (!canReceive)
             {
+                // Sem mesa livre, mas há corpo lá fora e palete vazio: busca e deixa no palete (última tarefa).
+                if (wantsParts && dest == BodyDestination.Crematorium && w.RemoteBodies.Count > 0 && !w.Pallets.Any(IsFreshPalletBody)
+                    && EmptyPallet(w).HasValue)
+                {
+                    return w.RemoteBodies[0];
+                }
                 return WaitForCrematorium(w, crem, cremState);
             }
             foreach (Candidate pallet in w.Pallets)
@@ -558,6 +605,11 @@ namespace AutoKeeper.Bot.Tasks
             {
                 GroundItemRef b = w.GroundBodies[0];
                 return new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = w.Here, Ground = true };
+            }
+            // Última tarefa: corpos largados em outras áreas (atravessa as portas até lá).
+            if (w.RemoteBodies.Count > 0)
+            {
+                return w.RemoteBodies[0];
             }
             return WaitForCrematorium(w, crem, cremState);
         }
@@ -578,7 +630,7 @@ namespace AutoKeeper.Bot.Tasks
         }
 
         /// <summary>Ainda há corpo esperando autópsia (palete ou chão)?</summary>
-        private bool HasFreshBodyWaiting(WorldView w) => w.Pallets.Any(IsFreshPalletBody) || w.GroundBodies.Count > 0;
+        private bool HasFreshBodyWaiting(WorldView w) => w.Pallets.Any(IsFreshPalletBody) || w.GroundBodies.Count > 0 || w.RemoteBodies.Count > 0;
 
         private Candidate? EmptyPallet(WorldView w)
             => FirstFree(w.Pallets, p => !failedPallets.Contains(p.Obj.Uid) && !GameApi.ObjectHasBody(p.Obj.Uid));

@@ -108,6 +108,7 @@ namespace AutoKeeper.Config
         public ConfigEntry<bool> ExtractBlood { get; }
         public ConfigEntry<bool> ExtractOtherPocket { get; }
         public ConfigEntry<float> SearchRadius { get; }
+        public ConfigEntry<bool> FetchRemoteBodies { get; }
         public ConfigEntry<bool> CheckCrematoriumFirst { get; }
         public ConfigEntry<bool> UseChest { get; }
         public ConfigEntry<int> ChestFreeSlots { get; }
@@ -159,6 +160,10 @@ namespace AutoKeeper.Config
                 "Buscar corpos no chão até (m)", "Search ground bodies up to (m)",
                 "Distância máxima para pegar corpos soltos no chão. Paletes, mesas e crematório são achados em qualquer lugar alcançável.",
                 "Maximum distance to pick up loose bodies from the ground. Pallets, tables and crematorium are found anywhere reachable.");
+            FetchRemoteBodies = Toggle(config, SettingTab.Bodies, "Bodies", "FetchRemoteBodies", true,
+                "Buscar corpos em outras áreas", "Fetch bodies from other areas",
+                "Como última tarefa (sem corpo no palete), o bot sai do necrotério pelas portas para buscar corpos largados no chão lá fora (ex.: entregues pela Inquisição) e os traz para a mesa ou para um palete vazio.",
+                "As a last task (no body on the pallets), the bot leaves the morgue through the doors to fetch bodies left on the ground outside (e.g. delivered by the Inquisition) and brings them to a table or an empty pallet.");
             CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
                 "Checar o crematório primeiro", "Check crematorium first",
                 "Ao chegar no necrotério, o bot recolhe o que já estiver pronto no crematório antes de começar (só vai lá se houver algo).",

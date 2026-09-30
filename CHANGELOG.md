@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-09-29
+
+### Adicionado
+- **Buscar corpos em outras áreas** (`[Bodies] FetchRemoteBodies`, ligado por padrão): como última tarefa, sem corpo
+  nos paletes, o bot atravessa as portas para buscar corpos largados no chão lá fora (ex.: entregues pela Inquisição;
+  a cena inteira é conhecida de dentro do necrotério) e os traz para uma mesa livre. Sem mesa livre e com o crematório
+  ocupado, deixa o corpo num palete vazio para a autópsia depois.
+
 ## [0.3.6] - 2026-09-29
 
 ### Corrigido
