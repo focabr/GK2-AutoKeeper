@@ -212,6 +212,10 @@ namespace AutoKeeper.Bot.Tasks
 
         public TaskResult Tick()
         {
+            if (!WatchChests())
+            {
+                return TaskResult.Failed;
+            }
             switch (step)
             {
                 case Step.Plan:
@@ -248,6 +252,58 @@ namespace AutoKeeper.Bot.Tasks
             GameApi.StopMoving();
             ResetGoal();
             Status = "interrompido";
+        }
+
+        // ------------------------------------------------------------------ vigia dos baús
+
+        private readonly Dictionary<string, int> chestWatch = new Dictionary<string, int>();
+        private float chestWatchAt = -10f;
+        private int chestWatchGen = -1;
+
+        /// <summary>
+        /// Vigia: o bot nunca tira itens de baú. Se um baú perto perder itens com o bot ligado, desliga na hora e loga
+        /// o que o bot estava fazendo (a tecla Ação num baú = "pegar tudo" do jogo).
+        /// </summary>
+        private bool WatchChests()
+        {
+            if (Now - chestWatchAt < 0.25f)
+            {
+                return true;
+            }
+            chestWatchAt = Now;
+            if (chestWatchGen != nav.Generation)
+            {
+                chestWatchGen = nav.Generation; // bot religado: o jogador pode ter mexido nos baús enquanto ele estava desligado
+                chestWatch.Clear();
+            }
+            var seen = new HashSet<string>();
+            foreach (WorldObjectRef c in GameApi.FindObjects(ObjectKind.Chest, 8f))
+            {
+                int total = GameApi.ChestItemTotal(c.Uid);
+                if (total < 0)
+                {
+                    continue;
+                }
+                seen.Add(c.Uid);
+                if (chestWatch.TryGetValue(c.Uid, out int before) && total < before)
+                {
+                    GameApi.ReleaseAllVirtualKeys();
+                    GameApi.StopMoving();
+                    string msg = $"VIGIA: o baú {c.DefId} perdeu {before - total} item(ns) com o bot ligado — objetivo {GoalText()}, passo {step}, "
+                        + $"alvo do jogo {GameApi.DescribeInteractionTarget()}, pos {GameApi.GetPlayerPosition()}. Bot desligado por segurança.";
+                    ModLog.Warn(msg);
+                    chestWatch.Clear();
+                    ResetGoal();
+                    Status = "vigia do baú: desligado";
+                    return false;
+                }
+                chestWatch[c.Uid] = total;
+            }
+            foreach (string gone in chestWatch.Keys.Where(k => !seen.Contains(k)).ToList())
+            {
+                chestWatch.Remove(gone); // ficou longe: esquece (volta a medir quando chegar perto)
+            }
+            return true;
         }
 
         // ------------------------------------------------------------------ foto do mundo

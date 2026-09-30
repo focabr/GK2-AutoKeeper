@@ -312,6 +312,27 @@ namespace AutoKeeper.Core
         private const float DockClearRadius = 0.2f;   // raio do jogador para checar se o ponto de trabalho está livre
         private static readonly HashSet<string> LoggedDockTargets = new HashSet<string>();
 
+        private const float DockCrowdDistance = 1.0f; // outro objeto grande mais perto que isso do ponto = apertado
+
+        /// <summary>Id de outro objeto interativo (mesa, baú, palete, crematório…) colado no ponto, ou null.</summary>
+        private static string CrowdingObject(Vector3 dock, string ownerUid)
+        {
+            foreach (WgoData o in CurrentScene().wgoDataList)
+            {
+                if (o?.Definition == null || !o.IsInteractable || o.UniqueId.Id == ownerUid || o.id.Contains("wisp"))
+                {
+                    continue;
+                }
+                Vector3 d = o.Position - dock;
+                d.y = 0f;
+                if (d.sqrMagnitude < DockCrowdDistance * DockCrowdDistance)
+                {
+                    return o.id;
+                }
+            }
+            return null;
+        }
+
         private static bool SafeBool(Func<bool> f)
         {
             try { return f(); } catch { return true; } // na dúvida, não descarta o ponto
@@ -352,7 +373,14 @@ namespace AutoKeeper.Core
                     bool onMesh = rg == null || SafeBool(() => d.IsReachable(rg));
                     Vector3 dp = d.transform.position;
                     diag.Append($" [{dp.x:0.00},{dp.z:0.00} {d.Direction}{(d.IsForZombie ? " zumbi" : "")}{(free ? "" : " BLOQUEADO")}{(onMesh ? "" : " FORA-NAVMESH")}]");
-                    float score = Vector3.Distance(dp, p) + (d.IsForZombie ? 1000f : 0f) + (free ? 0f : 500f) + (onMesh ? 0f : 500f);
+                    // Espremido entre objetos (ex.: vão entre as duas mesas): o jogador não passa, o caminho roteirizado passa.
+                    string crowd = CrowdingObject(dp, w.UniqueId.Id);
+                    if (crowd != null)
+                    {
+                        diag.Append($" [{dp.x:0.00},{dp.z:0.00} APERTADO por {crowd}]");
+                    }
+                    float score = Vector3.Distance(dp, p) + (d.IsForZombie ? 1000f : 0f) + (free ? 0f : 500f)
+                        + (crowd != null ? 300f : 0f) + (onMesh ? 0f : 5f);
                     if (score < bestScore)
                     {
                         bestScore = score;

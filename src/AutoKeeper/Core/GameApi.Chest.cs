@@ -40,6 +40,24 @@ namespace AutoKeeper.Core
             }
         }
 
+        /// <summary>Total de unidades guardadas no baú (para o vigia: o bot nunca tira nada de baú).</summary>
+        public static int ChestItemTotal(string chestUid) => Safe(() =>
+        {
+            WgoData chest = FindWgoByUid(chestUid);
+            if (chest?.Inventory == null)
+            {
+                return -1;
+            }
+            var counts = new Dictionary<string, int>();
+            CountItems(chest.Inventory.Data, counts);
+            int n = 0;
+            foreach (int c in counts.Values)
+            {
+                n += c;
+            }
+            return n;
+        }, -1, nameof(ChestItemTotal));
+
         /// <summary>Espaços livres no inventário do jogador (mesma conta da janela do jogo).</summary>
         public static int PlayerFreeSlots() => Safe(() =>
         {

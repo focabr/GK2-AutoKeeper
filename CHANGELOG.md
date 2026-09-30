@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-09-29
+
+### Adicionado
+- **Vigia dos baús**: o bot nunca tira itens de baú. Se um baú a até 8 m perder itens com o bot ligado, ele solta as
+  teclas, desliga na hora e registra no log o objetivo, o passo, o alvo do jogo e a posição (no teste da 0.3.9 o baú
+  do necrotério foi esvaziado de novo no inventário sem nenhum aviso de mira).
+
+### Alterado
+- Escolha do ponto de trabalho: pontos espremidos entre objetos (outro objeto a menos de 1 m, ex.: o vão entre as
+  duas mesas de autópsia) ficam por último. O teste "fora do navmesh" da 0.3.9 marcava justamente o lado da mesa onde
+  o jogador fica e virou só desempate. `IsReachable` do jogo não marcou nenhum ponto como bloqueado.
+
 ## [0.3.9] - 2026-09-29
 
 ### Corrigido
