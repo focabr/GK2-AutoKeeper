@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
+## 0.3.22 — 2026-09-30
+- "Dormir e continuar" (Privação de Sono) validado em jogo: vai pela porta de casa até a cama, dorme, acorda sem a
+  Privação de Sono e volta à mesa de autópsia pela porta do porão, continuando o corpo de onde parou.
+- Texto corrigido pela regra do jogo: com Privação de Sono **metade** da energia gasta vira insanidade (antes dizia
+  "cada ponto"). Ajuste na ajuda da opção, no motivo de desligar, no README e no README do Thunderstore.
+- Notas do jogo (`docs/game-api-notes.md` §15): dormir cura a Privação de Sono ao encher a energia e tira 20 de insanidade;
+  sem ela, o jogo não deixa dormir de energia cheia; acordar salva o jogo.
+
 ## [Unreleased]
 
 ## [0.3.21] - 2026-09-30

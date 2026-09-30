@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — página do Nexus (copiar e colar)
 
 **Nome do mod:** GK2 AutoKeeper
-**Versão:** 0.3.21 · **Arquivo principal:** `GK2_AutoKeeper-0.3.21.zip` (o mesmo zip do Thunderstore)
+**Versão:** 0.3.22 · **Arquivo principal:** `GK2_AutoKeeper-0.3.22.zip` (o mesmo zip do Thunderstore)
 **Resumo (campo curto):** Automation bot for the morgue: carries bodies to the autopsy table, extracts organs and sends them to the crematorium, using only actions the player could do. F8 on/off, F11 settings.
 **Categoria sugerida:** Gameplay (ou Utilities, se existir) · **Idioma:** English (UI também em pt-BR)
 **Requisitos (aba Requirements):** BepInEx for Graveyard Keeper 2 — https://www.nexusmods.com/graveyardkeeper2/mods/48
@@ -19,7 +19,7 @@
 
 **Bugs, help with the settings and suggestions:** please open an issue on GitHub using a template — https://github.com/focabr/GK2-AutoKeeper/issues/new/choose (details under *Support* below).
 
-**What it does (0.3.21)**
+**What it does (0.3.22)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium (or leave on the table).
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.

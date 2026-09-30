@@ -3,13 +3,14 @@
 Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corpos. Só faz o que o jogador faria (sem cheat, sem editar save). Idioma dos textos/UI: pt-BR (+ en).
 
 ## Estado (2026-09-30)
-- Versão instalada: **0.3.21** (tag v0.3.21). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/GK2_AutoKeeper-0.3.21.zip`.
+- Versão instalada: **0.3.22** (tag v0.3.22). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`). Pacote: `dist/GK2_AutoKeeper-0.3.22.zip`.
 - Publicação: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categorias Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guia: projeto Claude "GK2" → `claude/publicacao.md`.
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
 - Validado em jogo (0.3.15): zerar memória no novo load, busca de corpo lá fora, ponto de trabalho do jogo (1 ajuste
   por mesa), comer em sequência, estacionar no palete, leitura de sono/insanidade no dump.
 - Idas ao baú validadas (0.3.15, `ChestFreeSlots` = 6): 1 ida, sem repetição.
+- "Dormir e continuar" validado (teste na 0.3.18; lógica igual até a 0.3.22): porta de casa → cama → dorme → cura → volta à mesa.
 - Túmulo (destino `Grave` + `DigGraves`) **escondido das telas** desde a 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
   até terminar os testes; é o "próximo passo" divulgado. Para liberar: tirar o atributo e voltar `DigGraves` para `Toggle`.
 - Suporte = issues do GitHub com modelos em `.github/ISSUE_TEMPLATE/` (bug, ajuda na configuração, sugestão; EN + pt-BR).
@@ -46,7 +47,8 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 - Crematório: estado lido à distância (`GetCraftState`); só visitar se `ReadyToCollect`.
 - Segurar Ação faz o JOGO levar o jogador ao ponto de trabalho dele (`PlayerWorkComponent.FindNearestDockPoint`, alcance
   pelo `PlayerLocalAreaMovement.IsReachable`); o bot aprende esse ponto (`workSpots`) — não brigar com ele.
-- Energia máx = 100 − insanidade. "Privação de Sono" (`lack_of_sleep_debuff`, 2 dias acordado): energia gasta vira insanidade.
+- Energia máx = 100 − insanidade. "Privação de Sono" (`lack_of_sleep_debuff`, 2 dias acordado): metade da energia gasta vira
+  insanidade; dormir até encher a energia cura e tira 20 de insanidade (regras do jogo em `docs/game-api-notes.md` §15).
 - Itens extraídos/recolhidos chegam ao inventário um instante DEPOIS da receita terminar: o registro do bot (`ledger`)
   soma por pendências (`QueueCredit`/`SettleCredits`, ~2 s), nunca na hora.
 - Textos da tela/painel/log seguem o vocabulário oficial do jogo (pt-BR: Privação de Sono, Barra de atalhos, Túmulo,

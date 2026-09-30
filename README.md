@@ -29,7 +29,7 @@ no save editing, no game files modified.
 | Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
 | Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | ✅ |
-| On Lack of Sleep you choose: turn off (default), go home and sleep in the bed then resume, or keep working | 0.3.18 / 0.3.19 | 🧪 (bed) |
+| On Lack of Sleep you choose: turn off (default), go home and sleep in the bed then resume, or keep working | 0.3.18 / 0.3.19 | ✅ |
 | Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, latest events (newest first) | 0.3.19 | ✅ |
 
 The bot pauses by itself in menus, pause, UI windows, dialogues, cutscenes and sleep, and stops with the reason shown
@@ -61,7 +61,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.21*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.22*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
@@ -87,7 +87,7 @@ The settings window and panel follow the game language (English or Brazilian Por
 | General | `[Bot] EatBelowEnergy` | 20 | energy that triggers eating |
 | General | `[Bot] MinEnergy` | 10 | turn off below this energy (when there is no food) |
 | General | `[Bot] MaxInsanity` | 60 | turn off above this insanity (each point lowers max energy by 1; near 80 the game blocks autopsy) |
-| General | `[Bot] OnLackOfSleep` | Stop | when the game's Lack of sleep hits (2 days awake: spent energy becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
+| General | `[Bot] OnLackOfSleep` | Stop | when the game's Lack of sleep hits (2 days awake: half of the energy spent becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
 | General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
 | Bodies | `[Bodies] Enabled` | on | body routine on/off |
 | Bodies | `[Bodies] Destination` | Crematorium | `Crematorium` or `LeaveOnTable` (burial is on the roadmap) |

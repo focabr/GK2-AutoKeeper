@@ -215,7 +215,7 @@ namespace AutoKeeper.Bot
             LackOfSleepAction onLack = settings.OnLackOfSleep.Value;
             if (onLack == LackOfSleepAction.Stop && GameApi.HasLackOfSleep())
             {
-                Stop("Privação de Sono (2 dias sem dormir): cada ponto de energia gasto vira insanidade — durma até encher a energia");
+                Stop("Privação de Sono (2 dias sem dormir): metade da energia gasta vira insanidade — durma na cama até encher a energia");
                 return;
             }
             float awake = GameApi.GetDaysWithoutSleep();

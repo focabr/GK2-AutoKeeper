@@ -169,8 +169,8 @@ namespace AutoKeeper.Config
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
             OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
                 "Ao ficar com Privação de Sono", "When Lack of sleep hits",
-                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: cada ponto de energia gasto vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou. Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
-                "Lack of sleep is the game's effect after 2 days awake: every energy point spent adds insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped. Keep working: carries on (only the insanity limit protects).");
+                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: metade da energia gasta vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou. Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
+                "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped. Keep working: carries on (only the insanity limit protects).");
             MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Ir sozinho até o trabalho (pelas portas)", "Walk to the work (through doors)",

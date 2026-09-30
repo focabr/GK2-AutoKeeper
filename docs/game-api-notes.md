@@ -223,3 +223,17 @@ O plano original abaixo continua valendo para a cova (0.3).
 - `EnergySystem.TrackTimeWithoutSleep`: `PlayerData.energySystem.timeWithoutSleep` (dias) ≥ 2 → perk
   `lack_of_sleep_debuff` em `MainGame.Instance.GameSave.perkSystemData` (`HasPerk`). Com ele, energia gasta vira
   insanidade (visto: 11 → 51 num corpo). Dormir até encher remove o debuff.
+- Regras exatas (IL, jogo 1.007.1, conferidas na 0.3.22):
+  - `PlayerEnergyGameResSystem.Add(v)`: com v < 0 e o debuff → `AddRes("insanity", -v / 2)` — **metade** da energia gasta vira insanidade.
+  - `EnergySystem.StartSleeping`: com energia cheia e **sem** o debuff o jogo recusa ("not required"); com o debuff dorme
+    mesmo de energia cheia. Ao começar: `timeWithoutSleep = 0`, tempo ×50 (`SetTimeSpeedMultiplier(50)`), controle
+    tomado (`TakenControlType.BySleep` → o bot pausa "dormindo").
+  - `RestoreEnergyWhileSleeping`: energia +400×Δdia enquanto não cheia; ao encher com o debuff → `DeactivateLackOfSleep`
+    (tira o perk, `timeWithoutSleep = 0`) e **insanidade −20**; acorda quando a energia está cheia e acabou o
+    `remainingSleepTime`. `StopSleeping` salva o jogo (exceto com `sleepWithoutSavingGame`).
+  - `timeWithoutSleep` anda no mesmo ritmo de `timeOfDay` (dumps 000209 → 000607: +0,4535 nos dois, em 3 min 58 s reais).
+- Teste 0.3.18 (dumps 20260930-142243 → 142433): pátio, dia 139 18:23, 2,03 dias acordado, Privação de Sono, energia 93,8/93,8,
+  insanidade 6,15 → bot foi pela porta "home enter" até `bed` (`customTag bed_home`), dormiu, acordou ~23h sem o debuff,
+  voltou pela porta "home basement enter" e continuou o corpo da mesa (4 extrações). Depois: dia 140 04:08, 0,21 dia
+  acordado, energia 28/92,8, insanidade 7,2 (as extrações de autópsia somam insanidade por conta própria), inventário
+  +1 bones, skull, heart, flesh.
