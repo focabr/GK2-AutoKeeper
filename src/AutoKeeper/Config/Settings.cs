@@ -205,9 +205,6 @@ namespace AutoKeeper.Config
             ToggleBotKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleBot", new KeyboardShortcut(KeyCode.F8),
                 "Ligar/desligar o bot", "Toggle bot",
                 "Kill switch: liga ou desliga o bot na hora.", "Kill switch: turns the bot on or off immediately.");
-            OpenSettingsKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "OpenSettings", new KeyboardShortcut(KeyCode.F11),
-                "Abrir configurações", "Open settings",
-                "Abre/fecha esta tela.", "Opens/closes this window.");
             ToggleOverlayKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "ToggleOverlay", new KeyboardShortcut(KeyCode.F9),
                 "Mostrar/esconder painel", "Toggle status panel",
                 "Mostra ou esconde o painel de status no canto da tela.", "Shows or hides the status panel.");
@@ -215,6 +212,9 @@ namespace AutoKeeper.Config
                 "Salvar diagnóstico (dump)", "Save diagnostic (dump)",
                 "Salva um JSON (somente leitura) da cena atual em BepInEx/config/AutoKeeper/dumps.",
                 "Writes a read-only JSON of the current scene to BepInEx/config/AutoKeeper/dumps.");
+            OpenSettingsKey = Bind(config, SettingTab.Hotkeys, "Hotkeys", "OpenSettings", new KeyboardShortcut(KeyCode.F11),
+                "Abrir configurações", "Open settings",
+                "Abre/fecha esta tela.", "Opens/closes this window.");
 
             // ---------------------------------------------------------------- Avançado
             ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,

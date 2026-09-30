@@ -310,6 +310,7 @@ namespace AutoKeeper.UI
             lastBotOn = bot.State != BotController.BotState.Off;
             botButton = AddButton(BotButtonText(), bot.Toggle,
                 T("Liga ou desliga o bot agora (o mesmo que a tecla F8).", "Turns the bot on or off now (same as the F8 key)."));
+            FixWidth(botButton, 308f); // mesma largura das duas de baixo somadas
             AddButtonRow(
                 (T("Restaurar padrões", "Reset defaults"), () =>
                 {
@@ -412,6 +413,7 @@ namespace AutoKeeper.UI
                     capturing = s;
                     DrawButton(b, $"{label}: {T("aperte a nova tecla… (Esc cancela)", "press the new key… (Esc cancels)")}", null);
                 }, help + " " + T("Clique e aperte a nova tecla.", "Click, then press the new key."));
+                FixWidth(b, 270f); // todos do mesmo tamanho, alinhados
             }
             else if (type == typeof(string))
             {
@@ -493,6 +495,25 @@ namespace AutoKeeper.UI
                 Place(go, help, row.transform);
                 DrawButton(b, text, onPressed);
             }
+        }
+
+        /// <summary>Largura fixa para um botão do jogo (por padrão ele se ajusta ao texto).</summary>
+        private static void FixWidth(UIDialogWindowButton b, float width)
+        {
+            if (b == null)
+            {
+                return;
+            }
+            var fit = b.GetComponent<ContentSizeFitter>();
+            if (fit != null)
+            {
+                fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            }
+            var rt = (RectTransform)b.transform;
+            rt.sizeDelta = new Vector2(width, rt.sizeDelta.y);
+            LayoutElement le = b.GetComponent<LayoutElement>() ?? b.gameObject.AddComponent<LayoutElement>();
+            le.minWidth = width;
+            le.preferredWidth = width;
         }
 
         private UIDialogWindowButton AddButton(string text, Action onPressed, string help)

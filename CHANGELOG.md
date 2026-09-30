@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-29
+
+### Alterado
+- Categoria Teclas: botões do mesmo tamanho e alinhados, na ordem das teclas (F8, F9, F10, F11); o botão "Ligar bot" tem a largura das duas ações de baixo.
+
 ## [0.3.1] - 2026-09-29
 
 ### Alterado
