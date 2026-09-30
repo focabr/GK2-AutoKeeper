@@ -202,7 +202,10 @@ O plano original abaixo continua valendo para a cova (0.3).
   id do objeto deixar de ser `grave_body` (timeout 90 s).
 - `grave_empty_place` (Work, Shovel) é a cova **marcada** pelo construtor: receita de construção `grave_empty_place_p` em
   `builder_graveyard` (área `temple_graveyard_module_area_grave`) → trabalhar com a pá vira `grave_empty`. Visto nos dados
-  (`resources.assets`), ainda não em jogo. Bot 0.3.14: DigGrave = segurar Ação até o id deixar de ser `grave_empty_place`.
+  (`resources.assets`) e confirmado no dump 0.3.15 (`defsOfInterest`): `grave_empty_place` hp 4 → `replaceToWgoOnDie`
+  `grave_empty`; `grave_body` hp 3 → `grave_ground` (ao morrer: `DropBurialRewards()`, `DecPPar("cur_bodies_count", 1)`);
+  `grave_exhume` hp 4 → `grave_empty` (`DropItemByGroup("body")`). Bot 0.3.14: DigGrave = segurar Ação até o id deixar
+  de ser `grave_empty_place`.
 - Ao trocar de objeto, a mira do jogo passa para o objeto novo: conferir o id ANTES da guarda de mira.
 
 ## 14. Ponto de trabalho escolhido pelo jogo (0.3.13, IL do 1.007.1)
