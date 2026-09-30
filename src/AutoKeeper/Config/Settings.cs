@@ -161,8 +161,8 @@ namespace AutoKeeper.Config
                 "Maximum distance to pick up loose bodies from the ground. Pallets, tables and crematorium are found anywhere reachable.");
             CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
                 "Checar o crematório primeiro", "Check crematorium first",
-                "Ao chegar no necrotério, o bot vai ao crematório antes de começar e recolhe o que estiver pronto.",
-                "On arriving at the morgue, the bot visits the crematorium before starting and collects anything ready.");
+                "Ao chegar no necrotério, o bot recolhe o que já estiver pronto no crematório antes de começar (só vai lá se houver algo).",
+                "On arriving at the morgue, the bot collects anything already finished in the crematorium before starting (it only goes if there is something).");
             UseChest = Toggle(config, SettingTab.Bodies, "Bodies", "UseChest", true,
                 "Guardar no baú com inventário cheio", "Store in chest when inventory is full",
                 "Com o inventário quase cheio, leva ao baú mais próximo SÓ o que o bot recolheu (extrações e crematório). O resto do inventário nunca é mexido.",

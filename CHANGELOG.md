@@ -4,6 +4,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-09-29
+
+### Corrigido
+- "Checar o crematório primeiro" não anda mais até um crematório vazio: o estado é lido à distância e o bot só vai quando há algo pronto para recolher (e isso vale a qualquer momento, não só entre um órgão e outro).
+
 ## [0.3.3] - 2026-09-29
 
 ### Alterado

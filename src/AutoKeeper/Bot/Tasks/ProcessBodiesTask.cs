@@ -357,10 +357,12 @@ namespace AutoKeeper.Bot.Tasks
             if (settings.CheckCrematoriumFirst.Value && settings.Destination.Value == BodyDestination.Crematorium
                 && d.Goal != Goal.CollectCrematorium)
             {
-                Candidate? crem = FirstFree(w.Crematoriums, c => !GameApi.HasOtherWorker(c.Obj.Uid) && !checkedCrem.Contains(c.Obj.Uid));
+                // O estado é lido à distância: só vai até lá se há algo pronto para recolher (nada de visita a crematório vazio).
+                Candidate? crem = FirstFree(w.Crematoriums, c => !GameApi.HasOtherWorker(c.Obj.Uid)
+                    && GameApi.GetCraftState(c.Obj.Uid) == CraftState.ReadyToCollect);
                 if (crem.HasValue)
                 {
-                    return Act(Goal.InspectCrematorium, crem.Value, null);
+                    return Act(Goal.CollectCrematorium, crem.Value, null);
                 }
             }
 
