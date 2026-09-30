@@ -210,7 +210,7 @@ namespace AutoKeeper.UI
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(s.Label(pt), labelStyle, GUILayout.Width(300f * scale));
-                Array values = Enum.GetValues(type);
+                Array values = Settings.VisibleValues(type);
                 string[] names = values.Cast<object>().Select(v => EnumText(v, pt)).ToArray();
                 int index = Array.IndexOf(values, entry.BoxedValue);
                 int chosen = GUILayout.SelectionGrid(index, names, names.Length, tabStyle);

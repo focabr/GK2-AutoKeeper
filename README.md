@@ -1,7 +1,7 @@
 # GK2 AutoKeeper
 
 Automation bot for **Graveyard Keeper 2** (BepInEx 5 + HarmonyX, Unity 6 Mono). It runs the morgue routine —
-bodies → autopsy table → organs → crematorium or grave — using **only actions the player could do**: no item spawning,
+bodies → autopsy table → organs → crematorium — using **only actions the player could do**: no item spawning,
 no save editing, no game files modified.
 
 > Code written with Claude (Anthropic) and tested in-game by the author. Published with the "AI Generated" category on
@@ -10,6 +10,7 @@ no save editing, no game files modified.
 - Game: Graveyard Keeper 2 **1.007.1** (Steam, Windows) · BepInEx **5.4.23.x** (BepInExPack 5.4.2305)
 - Plugin GUID: `com.focabr.gk2.autokeeper` · Version: see `Directory.Build.props` / [CHANGELOG](CHANGELOG.md)
 - Downloads: Thunderstore (`focabr-GK2_AutoKeeper`) · Nexus Mods · [Releases](../../releases)
+- **Bugs, help and suggestions: [open an issue](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose) with a template** — see [Support](#support--suporte)
 
 *Resumo em português no fim da página.*
 
@@ -29,8 +30,7 @@ no save editing, no game files modified.
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
 | Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | ✅ |
 | On Lack of Sleep you choose: turn off (default), go home and sleep in the bed then resume, or keep working | 0.3.18 / 0.3.19 | 🧪 (bed) |
-| Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, latest events (newest first) | 0.3.19 | 🧪 |
-| **Grave destination** (experimental): digs a grave you marked with the builder, places the body, fills it | 0.3.0 / 0.3.14 | 🧪 |
+| Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, latest events (newest first) | 0.3.19 | ✅ |
 
 The bot pauses by itself in menus, pause, UI windows, dialogues, cutscenes and sleep, and stops with the reason shown
 on the status panel and in the log (low energy without food, work not progressing, target unreachable…).
@@ -43,6 +43,31 @@ on the status panel and in the log (low energy without food, work not progressin
   also appear under **Mods** in the main and pause menus.
 - Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\`.
 - Uninstall: delete `BepInEx/plugins/AutoKeeper` (and `BepInEx/config/com.focabr.gk2.autokeeper.cfg` if you want).
+
+## Support / Suporte
+**Bugs, help with the settings and suggestions go through GitHub issues — pick a template:**
+**[Open an issue](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**. Comments on Thunderstore or Nexus are
+hard to follow and cannot hold the files needed to debug, so please use the issue templates.
+
+| Template | Use it when | Minimum to send |
+|---|---|---|
+| **Bug / Problema** | the bot did something wrong, got stuck or stopped | mod and game version · what happened and what you expected · steps to reproduce · `LogOutput.log` · F10 diagnostic if it got stuck · your settings |
+| **Help with settings / Ajuda na configuração** | you are not sure which options to use | mod version · what you want the bot to do · what happens instead · your settings (file or F11 screenshots) |
+| **Suggestion / Sugestão** | new routine or improvement | the routine · how you do it by hand today · how the bot should behave · what must never happen |
+
+Where the files are (`<game>` = the Graveyard Keeper 2 folder):
+- **Log:** `<game>/BepInEx/LogOutput.log` — **copy it before restarting the game**; the game overwrites it on every start.
+  For more detail, turn on F11 → Advanced → *Verbose logging* and reproduce the problem.
+- **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
+  (read-only snapshot of the scene; zip it if it is large).
+- **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.21*.
+
+## Roadmap / Próximos passos
+- **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
+  body and close the grave with the shovel. The code exists and is hidden from the settings until the in-game tests are done.
+  / **Enterrar:** depois da autópsia, levar o corpo ao cemitério, cavar um túmulo que você marcou com o construtor, enterrar e
+  fechar com a pá. O código existe e fica escondido das opções até terminarem os testes no jogo.
 
 ## Keys (configurable)
 | Key | Action |
@@ -65,8 +90,7 @@ The settings window and panel follow the game language (English or Brazilian Por
 | General | `[Bot] OnLackOfSleep` | Stop | when the game's Lack of sleep hits (2 days awake: spent energy becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
 | General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
 | Bodies | `[Bodies] Enabled` | on | body routine on/off |
-| Bodies | `[Bodies] Destination` | Crematorium | `Crematorium`, `LeaveOnTable` or `Grave` |
-| Bodies | `[Bodies] DigGraves` | on | with `Grave` and no open grave, dig a grave you marked with the builder (never marks or exhumes) |
+| Bodies | `[Bodies] Destination` | Crematorium | `Crematorium` or `LeaveOnTable` (burial is on the roadmap) |
 | Bodies | `[Bodies] SearchRadius` | 80 | range for loose bodies on the ground |
 | Bodies | `[Bodies] FetchRemoteBodies` | on | fetch bodies left in other areas as the last task |
 | Bodies | `[Bodies] CheckCrematoriumFirst` | on | collect finished crematorium results before starting |
@@ -108,6 +132,7 @@ src/AutoKeeper.FrameworkBridge/  optional bridge to the GK2 Mod Framework "Mods"
 docs/                  reverse-engineering notes (pt-BR) and store page text
 thunderstore/          manifest.json, icon.png, README.md of the package
 tools/                 dev-only: game metadata/IL inspector and a Framework stub for builds
+.github/ISSUE_TEMPLATE/ issue forms: bug, help with settings, suggestion (EN + pt-BR)
 build.ps1              build + deploy + release zip
 ```
 
@@ -124,7 +149,11 @@ MIT — see [LICENSE](LICENSE).
 
 ## Resumo (pt-BR)
 **GK2 AutoKeeper** é um bot para o **Graveyard Keeper 2** que faz a rotina do necrotério (palete → mesa de autópsia →
-órgãos → crematório ou cova) usando só ações que o jogador faria: sem criar itens, sem editar o save. **F8** liga/desliga,
+órgãos → crematório) usando só ações que o jogador faria: sem criar itens, sem editar o save. **F8** liga/desliga,
 **F9** painel, **F11** configurações (textos em português quando o jogo está em português), **F10** diagnóstico.
 Instalação: BepInEx 5.4.23.x no jogo e a pasta `plugins/AutoKeeper` do zip em `<jogo>/BepInEx/plugins/`.
 Código escrito com o Claude (Anthropic) e testado no jogo pelo autor. Notas de engenharia reversa em `docs/game-api-notes.md`.
+**Suporte:** problemas, ajuda na configuração e sugestões por **[issue no GitHub](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**,
+escolhendo o modelo. Mínimo para um problema: versão do mod e do jogo, o que aconteceu e como reproduzir, o `LogOutput.log`
+(copiado **antes** de reiniciar o jogo), o diagnóstico **F10** se o bot travou e o arquivo de configurações renomeado para `.txt`.
+**Próximo passo:** enterrar os corpos no túmulo depois da autópsia.

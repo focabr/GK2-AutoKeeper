@@ -1,0 +1,49 @@
+name: "Suggestion / Sugestão"
+description: "A new routine or an improvement. / Uma rotina nova ou uma melhoria."
+title: "[Suggestion] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The bot only does what the player could do (no item spawning, no save editing). Describing how you do it by hand is the most useful part.
+        O bot só faz o que o jogador faria (sem criar itens, sem editar o save). Contar como você faz na mão é a parte mais útil.
+        Planned next / Próximo passo planejado: burial in graves after the autopsy / enterrar no túmulo depois da autópsia.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "What routine or problem? / Qual rotina ou problema?"
+      placeholder: "Taking the zombies' products to the chest every morning. / Levar ao baú os produtos dos zumbis toda manhã."
+    validations:
+      required: true
+  - type: textarea
+    id: by_hand
+    attributes:
+      label: "How do you do it by hand today? / Como você faz isso na mão hoje?"
+      description: "Step by step in the game: where you go, which key or window, which tool. / Passo a passo no jogo: aonde vai, qual tecla ou janela, qual ferramenta."
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: "How should the bot behave? / Como o bot deveria agir?"
+      description: "Including when it should stop or wait. / Inclusive quando deve parar ou esperar."
+    validations:
+      required: true
+  - type: textarea
+    id: never
+    attributes:
+      label: "What must never happen? / O que nunca pode acontecer?"
+      description: "Safety rules, e.g. never take items out of chests. / Regras de segurança, ex.: nunca tirar itens de baús."
+  - type: textarea
+    id: extra
+    attributes:
+      label: "Screenshots or F10 diagnostic (optional) / Capturas ou diagnóstico F10 (opcional)"
+      description: "An F10 file made near the place helps to find the game objects. / Um arquivo F10 feito perto do lugar ajuda a achar os objetos do jogo."
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Checks / Conferências"
+      options:
+        - label: "It only needs actions the player could do. / Só precisa de ações que o jogador faria."
+          required: true

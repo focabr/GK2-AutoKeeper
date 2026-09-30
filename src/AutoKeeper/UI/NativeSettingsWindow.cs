@@ -390,7 +390,7 @@ namespace AutoKeeper.UI
             }
             else if (type.IsEnum)
             {
-                Array values = Enum.GetValues(type);
+                Array values = Settings.VisibleValues(type);
                 string[] names = values.Cast<object>().Select(EnumText).ToArray();
                 AddSwitch(label, names, Array.IndexOf(values, entry.BoxedValue), i => entry.BoxedValue = values.GetValue(i), help);
             }

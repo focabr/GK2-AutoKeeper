@@ -1,0 +1,112 @@
+name: "Bug / Problema"
+description: "The bot did something wrong, got stuck or stopped by itself. / O bot fez algo errado, travou ou parou sozinho."
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you start / Antes de começar**
+        1. Copy `<game>/BepInEx/LogOutput.log` **right after the problem, before restarting the game** — the game overwrites it on every start.
+           Copie o `LogOutput.log` **logo depois do problema, antes de reiniciar o jogo** — o jogo apaga o arquivo a cada início.
+        2. If the bot got stuck, went to the wrong place or ignored something, press **F10** at that moment (diagnostic file in `BepInEx/config/AutoKeeper/dumps/`).
+           Se o bot travou, foi ao lugar errado ou ignorou algo, aperte **F10** na hora (arquivo de diagnóstico em `BepInEx/config/AutoKeeper/dumps/`).
+        3. Helpful: turn on **F11 → Advanced → Verbose logging** and reproduce the problem.
+           Ajuda muito: ligue **F11 → Avançado → Log detalhado** e repita o problema.
+
+        Files: drag them into the fields below. GitHub accepts `.log`, `.json`, `.txt` and `.zip` (not `.cfg` — rename it to `.txt`).
+        Arquivos: arraste para os campos abaixo. O GitHub aceita `.log`, `.json`, `.txt` e `.zip` (não aceita `.cfg` — renomeie para `.txt`).
+  - type: input
+    id: mod_version
+    attributes:
+      label: "Mod version / Versão do mod"
+      description: "Title of the F11 window or of the status panel. / Título da tela F11 ou do painel."
+      placeholder: "GK2 AutoKeeper 0.3.21"
+    validations:
+      required: true
+  - type: input
+    id: game_version
+    attributes:
+      label: "Game version / Versão do jogo"
+      description: "Log line \"Versão do jogo …\" or the main menu. / Linha \"Versão do jogo …\" do log ou o menu principal."
+      placeholder: "1.007.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: "How did you install the mod? / Como instalou o mod?"
+      options:
+        - "r2modman / Thunderstore Mod Manager"
+        - "Vortex / Nexus Mods"
+        - "Manual (BepInEx/plugins)"
+    validations:
+      required: true
+  - type: textarea
+    id: other_mods
+    attributes:
+      label: "Other mods / Outros mods"
+      description: "What is inside `BepInEx/plugins` (or \"none\"). / O que há em `BepInEx/plugins` (ou \"nenhum\")."
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: "What happened? / O que aconteceu?"
+      description: "What the bot did and what you expected. Copy the panel lines **Task/Tarefa** and **Reason/Motivo**. / O que o bot fez e o que você esperava. Copie as linhas **Tarefa** e **Motivo** do painel."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "How to reproduce / Como reproduzir"
+      description: "Where the character was and what you did, step by step. / Onde o personagem estava e o que você fez, passo a passo."
+      placeholder: |
+        1. Two bodies on the pallet, crematorium burning / Dois corpos no palete, crematório queimando
+        2. Pressed F8 inside the morgue / Apertei F8 dentro do necrotério
+        3. The bot walked to the table and stopped / O bot foi até a mesa e parou
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: "How often? / Com que frequência?"
+      options:
+        - "Always / Sempre"
+        - "Sometimes / Às vezes"
+        - "Only once / Só uma vez"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: "LogOutput.log"
+      description: "Drag `<game>/BepInEx/LogOutput.log` here, copied before restarting the game. / Arraste o `LogOutput.log`, copiado antes de reiniciar o jogo."
+    validations:
+      required: true
+  - type: textarea
+    id: dump
+    attributes:
+      label: "F10 diagnostic / Diagnóstico F10"
+      description: "The `.json` from `BepInEx/config/AutoKeeper/dumps/` made at the moment of the problem (zip it if it is large). Needed when the bot got stuck, walked to the wrong place or ignored a body, chest or table. / O `.json` feito na hora do problema (compacte em .zip se ficar grande). Necessário quando o bot travou, foi ao lugar errado ou ignorou um corpo, baú ou mesa."
+  - type: textarea
+    id: settings
+    attributes:
+      label: "Settings / Configurações"
+      description: "`BepInEx/config/com.focabr.gk2.autokeeper.cfg` renamed to `.txt`, or the options you changed from the defaults. / O arquivo renomeado para `.txt`, ou as opções que você mudou do padrão."
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots / Capturas de tela"
+      description: "Status panel (F9) at the moment of the problem and the scene, if it helps. / Painel (F9) na hora do problema e a cena, se ajudar."
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Checks / Conferências"
+      options:
+        - label: "I'm on the latest version of the mod. / Estou na versão mais recente do mod."
+          required: true
+        - label: "I attached LogOutput.log copied before restarting the game. / Anexei o LogOutput.log copiado antes de reiniciar o jogo."
+          required: true
+        - label: "I have a backup of my saves. / Tenho backup dos meus saves."
+          required: false

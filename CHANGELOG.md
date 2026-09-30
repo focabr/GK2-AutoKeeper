@@ -4,6 +4,22 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.21] - 2026-09-30
+
+### Alterado
+- **Destino "Túmulo" fora das opções** (versão de publicação): "Destino do corpo depois da autópsia" mostra só Crematório e
+  Deixar na mesa, e "Cavar túmulos já marcados" sai da tela. O código do enterro continua no mod, escondido, e é o
+  **próximo passo** anunciado. Quem tinha `Destination = Grave` no `.cfg` volta para Crematório (também se escolher pelo
+  menu Mods do GK2 Mod Framework).
+
+### Adicionado
+- **Suporte pelo GitHub**: modelos de issue em `.github/ISSUE_TEMPLATE/` (inglês + pt-BR) — *Bug / Problema*,
+  *Help with settings / Ajuda na configuração* e *Suggestion / Sugestão* — com o mínimo necessário para investigar:
+  versões, o que aconteceu, como reproduzir, `LogOutput.log` (copiado antes de reiniciar o jogo), diagnóstico F10 e
+  configurações (`.cfg` renomeado para `.txt`). Issue em branco desligada.
+- README, página do Thunderstore e página do Nexus com a seção **Suporte** (onde está cada arquivo e o que enviar) e
+  **Próximos passos** (enterrar no túmulo depois da autópsia). Descrição curta sem "or a grave".
+
 ## [0.3.20] - 2026-09-30
 
 ### Alterado

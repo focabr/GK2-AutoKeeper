@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "How to report / Como reportar"
+    url: https://github.com/focabr/GK2-AutoKeeper#support--suporte
+    about: "What to include (log, F10 diagnostic, settings) and where to find each file. / O que enviar e onde achar cada arquivo."

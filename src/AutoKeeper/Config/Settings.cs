@@ -5,11 +5,20 @@ using UnityEngine;
 
 namespace AutoKeeper.Config
 {
+    /// <summary>Valor de enum que não aparece nas telas de configuração (recurso ainda não liberado).</summary>
+    [AttributeUsage(AttributeTargets.Field)]
+    public sealed class HiddenOptionAttribute : Attribute
+    {
+    }
+
     /// <summary>Para onde o corpo vai depois da autópsia.</summary>
     public enum BodyDestination
     {
         Crematorium,
         LeaveOnTable,
+
+        /// <summary>Próximo passo do desenvolvimento (enterrar no túmulo): o código existe, escondido até terminar os testes.</summary>
+        [HiddenOption]
         Grave,
     }
 
@@ -174,9 +183,10 @@ namespace AutoKeeper.Config
                 "Pallet → autopsy table → extract organs → destination.");
             Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
                 "Destino do corpo depois da autópsia", "Body destination after autopsy",
-                "Crematório (no necrotério), deixar na mesa, ou enterrar num túmulo aberto (o bot vai ao cemitério pelas portas, coloca o corpo e fecha o túmulo com a pá).",
-                "Crematorium (inside the morgue), leave on the table, or bury in an empty grave (the bot goes to the graveyard through the doors, places the body and fills the grave with the shovel).");
-            DigGraves = Toggle(config, SettingTab.Bodies, "Bodies", "DigGraves", true,
+                "Crematório (no necrotério) ou deixar na mesa. Enterrar no túmulo é o próximo passo do desenvolvimento.",
+                "Crematorium (inside the morgue) or leave on the table. Burying in a grave is the next development step.");
+            KeepVisibleDestination();
+            DigGraves = BindHidden(config, "Bodies", "DigGraves", true,
                 "Cavar túmulos já marcados", "Dig graves you placed",
                 "Com destino Túmulo e nenhum túmulo aberto, o bot cava com a pá um túmulo que você já marcou com o construtor do cemitério. Ele nunca marca túmulos novos nem desenterra corpos.",
                 "With the Grave destination and no open grave, the bot digs with the shovel a grave you already placed with the graveyard builder. It never places new graves nor exhumes bodies.");
@@ -359,6 +369,51 @@ namespace AutoKeeper.Config
                 // Migração é conveniência: sem ela a opção nova só fica no padrão.
             }
         }
+
+        /// <summary>Destino escondido (túmulo, ainda em testes) vira Crematório — também se escolhido pelo menu Mods do Framework.</summary>
+        private void KeepVisibleDestination()
+        {
+            if (IsHidden(Destination.Value))
+            {
+                Destination.Value = BodyDestination.Crematorium;
+            }
+            Destination.SettingChanged += (s, e) =>
+            {
+                if (IsHidden(Destination.Value))
+                {
+                    Destination.Value = BodyDestination.Crematorium;
+                }
+            };
+        }
+
+        /// <summary>Valores do enum que aparecem nas telas (sem os marcados com <see cref="HiddenOptionAttribute"/>).</summary>
+        public static Array VisibleValues(Type enumType)
+        {
+            var list = new List<object>();
+            foreach (object v in Enum.GetValues(enumType))
+            {
+                if (!IsHidden(v))
+                {
+                    list.Add(v);
+                }
+            }
+            Array result = Array.CreateInstance(enumType, list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                result.SetValue(list[i], i);
+            }
+            return result;
+        }
+
+        private static bool IsHidden(object enumValue)
+        {
+            var field = enumValue.GetType().GetField(enumValue.ToString());
+            return field != null && field.IsDefined(typeof(HiddenOptionAttribute), false);
+        }
+
+        /// <summary>Opção guardada no .cfg mas fora das telas (recurso ainda não liberado).</summary>
+        private static ConfigEntry<T> BindHidden<T>(ConfigFile config, string section, string key, T value, string labelPt, string labelEn, string helpPt, string helpEn)
+            => config.Bind(section, key, value, new ConfigDescription($"(em testes / in testing) {helpPt} / {helpEn}"));
 
         private ConfigEntry<T> Bind<T>(ConfigFile config, SettingTab tab, string section, string key, T value,
             string labelPt, string labelEn, string helpPt, string helpEn, AcceptableValueBase range = null)

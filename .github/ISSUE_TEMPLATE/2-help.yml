@@ -1,0 +1,49 @@
+name: "Help with settings / Ajuda na configuração"
+description: "You are not sure which options to use or the bot does not do what you want. / Dúvida sobre as opções ou o bot não faz o que você quer."
+title: "[Help] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tip: every option in **F11** has a help text, and the README has the full list of options.
+        Dica: cada opção da **F11** tem uma ajuda, e o README tem a lista completa das opções.
+  - type: input
+    id: mod_version
+    attributes:
+      label: "Mod version / Versão do mod"
+      description: "Title of the F11 window or of the status panel. / Título da tela F11 ou do painel."
+      placeholder: "GK2 AutoKeeper 0.3.21"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: "What do you want the bot to do? / O que você quer que o bot faça?"
+      placeholder: "Extract only bones and skulls and cremate the rest. / Extrair só ossos e caveiras e cremar o resto."
+    validations:
+      required: true
+  - type: textarea
+    id: instead
+    attributes:
+      label: "What happens instead? / O que acontece hoje?"
+      description: "Copy the panel lines **Task/Tarefa** and **Reason/Motivo**, if any. / Copie as linhas **Tarefa** e **Motivo** do painel, se houver."
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: "Your settings / Suas configurações"
+      description: "`BepInEx/config/com.focabr.gk2.autokeeper.cfg` renamed to `.txt`, or screenshots of the F11 categories you changed. / O arquivo renomeado para `.txt`, ou capturas das categorias da F11 que você mudou."
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots / Capturas de tela"
+      description: "Status panel (F9) and the place in the game. / Painel (F9) e o lugar no jogo."
+  - type: textarea
+    id: log
+    attributes:
+      label: "LogOutput.log (optional / opcional)"
+      description: "Recommended if the bot stopped with a reason. Copy it before restarting the game. / Recomendado se o bot parou com um motivo. Copie antes de reiniciar o jogo."
