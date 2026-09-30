@@ -5,7 +5,7 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 ## Estado (2026-09-29)
 - Versão instalada: **0.3.12** (tag v0.3.12). Jogo 1.007.1 validado (`Plugin.TestedGameVersion`).
 - Estado detalhado e próximos passos: projeto Claude "GK2" → `claude/status-autokeeper.md` (handoff). Não guardar estado volátil aqui.
-- Não testado em jogo: guardar no baú (sem linha "Baú: guardado" no log ainda) e destino Cova (falta `grave_empty` + pá).
+- Não testado em jogo: zerar memória no novo load (0.3.11), busca de corpo lá fora (0.3.7), destino Cova (falta `grave_empty` + pá).
 
 ## Mapa (Grep por estes nomes)
 - `src/AutoKeeper/Plugin.cs` — entrada, hotkeys (F8 bot, F9 painel, F10 dump, F11 config), versão.
@@ -19,8 +19,11 @@ Mod BepInEx 5 (Graveyard Keeper 2, Unity 6 Mono) que automatiza a rotina de corp
 
 ## Build / entrega
 - `dotnet build src/AutoKeeper/AutoKeeper.csproj -c Release "-p:GamePath=<jogo>"`; a ponte precisa de `-p:FrameworkDll=<GK2.Framework.dll>`.
-- Entrega ao PC: copiar para uma pasta NOVA em `/mnt/user-data/outputs/` e `device_commit_files` (pasta repetida entrega cache velho). Conferir versão: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]\.[0-9]"`.
-- Fechar versão: subir `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`.
+- Na nuvem: `apt install dotnet-sdk-8.0`, `nuget.config` com `<clear/>` (sem NuGet), stage de `Managed/` + `BepInEx/core`; ponte com stub `GK2.Framework` 0.1.14.0 (GUID `superman4eg.gk2.framework`).
+- Entrega ao PC: copiar para uma pasta NOVA em `/mnt/user-data/outputs/` e `device_commit_files` (pasta repetida entrega cache velho). Conferir versão: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
+- O jogo só carrega o DLL novo ao reiniciar: antes de analisar um teste, conferir `Loading [GK2 AutoKeeper x.y.z]` no `LogOutput.log`.
+- Fechar versão: subir `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; atualizar o handoff do projeto.
+- git no device: pedir permissão de apagar em `D:\Claude\GK2` (senão ficam `.git/*.lock`).
 
 ## Armadilhas
 - O layout do jogo ignora LayoutElement: usar `RectTransform.sizeDelta`.
