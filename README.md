@@ -1,117 +1,128 @@
 # GK2 AutoKeeper
 
-Mod de automação (bot) para **Graveyard Keeper 2** — BepInEx 5 + HarmonyX, Unity 6 (Mono).
-O bot só executa ações que o jogador poderia fazer; nunca altera o save nem cria itens.
+Automation bot for **Graveyard Keeper 2** (BepInEx 5 + HarmonyX, Unity 6 Mono). It runs the morgue routine —
+bodies → autopsy table → organs → crematorium or grave — using **only actions the player could do**: no item spawning,
+no save editing, no game files modified.
 
-- GUID: `com.focabr.gk2.autokeeper` · Versão: ver `Directory.Build.props` (SemVer)
-- Jogo testado: **1.007.1** (Unity 6000.3.9f1) · BepInEx **5.4.23.5**
+> Code written with Claude (Anthropic) and tested in-game by the author. Published with the "AI Generated" category on
+> Thunderstore and the matching Generative AI tags on Nexus Mods.
 
-## Estado atual
-| Etapa | Situação |
+- Game: Graveyard Keeper 2 **1.007.1** (Steam, Windows) · BepInEx **5.4.23.x** (BepInExPack 5.4.2305)
+- Plugin GUID: `com.focabr.gk2.autokeeper` · Version: see `Directory.Build.props` / [CHANGELOG](CHANGELOG.md)
+- Downloads: Thunderstore (`focabr-GK2_AutoKeeper`) · Nexus Mods · [Releases](../../releases)
+
+*Resumo em português no fim da página.*
+
+## Features
+| Feature | Since | Tested in-game |
+|---|---|---|
+| Body processing: pallet/ground → free autopsy table → organs and "Others" (flesh, fat, blood) → crematorium | 0.2.0 | ✅ |
+| Mastery check: extracts item by item only above the minimum success chance you choose | 0.2.3 | ✅ |
+| Walks to the work by itself through the game's doors (house → yard → morgue) | 0.2.3 | ✅ |
+| Eats from the hotbar when energy is low, several items in a row without going over the max; skips insanity food | 0.2.3 / 0.3.13 | ✅ |
+| Checks the crematorium on arrival and collects what is ready | 0.2.6 / 0.3.4 | ✅ |
+| Parks autopsied bodies on an empty pallet while the crematorium burns | 0.3.5 | ✅ |
+| Fetches bodies left in other areas (e.g. outside the morgue) as its last task | 0.3.7 | ✅ |
+| Stores **only what it collected** in the nearest chest when the inventory is nearly full | 0.2.6 / 0.3.12 | ✅ |
+| Safety: never holds Action while the game aims at another object; stops if a nearby chest loses items | 0.3.8 / 0.3.10 | ✅ |
+| Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
+| Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
+| Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | 🧪 (values read correctly; stop not triggered yet) |
+| **Grave destination** (experimental): digs a grave you marked with the builder, places the body, fills it | 0.3.0 / 0.3.14 | 🧪 |
+
+The bot pauses by itself in menus, pause, UI windows, dialogues, cutscenes and sleep, and stops with the reason shown
+on the status panel and in the log (low energy without food, work not progressing, target unreachable…).
+
+## Install
+- **Mod manager (r2modman / Thunderstore Mod Manager):** install `GK2_AutoKeeper` and launch through the manager.
+- **Manual:** install BepInEx 5.4.23.x next to `GraveyardKeeper2.exe`, run the game once, then copy the
+  `plugins/AutoKeeper` folder from the release zip to `<game>/BepInEx/plugins/`.
+- Optional: with **GK2 Mod Framework** ([Nexus](https://www.nexusmods.com/graveyardkeeper2/mods/42)) the same settings
+  also appear under **Mods** in the main and pause menus.
+- Back up your saves first: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\`.
+- Uninstall: delete `BepInEx/plugins/AutoKeeper` (and `BepInEx/config/com.focabr.gk2.autokeeper.cfg` if you want).
+
+## Keys (configurable)
+| Key | Action |
 |---|---|
-| Plugin carrega, loga versão, overlay (F9) | ✅ 0.1.0 |
-| StateReader no overlay (posição, energia, dia/hora, item carregado) | ✅ 0.1.0 |
-| Dump de descoberta somente leitura (F10) | ✅ 0.1.0 |
-| Primeira rotina: **processar corpos** (palete → autópsia → crematório) | ✅ 0.2.0 (testada no necrotério) |
-| Tela de configurações no jogo (F11) + menu Mods (GK2 Mod Framework, opcional) | ✅ 0.2.2 |
-| Ir sozinho até o trabalho pelas portas, comer da barra rápida, "Outros" da autópsia, maestria | ✅ 0.2.3 (testado) |
-| Checar o crematório ao chegar, guardar no baú o que o bot recolheu | 🧪 0.2.6 |
-| Revisão de nomes/categorias da tela, primeira versão de publicação | ✅ 0.2.8 |
-| Enterro em cova no cemitério (colocar corpo com E + fechar com a pá) | 🧪 0.3.0 |
+| F8 | bot on/off (kill switch) |
+| F9 | show/hide the status panel |
+| F10 | read-only diagnostic dump (JSON) to `BepInEx/config/AutoKeeper/dumps/` |
+| F11 | settings window (game's own look; categories with ◀ ▶) |
 
-## Estrutura
+## Settings (F11)
+All options are saved automatically to `BepInEx/config/com.focabr.gk2.autokeeper.cfg`; there is no need to edit it.
+The settings window and panel follow the game language (English or Brazilian Portuguese); log messages are in Portuguese.
+
+| Category | Option (`[Section] Key`) | Default | What it does |
+|---|---|---|---|
+| General | `[Bot] AutoEat` | on | eat an energy item from the hotbar (keys 1–4) when energy is low |
+| General | `[Bot] EatBelowEnergy` | 20 | energy that triggers eating |
+| General | `[Bot] MinEnergy` | 10 | turn off below this energy (when there is no food) |
+| General | `[Bot] MaxInsanity` | 60 | turn off above this insanity (each point lowers max energy by 1; near 80 the game blocks autopsy) |
+| General | `[Bot] StopOnLackOfSleep` | on | turn off on the Lack of Sleep debuff (2 days awake: spent energy becomes insanity) |
+| General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
+| Bodies | `[Bodies] Enabled` | on | body routine on/off |
+| Bodies | `[Bodies] Destination` | Crematorium | `Crematorium`, `LeaveOnTable` or `Grave` |
+| Bodies | `[Bodies] DigGraves` | on | with `Grave` and no open grave, dig a grave you marked with the builder (never marks or exhumes) |
+| Bodies | `[Bodies] SearchRadius` | 80 | range for loose bodies on the ground |
+| Bodies | `[Bodies] FetchRemoteBodies` | on | fetch bodies left in other areas as the last task |
+| Bodies | `[Bodies] CheckCrematoriumFirst` | on | collect finished crematorium results before starting |
+| Bodies | `[Bodies] UseChest` | on | store only what the bot collected in the nearest chest |
+| Bodies | `[Bodies] ChestFreeSlots` | 3 | go to the chest below this many free inventory slots |
+| Extraction | `[Bodies] RequireMastery` / `MinMasteryChance` | on / 100 | extract only above the chosen success chance |
+| Extraction | `[Bodies] ExtractSkin` … `ExtractGuts` | on | which organs to extract |
+| Extraction | `[Bodies] ExtractFlesh` / `ExtractFat` / `ExtractBlood` | on | "Others" items |
+| Extraction | `[Bodies] ExtractOtherPocket` | off | any other "Others" item |
+| Hotkeys | `[Hotkeys] ToggleBot` / `ToggleOverlay` / `DiscoveryDump` / `OpenSettings` | F8 / F9 / F10 / F11 | keys |
+| Panel | `[Overlay] ShowOverlay` / `Position` / `Detailed` / `LogLines` | on / top-left / off / 3 | status panel |
+| Advanced | `[Debug] VerboseLogging` | off | debug lines (`[dbg]`) in `BepInEx/LogOutput.log` |
+| Advanced | `[Bot] TickIntervalSeconds` / `MoveTimeoutSeconds` / `WorkStallSeconds` | 0.25 / 45 / 20 | timing and give-up limits |
+
+## Build from source
+Requirements: .NET SDK 8+, the game with BepInEx 5.4.23.x installed. Game and BepInEx DLLs are referenced from **your**
+installation (`Private=false`) and never committed or redistributed (see `lib/README.md`).
+
+1. Copy `GamePath.props.example` to `GamePath.props` and set your game path (or set `GK2_GAME_PATH`).
+2. In PowerShell, in the project folder:
+   ```powershell
+   .\build.ps1            # Release build + install to <game>\BepInEx\plugins\AutoKeeper\
+   .\build.ps1 -Package   # also creates dist\GK2_AutoKeeper-x.y.z.zip (Thunderstore format)
+   ```
+   Or just `dotnet build src/AutoKeeper -c Release`. If PowerShell blocks the script:
+   `powershell -ExecutionPolicy Bypass -File .\build.ps1`.
+
+## Project layout
 ```
 src/AutoKeeper/
-  Plugin.cs            entrada BepInEx: config, Harmony, hotkeys, ciclo de vida
-  Config/Settings.cs   todas as ConfigEntry (hotkeys, toggles, intervalos)
-  Core/GameApi*.cs     ÚNICO ponto que toca classes do jogo (adapter)
-  Core/StateReader.cs  snapshot do estado para overlay e bot
-  Core/ModLog.cs       log BepInEx + buffer para o overlay
-  Bot/BotController.cs máquina de estados / fila de tarefas (ticks, pausa automática)
-  Bot/ITask.cs         contrato das rotinas (Bot/Tasks/*.cs)
-  Patches/             patches Harmony isolados por feature
-  UI/Overlay.cs        painel de status na tela (OnGUI)
-  UI/SettingsWindow.cs tela de configurações (F11)
-src/AutoKeeper.FrameworkBridge/  ponte opcional para o menu Mods do GK2 Mod Framework
-docs/game-api-notes.md engenharia reversa + proposta da GameApi
-thunderstore/          manifest.json, icon.png, README.md do pacote
-build.ps1              build + deploy em BepInEx/plugins + zip de release
+  Plugin.cs            BepInEx entry: config, Harmony, hotkeys, lifecycle
+  Config/Settings.cs   every ConfigEntry (declaration order = order on screen)
+  Core/GameApi*.cs     the ONLY code that touches game classes (adapter)
+  Core/StateReader.cs  snapshot for the panel and the bot
+  Bot/                 state machine, doors/navigation, tasks (Tasks/ProcessBodiesTask.cs)
+  Patches/             isolated Harmony patches (virtual input)
+  UI/                  status panel, native settings window, IMGUI fallback
+src/AutoKeeper.FrameworkBridge/  optional bridge to the GK2 Mod Framework "Mods" menu
+docs/                  reverse-engineering notes (pt-BR) and store page text
+thunderstore/          manifest.json, icon.png, README.md of the package
+tools/                 dev-only: game metadata/IL inspector and a Framework stub for builds
+build.ps1              build + deploy + release zip
 ```
 
-## Compilar
-Pré-requisitos: .NET SDK 8+ (testado com 10), jogo com BepInEx 5.4.23.x instalado.
+## Good practices followed
+- No changes to game files on disk: runtime Harmony patches only (Harmony ID = GUID).
+- Game DLLs are compile-time references only; nothing from the game is redistributed.
+- The bot acts in ticks, pauses on any menu/window/dialogue, and logs a warning if the game version differs from the tested one.
+- When reporting bugs to the game developers, disable mods first (the game logs that a mod loader is present).
 
-1. Copie `GamePath.props.example` para `GamePath.props` e ajuste o caminho do jogo
-   (ou defina a variável de ambiente `GK2_GAME_PATH`).
-2. PowerShell na pasta do projeto:
-   ```powershell
-   .\build.ps1            # compila (Release) e instala em <jogo>\BepInEx\plugins\AutoKeeper\
-   .\build.ps1 -Package   # também gera dist\AutoKeeper-x.y.z.zip (formato Thunderstore)
-   ```
-   Ou só `dotnet build src/AutoKeeper -c Release`.
+## License
+MIT — see [LICENSE](LICENSE).
 
-> Se o PowerShell bloquear o script: `powershell -ExecutionPolicy Bypass -File .\build.ps1`
+---
 
-## Configurações pela tela do jogo
-- **F11** (ou o botão **Configurações** no painel) abre a tela do AutoKeeper: tudo é ajustado ali e salvo sozinho.
-- Com o **GK2 Mod Framework** instalado ([Nexus](https://www.nexusmods.com/graveyardkeeper2/mods/42)), as mesmas
-  opções aparecem também em **Mods** no menu principal e no menu de pausa (visual nativo, funciona com controle).
-- O arquivo `BepInEx/config/com.focabr.gk2.autokeeper.cfg` continua existindo (padrão BepInEx / mod managers),
-  mas não precisa ser editado à mão.
-
-## Teclas (configuráveis na tela F11)
-| Tecla | Ação |
-|---|---|
-| F8 | liga/desliga o bot (kill switch) |
-| F9 | mostra/esconde overlay |
-| F10 | dump de descoberta (JSON) em `BepInEx/config/AutoKeeper/dumps/` |
-| F11 | abre/fecha a tela de configurações |
-
-Categorias da tela (F11): **Geral · Corpos · Extração · Teclas · Painel · Avançado** (escolha com ◀ ▶ no topo).
-
-### Geral (`[Bot]` no .cfg)
-| Opção (tela) | Chave | Padrão | O que faz |
-|---|---|---|---|
-| Comer da barra rápida | `AutoEat` | `true` | com energia baixa, usa um item de energia da barra rápida (teclas 1–4), como o jogador; pula itens que aumentam a insanidade |
-| Comer quando a energia estiver abaixo de | `EatBelowEnergy` | `20` | energia em que começa a comer (deixe acima do valor de desligar) |
-| Desligar o bot com energia abaixo de | `MinEnergy` | `10` | abaixo disso (e sem comida) o bot desliga |
-| Atravessar portas até o trabalho | `UseDoors` | `true` | vai sozinho até onde há trabalho, atravessando portas (casa → pátio → necrotério) pelo caminho mais curto |
-
-### Corpos (`[Bodies]`)
-| Opção (tela) | Chave | Padrão | O que faz |
-|---|---|---|---|
-| Processar corpos | `Enabled` | `true` | liga a rotina |
-| Destino do corpo depois da autópsia | `Destination` | `Crematorium` | `Crematorium`, `LeaveOnTable` ou `Grave` (vai ao cemitério, coloca o corpo numa `grave_empty` e fecha a cova com a pá — precisa de uma cova vazia e de pá no cinto) |
-| Buscar corpos no chão até (m) | `SearchRadius` | `80` | alcance para corpos soltos no chão; mesas, paletes e crematório são achados em qualquer lugar alcançável |
-| Checar o crematório primeiro | `CheckCrematoriumFirst` | `true` | ao chegar numa área com crematório, passa por ele e recolhe o que estiver pronto antes de começar |
-| Guardar no baú com inventário cheio | `UseChest` | `true` | leva ao baú SÓ o que o bot recolheu (extrações/crematório); prefere o baú que já guarda esses itens; ignora baús de missão |
-| Ir ao baú com menos de (espaços livres) | `ChestFreeSlots` | `3` | quando ir ao baú |
-
-### Extração (`[Bodies]`)
-| Opção (tela) | Chave | Padrão | O que faz |
-|---|---|---|---|
-| Respeitar a maestria | `RequireMastery` | `true` | confere a maestria item por item (como na janela "Remover …") e pula o que ficar abaixo da chance mínima |
-| Chance mínima de sucesso (%) | `MinMasteryChance` | `100` | 100 = só com maestria total |
-| Extrair pele … vísceras | `ExtractSkin` … `ExtractGuts` | `true` | quais órgãos extrair (pele, ossos, crânio, coração, cérebro, vísceras) |
-| Extrair carne / gordura / sangue | `ExtractFlesh`, `ExtractFat`, `ExtractBlood` | `true` | itens da seção "Outros" da mesa |
-| Extrair demais itens | `ExtractOtherPocket` | `false` | qualquer outro item de "Outros" |
-
-### Avançado
-| Opção (tela) | Chave | Padrão | O que faz |
-|---|---|---|---|
-| Log detalhado | `[Debug] VerboseLogging` | `false` | mensagens de depuração no `LogOutput.log` |
-| Intervalo entre decisões (s) | `[Bot] TickIntervalSeconds` | `0,25` | de quanto em quanto tempo o bot decide |
-| Tempo máximo andando (s) | `[Bot] MoveTimeoutSeconds` | `45` | desiste de um alvo se não chegar |
-| Parar se o trabalho travar (s) | `[Bot] WorkStallSeconds` | `20` | para se a receita não avançar |
-
-O bot para sozinho com energia abaixo de `MinEnergy` (se não houver comida), se o trabalho não avançar (`WorkStallSeconds`) ou se não conseguir chegar/mirar no alvo — sempre com o motivo no overlay e no log.
-
-## Boas práticas seguidas
-- Nada de editar `Assembly-CSharp.dll` em disco: só patches em runtime (Harmony ID = GUID, `UnpatchSelf`).
-- DLLs do jogo referenciadas com `Private=false`; nunca redistribuídas (ver `lib/README.md`).
-- Bot em ticks (padrão 0,25 s), pausa sozinho em menu/janela/diálogo/cinemática/sono, para com energia baixa.
-- Aviso no log se a versão do jogo diferir da testada.
-- Código comentado em português, nomes em inglês.
-
-## Licença
-MIT — ver `LICENSE`.
+## Resumo (pt-BR)
+**GK2 AutoKeeper** é um bot para o **Graveyard Keeper 2** que faz a rotina do necrotério (palete → mesa de autópsia →
+órgãos → crematório ou cova) usando só ações que o jogador faria: sem criar itens, sem editar o save. **F8** liga/desliga,
+**F9** painel, **F11** configurações (textos em português quando o jogo está em português), **F10** diagnóstico.
+Instalação: BepInEx 5.4.23.x no jogo e a pasta `plugins/AutoKeeper` do zip em `<jogo>/BepInEx/plugins/`.
+Código escrito com o Claude (Anthropic) e testado no jogo pelo autor. Notas de engenharia reversa em `docs/game-api-notes.md`.

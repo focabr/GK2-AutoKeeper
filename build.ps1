@@ -9,7 +9,7 @@
 .EXAMPLE
     .\build.ps1                      # build Release + copia para BepInEx\plugins\AutoKeeper
 .EXAMPLE
-    .\build.ps1 -Package             # idem + gera dist\AutoKeeper-x.y.z.zip
+    .\build.ps1 -Package             # idem + gera dist\GK2_AutoKeeper-x.y.z.zip
 .EXAMPLE
     .\build.ps1 -NoDeploy -GamePath "D:\SteamLibrary\steamapps\common\Graveyard Keeper 2"
 
@@ -104,13 +104,13 @@ if ($Package) {
 
     $dist = Join-Path $root 'dist'
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
-    $zipPath = Join-Path $dist "AutoKeeper-$version.zip"
-    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-
-    # manifest.json com a versão atual
+    # manifest.json com a versão atual (o nome do pacote no Thunderstore também dá nome ao zip)
     $manifest = Get-Content (Join-Path $root 'thunderstore\manifest.json') -Raw | ConvertFrom-Json
     $manifest.version_number = $version
     $manifestJson = $manifest | ConvertTo-Json -Depth 5
+
+    $zipPath = Join-Path $dist "$($manifest.name)-$version.zip"
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 
     # Entradas do zip SEMPRE com '/', para funcionar em mod managers (Compress-Archive do PS 5.1 usa '\').
     $entries = [ordered]@{

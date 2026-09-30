@@ -3,6 +3,8 @@
 Automation bot for **Graveyard Keeper 2** (BepInEx 5). It performs routine chores using only actions
 the player could do — no item spawning, no save editing, no game files modified.
 
+*Code written with Claude (Anthropic) and tested in-game by the author.*
+
 > **Status: early release (0.3.x).** Main routine: body processing in the morgue
 > (pallet → autopsy table → extract organs → crematorium). The *Grave* destination (dig a marked grave,
 > bury, fill) is new and still being tested.
@@ -33,7 +35,7 @@ the player could do — no item spawning, no save editing, no game files modifie
 - **F10** – write a read-only discovery dump (JSON) of the current scene to `BepInEx/config/AutoKeeper/dumps`
 - Optional: with **GK2 Mod Framework** installed, the same settings appear under **Mods** in the main and pause menus
 - Pauses automatically in menus, pause screen, UI windows, dialogues, cutscenes and sleep
-- Texts in English and Brazilian Portuguese
+- Settings window and panel in English or Brazilian Portuguese (follows the game language); log messages in Portuguese
 
 ## Requirements
 - Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007.1**
@@ -52,4 +54,4 @@ Use the in-game settings window (**F11**); pick the category with the ◀ ▶ ar
 - Back up your saves before using any mod: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\`.
 - When reporting bugs to the game developers, disable mods first (the game logs that a mod loader is present).
 - Bug reports: attach `BepInEx/LogOutput.log` (and an F10 dump if the bot got stuck somewhere).
-- License: MIT.
+- Source code: [github.com/focabr/GK2-AutoKeeper](https://github.com/focabr/GK2-AutoKeeper) · License: MIT.

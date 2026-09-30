@@ -15,7 +15,7 @@
     <BepInExDir>$(GamePath)/BepInEx</BepInExDir>
 
     <!-- Versão única do mod (SemVer). Plugin.cs repete o valor em Plugin.Version. -->
-    <Version>0.3.16</Version>
+    <Version>0.3.17</Version>
     <Authors>focabr</Authors>
     <Company>focabr</Company>
     <Product>GK2 AutoKeeper</Product>

@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-09-30
+
+Versão de publicação: o código do bot é o mesmo da 0.3.16.
+
+### Alterado
+- Pacote do Thunderstore renomeado para **`GK2_AutoKeeper`** (aparece como "GK2 AutoKeeper", igual ao nome no jogo);
+  zip `GK2_AutoKeeper-x.y.z.zip`; `website_url` aponta para o GitHub.
+- Descrição curta nova (Thunderstore e resumo do Nexus).
+- README do GitHub em inglês com resumo em pt-BR, tabela de recursos (o que já foi testado em jogo) e todas as opções.
+- Aviso de transparência: "Code written with Claude (Anthropic) and tested in-game by the author" no README e na página;
+  página do Nexus com as marcações obrigatórias de IA (AI-Generated Content + AI Media) e requisitos.
+
 ## [0.3.16] - 2026-09-30
 
 ### Alterado
