@@ -49,6 +49,52 @@ namespace AutoKeeper.Core
 
         private static string cachedGameVersion;
 
+        // ------------------------------------------------------------------ ciclo de vida do save
+
+        private static bool lifecycleHooked;
+        private static string pendingLifecycleEvent;
+        private static object lastWorldToken;
+
+        /// <summary>Assina os eventos do jogo de "partida iniciada" (load/novo jogo) e "voltou ao menu".</summary>
+        public static void HookGameLifecycle()
+        {
+            if (lifecycleHooked)
+            {
+                return;
+            }
+            lifecycleHooked = true;
+            Safe(() =>
+            {
+                MainGame.OnGameStarted += () => pendingLifecycleEvent = "partida carregada";
+                MainGame.OnGoToMainMenu += () => pendingLifecycleEvent = "voltou ao menu principal";
+                return true;
+            }, false, nameof(HookGameLifecycle));
+        }
+
+        /// <summary>
+        /// Houve um novo load / saída para o menu desde a última chamada? Usa os eventos do jogo e, por garantia,
+        /// a troca do objeto PlayerData (cada load cria um novo).
+        /// </summary>
+        public static bool ConsumeWorldChange(out string what)
+        {
+            what = pendingLifecycleEvent;
+            pendingLifecycleEvent = null;
+            object token = Safe(() => (object)MainGame.PlayerData, null, nameof(ConsumeWorldChange));
+            if (what == null && token != null && lastWorldToken != null && !ReferenceEquals(token, lastWorldToken))
+            {
+                what = "novo load (dados do jogador trocados)";
+            }
+            if (token != null)
+            {
+                lastWorldToken = token;
+            }
+            if (what != null)
+            {
+                LoggedDockTargets.Clear();
+            }
+            return what != null;
+        }
+
         /// <summary>Versão do jogo (GameInfo.Version, ex.: "1.007").</summary>
         public static string GetGameVersion()
         {

@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-09-29
+
+### Corrigido
+- Novo load sem fechar o jogo (sair para o menu e "Continuar"): o bot mantinha a memória do load anterior (corpos já
+  autopsiados, paletes com corpo estacionado, itens a guardar, covas, portas, baús recusados…). Agora, ao voltar ao
+  menu ou carregar uma partida (eventos `MainGame.OnGoToMainMenu`/`OnGameStarted` e, por garantia, troca do
+  `PlayerData`), o bot desliga e zera toda a memória interna.
+
 ## [0.3.10] - 2026-09-29
 
 ### Adicionado

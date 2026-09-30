@@ -118,11 +118,32 @@ namespace AutoKeeper.Bot
             }
             accumulator = 0f;
 
+            if (GameApi.ConsumeWorldChange(out string change))
+            {
+                ResetForNewWorld(change);
+            }
+
             LastSnapshot = StateReader.Read();
             if (State != BotState.Off)
             {
                 Tick(LastSnapshot);
             }
+        }
+
+        /// <summary>Novo load do save (ou volta ao menu): desliga o bot e zera toda a memória interna.</summary>
+        private void ResetForNewWorld(string why)
+        {
+            Stop($"{why} — memória do bot zerada");
+            foreach (ITask t in tasks)
+            {
+                try { t.ResetMemory(); } catch (System.Exception e) { ModLog.Warn($"Falha ao zerar {t.Name}: {e.Message}"); }
+            }
+            current = null;
+            Navigator.Reset();
+            skippedFoodLogged.Clear();
+            eatBroken = false;
+            eatsInARow = 0;
+            ModLog.Info($"Memória do bot zerada ({why}). Ligue de novo com a tecla do bot quando quiser.");
         }
 
         private void Tick(GameSnapshot s)

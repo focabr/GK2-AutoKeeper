@@ -246,6 +246,31 @@ namespace AutoKeeper.Bot.Tasks
             }
         }
 
+        public void ResetMemory()
+        {
+            Abort();
+            autopsyDone.Clear();
+            failedParts.Clear();
+            masterySkipLogged.Clear();
+            bodiesFinished = 0;
+            checkedCrem.Clear();
+            failedChests.Clear();
+            failedPallets.Clear();
+            parkedPallets.Clear();
+            ledger.Clear();
+            buriedSpots.Clear();
+            chestWatch.Clear();
+            prevHere = 0;
+            seenGeneration = -1;
+            chestWatchGen = -1;
+            chestWarned = false;
+            misaimSince = -1f;
+            invBefore = null;
+            idleCheckedAt = -999f;
+            idleReason = null;
+            Status = "-";
+        }
+
         public void Abort()
         {
             GameApi.ReleaseAllVirtualKeys();

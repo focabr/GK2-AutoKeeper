@@ -32,5 +32,8 @@ namespace AutoKeeper.Bot
 
         /// <summary>Interrompe com segurança (kill switch, pausa, menu, falta de energia).</summary>
         void Abort();
+
+        /// <summary>Esquece tudo o que foi aprendido do mundo (novo load do save, volta ao menu).</summary>
+        void ResetMemory();
     }
 }
