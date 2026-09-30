@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.24] - 2026-09-30
+- Fixed: the option description in the settings window (F11) had no width and ran down the middle of the screen one
+  letter per line. It now sits in a box under the options; long descriptions shrink to fit the box.
+- The "loaded — F8 = bot, F11 = settings, F9 = status panel" message now waits until the game has loaded its language,
+  so it shows in the player's language (it used to be always in English).
+
 ## [0.3.23] - 2026-09-30
 - Multilingual: log messages and status panel events now follow the game language, like the settings window and the
   panel (Brazilian Portuguese when the game is in Portuguese, English otherwise). Messages written while the game is

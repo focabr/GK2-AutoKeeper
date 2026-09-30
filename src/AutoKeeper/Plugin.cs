@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.23";
+        public const string Version = "0.3.24";
 
         /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.007.1";
@@ -124,8 +124,9 @@ namespace AutoKeeper
             settingsWindow = new SettingsWindow(Settings, Bot);
             overlay.OnSettingsClicked = ToggleSettingsWindow;
 
-            ModLog.Info(Lang.T($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.",
-                $"{Name} {Version} loaded. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = settings, {Settings.ToggleOverlayKey.Value} = status panel."));
+            // The game has not loaded its language yet: the panel message ("loaded, F8 = bot…") waits for
+            // CheckCompatibilityOnce, so it comes out in the player's language. Here only the log file line.
+            ModLog.Detail($"{Name} {Version} loaded.");
         }
 
         private void Update()
@@ -187,6 +188,9 @@ namespace AutoKeeper
                 return;
             }
             compatibilityChecked = true;
+
+            ModLog.Info(Lang.T($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.",
+                $"{Name} {Version} loaded. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = settings, {Settings.ToggleOverlayKey.Value} = status panel."));
 
             string gameVersion = GameApi.GetGameVersion();
             if (gameVersion == null)

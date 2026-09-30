@@ -587,12 +587,19 @@ namespace AutoKeeper.UI
             }
             t.alignment = TextAlignmentOptions.Center;
             t.textWrappingMode = TextWrappingModes.Normal;
+            // Long descriptions shrink to fit the box (never spill over the window); what still does not fit ends in "…".
+            t.enableAutoSizing = true;
+            t.fontSizeMax = t.fontSize;
+            t.fontSizeMin = Mathf.Max(8f, t.fontSize * 0.65f);
+            t.overflowMode = TextOverflowModes.Ellipsis;
             t.raycastTarget = false;
             t.text = T("Passe o mouse sobre uma opção para ver o que ela faz.", "Hover an option to see what it does.");
             LayoutElement le = go.AddComponent<LayoutElement>();
-            le.minHeight = t.fontSize * 2.4f;
-            le.preferredHeight = t.fontSize * 2.4f;
-            ((RectTransform)go.transform).sizeDelta = new Vector2(0f, le.preferredHeight);
+            le.minHeight = t.fontSize * 4.4f;
+            le.preferredHeight = t.fontSize * 4.4f;
+            // The game's layout ignores LayoutElement: the width must be explicit (same as the divider), otherwise the
+            // box is 0 wide and the text wraps one letter per line down the middle of the screen.
+            ((RectTransform)go.transform).sizeDelta = new Vector2(310f, le.preferredHeight);
             built.Add(go);
             return t;
         }
