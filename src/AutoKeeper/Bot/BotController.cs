@@ -34,6 +34,12 @@ namespace AutoKeeper.Bot
         private float eatKeySentAt;
         private int eatKeyTries;
         private const int MaxEatsInARow = 12;
+
+        /// <summary>
+        /// Out of food with low energy and "Sleep, then resume" on: the body task walks to the bed instead of the bot turning
+        /// off (sleeping refills energy). Cleared once energy is back above the "eat below" value, or when the bot stops.
+        /// </summary>
+        public static bool RestRequested { get; private set; }
         private bool eating;
         private float eatStartedAt;
         private float energyBeforeEat;
@@ -92,12 +98,14 @@ namespace AutoKeeper.Bot
             eatRetryAt = 0f;
             eatsInARow = 0;
             toppingUp = false;
+            RestRequested = false;
             Navigator.Reset();
             memoryClean = false;
             State = BotState.Idle;
             StateDetail = Lang.T("aguardando", "waiting");
             ModLog.Info(Lang.T("Bot LIGADO.", "Bot ON."));
             ModLog.ResetOnce("SleepSoon");
+            ModLog.ResetOnce("NoFood");
             if (tasks.Count == 0)
             {
                 ModLog.Info(Lang.T("Nenhuma tarefa registrada ainda — o bot só monitora o estado.", "No task registered yet — the bot only monitors the state."));
@@ -113,6 +121,7 @@ namespace AutoKeeper.Bot
             AbortCurrent();
             eating = false;
             toppingUp = false;
+            RestRequested = false;
             State = BotState.Off;
             StateDetail = reason;
             ModLog.Info(Lang.T($"Bot DESLIGADO: {reason}", $"Bot OFF: {reason}"));
@@ -199,10 +208,26 @@ namespace AutoKeeper.Bot
             {
                 eatsInARow = 0;
             }
+            if (RestRequested && energyKnown && s.Energy >= settings.EatBelowEnergy.Value)
+            {
+                RestRequested = false; // slept: energy is back
+            }
             if (energyKnown && s.Energy < settings.MinEnergy.Value)
             {
-                Stop(Lang.T($"energia baixa ({s.Energy:0} < {settings.MinEnergy.Value:0})", $"low energy ({s.Energy:0} < {settings.MinEnergy.Value:0})"));
-                return;
+                string why = NoFoodReason();
+                float min = settings.MinEnergy.Value;
+                if (settings.OnLackOfSleep.Value != LackOfSleepAction.Sleep || !settings.BodiesEnabled.Value)
+                {
+                    Stop(Lang.T($"energia baixa ({s.Energy:0} < {min:0}){why}", $"low energy ({s.Energy:0} < {min:0}){why}"));
+                    return;
+                }
+                if (!RestRequested)
+                {
+                    RestRequested = true;
+                    AbortCurrent(); // the task replans: finishes placing a carried body, then walks to the bed
+                    ModLog.Warn(Lang.T($"Energia baixa ({s.Energy:0} < {min:0}){why} — vou dormir na cama de casa para recuperar a energia e depois continuo.",
+                        $"Low energy ({s.Energy:0} < {min:0}){why} — going to sleep in the home bed to recover energy, then I'll carry on."));
+                }
             }
 
             // 2b) Health: high insanity lowers max energy and blocks work; lack of sleep turns energy into insanity.
@@ -315,6 +340,8 @@ namespace AutoKeeper.Bot
             }
             if (foods.Count == 0)
             {
+                ModLog.WarnOnce("NoFood", Lang.T($"Comida: energia {s.Energy:0} e nada para comer na barra de atalhos (teclas 1 a 4). {OutOfFoodPlan()}",
+                    $"Food: energy {s.Energy:0} and nothing to eat on the hot bar (keys 1 to 4). {OutOfFoodPlan()}"));
                 return false;
             }
 
@@ -368,6 +395,8 @@ namespace AutoKeeper.Bot
                 eating = false;
                 toppingUp = true;
                 ModLog.Info(Lang.T($"Comida: comeu {eatingFood.ItemId} — energia {energyBeforeEat:0} → {s.Energy:0}", $"Food: ate {eatingFood.ItemId} — energy {energyBeforeEat:0} → {s.Energy:0}"));
+                ModLog.ResetOnce("NoFood");
+                ReportFoodLeft(eatingFood.ItemId);
                 return;
             }
             if (Time.unscaledTime - eatKeySentAt > EatTimeout)
@@ -394,6 +423,63 @@ namespace AutoKeeper.Bot
                         $"Food: pressed key {eatingFood.Slot + 1} but nothing happened — won't try to eat again until the bot is turned back on."));
                 }
             }
+        }
+
+        /// <summary>Warns when the hot bar food is running out (last units, then none left).</summary>
+        private void ReportFoodLeft(string itemId)
+        {
+            int left = GameApi.CountPlayerItem(itemId);
+            bool other = GameApi.GetHotBarFoods().Any(f => f.Insanity <= 0f && f.ItemId != itemId);
+            if (left <= 0)
+            {
+                if (other)
+                {
+                    ModLog.Info(Lang.T($"Comida: acabou {itemId} — sigo com o resto da barra de atalhos.", $"Food: {itemId} ran out — carrying on with the rest of the hot bar."));
+                }
+                else
+                {
+                    ModLog.Warn(Lang.T($"Comida: acabou a comida da barra de atalhos ({itemId} era a última). {OutOfFoodPlan()}",
+                        $"Food: the hot bar food ran out ({itemId} was the last one). {OutOfFoodPlan()}"));
+                }
+            }
+            else if (left <= 2 && !other)
+            {
+                ModLog.Info(Lang.T($"Comida: restam {left} {itemId} na barra de atalhos.", $"Food: {left} {itemId} left on the hot bar."));
+            }
+        }
+
+        /// <summary>What happens without food: sleep (with "Sleep, then resume") or turn off.</summary>
+        private string OutOfFoodPlan()
+        {
+            float min = settings.MinEnergy.Value;
+            return settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep
+                ? Lang.T($"Com energia abaixo de {min:0}, vou dormir na cama de casa para recuperar a energia.",
+                    $"Below {min:0} energy, I'll sleep in the home bed to recover energy.")
+                : Lang.T($"Com energia abaixo de {min:0}, o bot desliga — ponha comida nas teclas 1 a 4.",
+                    $"Below {min:0} energy, the bot turns off — put food on keys 1 to 4.");
+        }
+
+        /// <summary>Why the bot cannot eat now, as " — …" to append to a message ("" if there is food it would eat).</summary>
+        private string NoFoodReason()
+        {
+            if (!settings.AutoEat.Value)
+            {
+                return Lang.T(" — \"Comer da barra de atalhos\" está desligado", " — \"Eat from the hot bar\" is off");
+            }
+            if (eatBroken)
+            {
+                return Lang.T(" — a tecla da comida não funcionou", " — the food key did not work");
+            }
+            List<HotBarFood> foods = GameApi.GetHotBarFoods();
+            if (foods.Count == 0)
+            {
+                return Lang.T(" — sem comida na barra de atalhos (teclas 1 a 4)", " — no food on the hot bar (keys 1 to 4)");
+            }
+            if (foods.All(f => f.Insanity > 0f))
+            {
+                return Lang.T(" — a comida da barra de atalhos aumenta a insanidade", " — the food on the hot bar raises insanity");
+            }
+            return "";
         }
 
         private void AbortCurrent()

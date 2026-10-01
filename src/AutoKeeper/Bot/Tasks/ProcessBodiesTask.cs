@@ -147,6 +147,7 @@ namespace AutoKeeper.Bot.Tasks
 
         // Sleep: go to sleep in the home bed when Lack of sleep hits ([Bot] OnLackOfSleep = Sleep).
         private bool sleepAnnounced;
+        private bool sleepForEnergy;   // going to bed because the food ran out (not Lack of sleep)
         private string lastIdle;   // last "nothing to do" summary written to the log
         private int sleepTries;
         private const int MaxSleepTries = 3;
@@ -576,7 +577,8 @@ namespace AutoKeeper.Bot.Tasks
             if (settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep)
             {
                 bool lack = GameApi.HasLackOfSleep();
-                if (!lack)
+                bool rest = BotController.RestRequested; // out of food with low energy: sleeping refills energy
+                if (!lack && !rest)
                 {
                     if (sleepAnnounced)
                     {
@@ -587,16 +589,18 @@ namespace AutoKeeper.Bot.Tasks
                 }
                 else if (!GameApi.IsCarryingBody())
                 {
+                    sleepForEnergy = !lack;
+                    string why = lack ? Lang.T("Privação de Sono", "Lack of sleep") : Lang.T("sem comida e com energia baixa", "out of food with low energy");
                     if (sleepTries >= MaxSleepTries)
                     {
-                        return FailWith(Lang.T($"Privação de Sono: apertei E na cama {MaxSleepTries} vezes e o personagem não dormiu — durma manualmente",
-                            $"Lack of sleep: pressed E on the bed {MaxSleepTries} times and the character did not sleep — sleep manually"));
+                        return FailWith(Lang.T($"{why}: apertei E na cama {MaxSleepTries} vezes e o personagem não dormiu — durma manualmente",
+                            $"{why}: pressed E on the bed {MaxSleepTries} times and the character did not sleep — sleep manually"));
                     }
                     Candidate? bed = FirstFree(Collect(ObjectKind.Bed, w), c => true);
                     return bed.HasValue
                         ? Act(Goal.Sleep, bed.Value, null)
-                        : FailWith(Lang.T("Privação de Sono, mas não achei a cama de casa alcançável — durma manualmente",
-                            "Lack of sleep, but no reachable home bed found — sleep manually"));
+                        : FailWith(Lang.T($"{why}, mas não achei a cama de casa alcançável — durma manualmente",
+                            $"{why}, but no reachable home bed found — sleep manually"));
                 }
             }
 
@@ -1032,8 +1036,11 @@ namespace AutoKeeper.Bot.Tasks
             if (g == Goal.Sleep && !sleepAnnounced)
             {
                 sleepAnnounced = true;
-                ModLog.Info(Lang.T("Sono: Privação de Sono — indo dormir na cama de casa; depois continuo de onde parei.",
-                    "Sleep: Lack of sleep — going to sleep in the home bed; then I'll pick up where I left off."));
+                ModLog.Info(sleepForEnergy
+                    ? Lang.T("Sono: sem comida — indo dormir na cama de casa para recuperar a energia; depois continuo de onde parei.",
+                        "Sleep: out of food — going to sleep in the home bed to recover energy; then I'll pick up where I left off.")
+                    : Lang.T("Sono: Privação de Sono — indo dormir na cama de casa; depois continuo de onde parei.",
+                        "Sleep: Lack of sleep — going to sleep in the home bed; then I'll pick up where I left off."));
             }
 
             if (ground)

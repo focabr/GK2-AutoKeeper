@@ -162,16 +162,16 @@ namespace AutoKeeper.Config
                 "Eats when energy drops below this value. Keep it above the turn-off value.");
             MinEnergy = Slider(config, SettingTab.Bot, "Bot", "MinEnergy", 10f, 0f, 100f, 1f,
                 "Parar com energia abaixo de", "Turn off the bot below energy",
-                "Sem comida na barra de atalhos (ou com \"Comer da barra de atalhos\" desligado), o bot desliga quando a energia fica abaixo deste valor.",
-                "With no food on the hot bar (or \"Eat from the hot bar\" off), the bot turns off when energy drops below this value.");
+                "Sem comida na barra de atalhos (ou com \"Comer da barra de atalhos\" desligado), o bot desliga quando a energia fica abaixo deste valor. Com \"Dormir e continuar\", ele vai dormir na cama de casa e depois continua.",
+                "With no food on the hot bar (or \"Eat from the hot bar\" off), the bot turns off when energy drops below this value. With \"Sleep, then resume\", it sleeps in the home bed and then carries on.");
             MaxInsanity = Slider(config, SettingTab.Bot, "Bot", "MaxInsanity", 60f, 10f, 80f, 1f,
                 "Parar com insanidade acima de", "Turn off the bot above insanity",
                 "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e túmulos. O bot desliga ao passar deste valor.",
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
             OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
                 "Ao ficar com Privação de Sono", "When Lack of sleep hits",
-                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: metade da energia gasta vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou. Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
-                "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped. Keep working: carries on (only the insanity limit protects).");
+                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: metade da energia gasta vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou (também quando a comida acaba e a energia fica baixa). Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
+                "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped (also when the food runs out and energy is low). Keep working: carries on (only the insanity limit protects).");
             MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Ir até o trabalho pelas portas", "Walk to the work (through doors)",

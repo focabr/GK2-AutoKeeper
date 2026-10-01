@@ -4,6 +4,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.32] - 2026-10-01
+- Out of food with "Sleep, then resume": when energy drops below the turn-off value and there is nothing to eat on
+  the hot bar, the bot finishes placing the body it carries, sleeps in the home bed (sleeping refills energy) and then
+  carries on, instead of turning off. With the other choices it still turns off.
+- Food warnings: a few units left, the last one used ("the hot bar food ran out"), and "nothing to eat" when energy
+  is low. The turn-off reason now says why the bot could not eat (no food on the hot bar, "Eat from the hot bar" off,
+  the food key did not work, or only food that raises insanity).
+
 ## [0.3.31] - 2026-10-01
 - Fixed (root cause of several "strange" stops): the game renumbers its walkable regions while you play (seen in the
   F10 diagnostic files of a single session: house 766 → 765, yard 98 → 99, crematorium 1012 → 1011). The bot remembered
