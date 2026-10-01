@@ -91,6 +91,8 @@ namespace AutoKeeper.Core
             if (what != null)
             {
                 LoggedDockTargets.Clear();
+                LastDockSpots.Clear();
+                LoggedDockFallbacks.Clear();
             }
             return what != null;
         }

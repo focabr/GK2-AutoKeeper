@@ -324,6 +324,9 @@ namespace AutoKeeper.Core
         /// </summary>
         private const float DockClearRadius = 0.2f;   // player radius used to check whether the work spot is free
         private static readonly HashSet<string> LoggedDockTargets = new HashSet<string>();
+        /// <summary>Last work spot chosen per object: used when the object's view is gone (not spawned yet / removed).</summary>
+        private static readonly Dictionary<string, KeyValuePair<Vector3, Vector2>> LastDockSpots = new Dictionary<string, KeyValuePair<Vector3, Vector2>>();
+        private static readonly HashSet<string> LoggedDockFallbacks = new HashSet<string>();
 
         private const float DockCrowdDistance = 1.0f; // another large object closer than this to the spot = crowded
 
@@ -367,6 +370,11 @@ namespace AutoKeeper.Core
                 IReadOnlyList<DockPoint> docks = view != null ? view.DockPoints : null;
                 if (docks == null || docks.Count == 0)
                 {
+                    if (LastDockSpots.TryGetValue(uid, out KeyValuePair<Vector3, Vector2> cached))
+                    {
+                        s = cached.Key;
+                        f = cached.Value;
+                    }
                     return true;
                 }
                 Vector3 p = MainGame.PlayerData.position.Value;
@@ -374,9 +382,14 @@ namespace AutoKeeper.Core
                 DockPoint best = null;
                 float bestScore = float.MaxValue;
                 var diag = new System.Text.StringBuilder();
+                // The game deactivates the whole view of an object that is off screen (chunk culling, Wgo.RefreshVisuals),
+                // but its work spots are still where they were. Then only the spot's own flag counts: with
+                // activeInHierarchy, an off-screen crematorium had no spot and the bot aimed at its centre, which is off
+                // the player's navmesh ("no path found to the target"). On screen, keep the stricter check.
+                bool culled = !view.gameObject.activeInHierarchy;
                 foreach (DockPoint d in docks)
                 {
-                    if (d == null || !d.gameObject.activeInHierarchy || d.DontUseForWorkerPlacement)
+                    if (d == null || !(culled ? d.gameObject.activeSelf : d.gameObject.activeInHierarchy) || d.DontUseForWorkerPlacement)
                     {
                         continue;
                     }
@@ -406,6 +419,17 @@ namespace AutoKeeper.Core
                 {
                     s = best.transform.position;
                     f = best.Direction != Direction.None ? best.Direction.ConvertToVector2XZ() : Vector2.zero;
+                    LastDockSpots[uid] = new KeyValuePair<Vector3, Vector2>(s, f);
+                }
+                else if (LastDockSpots.TryGetValue(uid, out KeyValuePair<Vector3, Vector2> last))
+                {
+                    s = last.Key;
+                    f = last.Value;
+                    if (LoggedDockFallbacks.Add(uid))
+                    {
+                        ModLog.Detail(Lang.T($"Pontos de trabalho de {w.id} indisponíveis agora — uso o último escolhido ({s.x:0.00},{s.z:0.00})",
+                            $"Work spots for {w.id} unavailable right now — using the last one chosen ({s.x:0.00},{s.z:0.00})"));
+                    }
                 }
                 return true;
             }, false, nameof(TryGetStandSpot));

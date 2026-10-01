@@ -1052,8 +1052,10 @@ namespace AutoKeeper.Bot.Tasks
                 }
                 if (moveRetries++ < MaxMoveRetries)
                 {
-                    // Try again; on the 2nd attempt head straight for the object instead of the stop point.
-                    Vector3 dest = moveRetries == 2 && goal != Goal.UseDoor ? targetPos : standSpot;
+                    // Try again; on the 2nd attempt head straight for the object instead of the stop point — only if the
+                    // object stands on the player's walkable region (a crematorium's centre is an isolated navmesh island).
+                    Vector3 dest = moveRetries == 2 && goal != Goal.UseDoor
+                        && GameApi.GetNavArea(targetPos) == GameApi.GetPlayerNavArea() ? targetPos : standSpot;
                     ModLog.Debug(Lang.T($"Movimento falhou; nova tentativa {moveRetries} para {dest}", $"Move failed; retry {moveRetries} to {dest}"));
                     GameApi.StartMoveTo(dest);
                     stepStartedAt = Now;

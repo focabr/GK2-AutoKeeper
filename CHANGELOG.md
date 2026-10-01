@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.27] - 2026-09-30
+- Fixed: "no path found to the target" when taking a body to the crematorium from the pallet by the stairs. The game
+  hides objects that are off screen, and their work spots went with them, so the bot aimed at the middle of the
+  crematorium, which cannot be walked to. Work spots of off-screen objects are now used, the last spot chosen for an
+  object is remembered as a fallback, and the second retry only heads for the object itself when it is on walkable ground.
+
 ## [0.3.26] - 2026-09-30
 - Fixed: the option description in the settings window (F11) could stay blank for the whole session (no text on hover).
   The game creates text materials per language and destroys them when it rescans mods (Steam Workshop scan shortly after

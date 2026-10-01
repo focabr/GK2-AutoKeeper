@@ -3,14 +3,14 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-09-30)
-- Installed version: **0.3.26** (tag v0.3.26). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.26.zip`.
+- Installed version: **0.3.27** (tag v0.3.27). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.27.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Detailed state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (handoff). Do not keep volatile state here.
 - Validated in-game (0.3.15): memory reset on a new load, fetching bodies outside, the game's work spot (1 adjustment
   per table), eating in sequence, parking on the pallet, sleep/insanity reading in the dump.
 - Chest trips validated (0.3.15, `ChestFreeSlots` = 6): 1 trip, no repeats.
-- "Sleep, then resume" validated (tested on 0.3.18; same logic up to 0.3.26): house door → bed → sleeps → cured → back to the table.
+- "Sleep, then resume" validated (tested on 0.3.18; same logic up to 0.3.27): house door → bed → sleeps → cured → back to the table.
 - Grave (destination `Grave` + `DigGraves`) **hidden from the UI** since 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
   until testing is done; it is the announced "next step". To release it: remove the attribute and switch `DigGraves` back to `Toggle`.
 - Support = GitHub issues with templates in `.github/ISSUE_TEMPLATE/` (bug, help with settings, suggestion; EN + pt-BR).
@@ -52,6 +52,10 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
 - NEVER hold Action without checking the game's target (`GuardAim`): Action on a chest = take all.
 - World memory (task sets, Navigator, static caches) must be reset in `ResetMemory` — a new load does not restart the plugin.
 - Crematorium: state read from a distance (`GetCraftState`); only visit if `ReadyToCollect`.
+- Off-screen objects: the game deactivates their view (chunk culling → `Wgo.RefreshVisuals` → `SetActive(false)`), so dock
+  points are `activeInHierarchy == false`. `TryGetStandSpot` accepts `activeSelf` docks of a culled view and falls back to
+  the last dock chosen (`LastDockSpots`); never aim at a crematorium's centre (isolated navmesh island). Seen 0.3.25:
+  pallet by the stairs → crematorium off screen → "no path found to the target".
 - Holding Action makes the GAME take the player to its own work spot (`PlayerWorkComponent.FindNearestDockPoint`, reach
   via `PlayerLocalAreaMovement.IsReachable`); the bot learns that spot (`workSpots`) — do not fight it.
 - Max energy = 100 − insanity. "Lack of sleep" (`lack_of_sleep_debuff`, 2 days awake): half of the energy spent turns into
