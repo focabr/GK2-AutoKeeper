@@ -1,6 +1,6 @@
 {
   "name": "GK2_AutoKeeper",
-  "version_number": "0.3.27",
+  "version_number": "0.3.28",
   "website_url": "https://github.com/focabr/GK2-AutoKeeper",
   "description": "Automation bot for the morgue: carries bodies to the autopsy table, extracts organs and sends them to the crematorium, using only actions the player could do. F8 on/off, F11 settings.",
   "dependencies": [

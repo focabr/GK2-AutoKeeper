@@ -153,8 +153,8 @@ namespace AutoKeeper.Config
             // ---------------------------------------------------------------- Bot
             AutoEat = Toggle(config, SettingTab.Bot, "Bot", "AutoEat", true,
                 "Comer da barra de atalhos", "Eat from the hot bar",
-                "Com energia baixa, usa um item que recupera energia da barra de atalhos (teclas 1–4), como o jogador faria. Come vários seguidos sem passar do máximo e pula itens que aumentam a insanidade.",
-                "When energy is low, uses an energy item from the hot bar (keys 1–4), like the player would. Eats several in a row without going over the maximum and skips items that raise insanity.");
+                "Com energia baixa, usa um item que recupera energia da barra de atalhos (teclas 1 a 4), como o jogador faria. Come vários seguidos sem passar do máximo e pula itens que aumentam a insanidade.",
+                "When energy is low, uses an energy item from the hot bar (keys 1 to 4), like the player would. Eats several in a row without going over the maximum and skips items that raise insanity.");
             EatBelowEnergy = Slider(config, SettingTab.Bot, "Bot", "EatBelowEnergy", 20f, 1f, 100f, 1f,
                 "Comer com energia abaixo de", "Eat below energy",
                 "Come quando a energia fica abaixo deste valor. Deixe maior que o valor de desligar o bot.",
@@ -179,8 +179,8 @@ namespace AutoKeeper.Config
             // ---------------------------------------------------------------- Bodies
             BodiesEnabled = Toggle(config, SettingTab.Bodies, "Bodies", "Enabled", true,
                 "Processar corpos", "Process bodies",
-                "Palete → mesa de autópsia → extrair órgãos → destino.",
-                "Pallet → autopsy table → extract organs → destination.");
+                "Leva cada corpo do palete à mesa de autópsia, extrai os órgãos e manda o corpo para o destino escolhido abaixo.",
+                "Takes each body from the pallet to the autopsy table, extracts the organs and sends the body to the destination chosen below.");
             Destination = Bind(config, SettingTab.Bodies, "Bodies", "Destination", BodyDestination.Crematorium,
                 "Destino após a autópsia", "Body destination after autopsy",
                 "Crematório (no necrotério) ou deixar na mesa. Enterrar no túmulo é o próximo passo do desenvolvimento.",

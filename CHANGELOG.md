@@ -4,6 +4,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.28] - 2026-09-30
+- Fixed: the description of "Process bodies" in the settings window (F11) showed gaps instead of arrows (the game's
+  font has no "→"). It is now a plain sentence. "Keys 1–4" in "Eat from the hot bar" became "keys 1 to 4" for the same reason.
+
 ## [0.3.27] - 2026-09-30
 - Fixed: "no path found to the target" when taking a body to the crematorium from the pallet by the stairs. The game
   hides objects that are off screen, and their work spots went with them, so the bot aimed at the middle of the
