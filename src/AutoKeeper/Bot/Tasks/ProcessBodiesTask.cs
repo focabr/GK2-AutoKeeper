@@ -84,6 +84,8 @@ namespace AutoKeeper.Bot.Tasks
             public List<Candidate> GravePlaces;
             public List<GroundItemRef> GroundBodies;
             public List<Decision> RemoteBodies;   // bodies on the ground outside local range (other areas), cheapest to most expensive
+            public int UnroutableBodies;          // bodies on the ground in a region with no known path (log only)
+            public string UnroutableAreas;
             public List<Candidate> Chests;
             public List<Candidate> GraveBodies;
         }
@@ -443,9 +445,11 @@ namespace AutoKeeper.Bot.Tasks
                 : GameApi.GetCraftState(w.Crematoriums[0].Obj.Uid).ToString();
             string s = Lang.T(
                 $"Corpos: nada a fazer agora — mesas ocupadas {tablesBusy}/{w.Tables.Count}, paletes ocupados {palletsBusy}/{w.Pallets.Count}, "
-                + $"crematório {crem}, corpos no chão: {w.GroundBodies.Count} aqui e {w.RemoteBodies.Count} em outras áreas",
+                + $"crematório {crem}, corpos no chão: {w.GroundBodies.Count} aqui e {w.RemoteBodies.Count} em outras áreas"
+                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} sem caminho (área {w.UnroutableAreas}; aqui {w.Here})" : ""),
                 $"Bodies: nothing to do now — tables in use {tablesBusy}/{w.Tables.Count}, pallets in use {palletsBusy}/{w.Pallets.Count}, "
-                + $"crematorium {crem}, ground bodies: {w.GroundBodies.Count} here and {w.RemoteBodies.Count} in other areas");
+                + $"crematorium {crem}, ground bodies: {w.GroundBodies.Count} here and {w.RemoteBodies.Count} in other areas"
+                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} with no path (area {w.UnroutableAreas}; here {w.Here})" : ""));
             if (s != lastIdle)
             {
                 lastIdle = s;
@@ -481,7 +485,9 @@ namespace AutoKeeper.Bot.Tasks
                 }
                 else
                 {
-                    continue; // area with no known path (no unlocked doors): skip
+                    w.UnroutableBodies++;   // area with no known path (no unlocked doors / off the walkable ground): skip
+                    w.UnroutableAreas = w.UnroutableAreas == null ? area.ToString() : w.UnroutableAreas + "," + area;
+                    continue;
                 }
                 cost[b.Uid] = c;
                 list.Add(new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = area, Ground = true });
@@ -822,7 +828,7 @@ namespace AutoKeeper.Bot.Tasks
                 {
                     return w.RemoteBodies[0];
                 }
-                return WaitForCrematorium(w, crem, cremState);
+                return NothingToDo(w, crem, cremState);
             }
             foreach (Candidate pallet in w.Pallets)
             {
@@ -841,7 +847,24 @@ namespace AutoKeeper.Bot.Tasks
             {
                 return w.RemoteBodies[0];
             }
-            return WaitForCrematorium(w, crem, cremState);
+            return NothingToDo(w, crem, cremState);
+        }
+
+        /// <summary>
+        /// Nothing to do here: wait for the burning crematorium (if a body is pending) or, with "Wait in the morgue", go and wait
+        /// in the morgue — e.g. after waking up at home, instead of standing in the house while bodies are delivered outside.
+        /// </summary>
+        private Decision NothingToDo(WorldView w, Candidate? crem, CraftState cremState)
+        {
+            Decision d = WaitForCrematorium(w, crem, cremState);
+            if (d.Kind != DecisionKind.None || !settings.WaitInMorgue.Value || w.Here == 0 || w.Tables.Count == 0)
+            {
+                return d;
+            }
+            uint morgue = w.Tables[0].Area;
+            return morgue != 0 && morgue != w.Here && w.Routes.ContainsKey(morgue)
+                ? WaitAt(morgue, Lang.T("aguardando corpos no necrotério", "waiting for bodies in the morgue"))
+                : d;
         }
 
         /// <summary>Body on the pallet that has not been through the table yet (those parked by the bot are left out).</summary>

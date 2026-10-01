@@ -92,6 +92,7 @@ namespace AutoKeeper.Core
                 var j = ItemToJson(d.Item, 2);
                 j["position"] = Vec(d.Position);
                 j["distance"] = Round(Vector3.Distance(d.Position, playerPos));
+                j["area"] = GetNavArea(d.Position);   // walkable region (0 = off the navmesh); compare with navigation.playerArea
                 drops.Add(j);
             }
 

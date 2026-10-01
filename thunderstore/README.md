@@ -18,6 +18,7 @@ the player could do — no item spawning, no save editing, no game files modifie
 - **Keeps working while the crematorium burns**: autopsied bodies are parked on an empty pallet so the tables
   stay free, and go to the crematorium later
 - **Fetches bodies left outside** (e.g. delivered to another area) as its last task, through the game's doors
+- **Waits in the morgue**: with nothing to do (e.g. after sleeping at home), it walks back to the morgue and waits there
 - **Success chance check**: extracts item by item only when the game's success chance is above the minimum you choose
 - **Walks by itself** to where the work is, using the game's own doors (house → yard → morgue), and works from
   the same spot the game uses (no shuffling around the table)

@@ -4,6 +4,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.30] - 2026-10-01
+- New option "Wait in the morgue" (`[Bodies] WaitInMorgue`, on by default): with nothing to do — for example after
+  waking up at home — the bot walks to the morgue through the doors and waits there for the next bodies, instead of
+  standing wherever it is. Off: it stays where it is (previous behavior).
+- Diagnostics: the "nothing to do" log line also counts bodies on the ground with no known path (and their walkable
+  region), and the F10 diagnostic file records the walkable region of every item on the ground.
+
 ## [0.3.29] - 2026-10-01
 - Fixed: after "Sleep, then resume", the bot stayed idle in the house when the body on the table was waiting for the
   crematorium. The crematorium's centre is on a separate patch of walkable ground, so it was only found from inside the
