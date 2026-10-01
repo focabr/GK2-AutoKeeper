@@ -50,6 +50,8 @@ namespace AutoKeeper.UI
         private RectTransform content;
         private TextMeshProUGUI titleText;
         private TextMeshProUGUI hintText;
+        private TextMeshProUGUI hintStyleSource; // live label whose font/material the description box copies
+        private bool hintMaterialRefreshLogged;
         private UIDialogWindowButton botButton;
         private readonly List<GameObject> built = new List<GameObject>();
 
@@ -266,6 +268,7 @@ namespace AutoKeeper.UI
                 rebuildPending = false;
                 BuildContent();
             }
+            SyncHintStyle(hintText);
         }
 
         // ------------------------------------------------------------------ content
@@ -293,6 +296,11 @@ namespace AutoKeeper.UI
             UISwitchButton categorySwitch = AddSwitch("", tabs.Select(TabName).ToArray(), Array.IndexOf(tabs, tab),
                 i => { tab = tabs[i]; rebuildPending = true; },
                 T("Categoria: escolha o grupo de opções.", "Category: choose the group of options."));
+            // Live clone of the label the description box imitates (same child as the template's first text): the game
+            // re-applies font/material to it when it is enabled; the inactive template may hold a destroyed material.
+            hintStyleSource = categorySwitch != null
+                ? categorySwitch.GetComponentsInChildren<TextMeshProUGUI>(true).FirstOrDefault()
+                : null;
 
             // Divider: makes it clear that the options below belong to the category chosen above.
             AddDivider();
@@ -324,6 +332,15 @@ namespace AutoKeeper.UI
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             CenterSwitch(categorySwitch);
+
+            if (hintText != null)
+            {
+                string Name(UnityEngine.Object o) => o == null ? "-" : o.name;
+                TextMeshProUGUI tpl = switchTemplate.GetComponentsInChildren<TextMeshProUGUI>(true).FirstOrDefault();
+                string state = $"font={Name(hintText.font)} material={Name(hintText.fontSharedMaterial)} "
+                    + $"template={Name(tpl != null ? tpl.fontSharedMaterial : null)} rect={hintText.rectTransform.rect.size}";
+                ModLog.Debug(Lang.T("Caixa de descrição da F11: " + state, "F11 description box: " + state));
+            }
         }
 
         /// <summary>Hides the row's label and centers the ◀ value ▶ group across the row's width.</summary>
@@ -600,8 +617,45 @@ namespace AutoKeeper.UI
             // The game's layout ignores LayoutElement: the width must be explicit (same as the divider), otherwise the
             // box is 0 wide and the text wraps one letter per line down the middle of the screen.
             ((RectTransform)go.transform).sizeDelta = new Vector2(310f, le.preferredHeight);
+            SyncHintStyle(t);
             built.Add(go);
             return t;
+        }
+
+        /// <summary>
+        /// Keeps the description box on the font/material of a live label. The game creates text materials per language
+        /// and destroys them when it rescans mods (Steam Workshop scan shortly after startup, Shift+F10): its own labels
+        /// get a new material, but a copy taken from the inactive template keeps the destroyed one and draws nothing.
+        /// </summary>
+        private void SyncHintStyle(TextMeshProUGUI hint)
+        {
+            if (hint == null)
+            {
+                return;
+            }
+            TextMeshProUGUI src = hintStyleSource;
+            if (src != null)
+            {
+                if (src.font != null && hint.font != src.font)
+                {
+                    hint.font = src.font;
+                }
+                Material mat = src.fontSharedMaterial;
+                if (mat != null && hint.fontSharedMaterial != mat)
+                {
+                    if (hint.fontSharedMaterial == null && !hintMaterialRefreshLogged)
+                    {
+                        hintMaterialRefreshLogged = true;
+                        ModLog.Detail(Lang.T("Caixa de descrição da F11: o material do texto foi liberado pelo jogo; usando o atual.",
+                            "F11 description box: the text material was released by the game; using the current one."));
+                    }
+                    hint.fontSharedMaterial = mat;
+                }
+            }
+            if (hint.fontSharedMaterial == null && hint.font != null)
+            {
+                hint.fontSharedMaterial = hint.font.material;
+            }
         }
 
         /// <summary>Moves the clone into the content (activating it) and shows its description on mouse hover.</summary>

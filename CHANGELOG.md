@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.26] - 2026-09-30
+- Fixed: the option description in the settings window (F11) could stay blank for the whole session (no text on hover).
+  The game creates text materials per language and destroys them when it rescans mods (Steam Workshop scan shortly after
+  startup, or Shift+F10); the description box kept a copy of a destroyed material when F11 had been opened before that.
+  It now follows the font and material of a live label of the window.
+
 ## [0.3.25] - 2026-09-30
 - Shorter Brazilian Portuguese labels in the settings window (F11), so every option shows at the normal font size
   (the longest ones were auto-shrunk and looked smaller and dimmer than the rest):

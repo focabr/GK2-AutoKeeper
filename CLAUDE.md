@@ -3,14 +3,14 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-09-30)
-- Installed version: **0.3.25** (tag v0.3.25). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.25.zip`.
+- Installed version: **0.3.26** (tag v0.3.26). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.26.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Detailed state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (handoff). Do not keep volatile state here.
 - Validated in-game (0.3.15): memory reset on a new load, fetching bodies outside, the game's work spot (1 adjustment
   per table), eating in sequence, parking on the pallet, sleep/insanity reading in the dump.
 - Chest trips validated (0.3.15, `ChestFreeSlots` = 6): 1 trip, no repeats.
-- "Sleep, then resume" validated (tested on 0.3.18; same logic up to 0.3.25): house door → bed → sleeps → cured → back to the table.
+- "Sleep, then resume" validated (tested on 0.3.18; same logic up to 0.3.26): house door → bed → sleeps → cured → back to the table.
 - Grave (destination `Grave` + `DigGraves`) **hidden from the UI** since 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
   until testing is done; it is the announced "next step". To release it: remove the attribute and switch `DigGraves` back to `Toggle`.
 - Support = GitHub issues with templates in `.github/ISSUE_TEMPLATE/` (bug, help with settings, suggestion; EN + pt-BR).
@@ -32,7 +32,7 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
 - Commits made in the cloud → device: `git bundle` → `device_commit_files` into `D:\Claude\GK2\_xfer\` →
   `git fetch <bundle> main:refs/remotes/xfer/main --tags && git merge --ff-only xfer/main`.
   In the cloud clone, run `git remote remove origin` right after cloning the bundle: with a remote, the cloud's automatic
-  checker demands a push and a "Claude" signature on every commit (the real repo on the PC has no remote and uses the `focabr` authorship).
+  checker demands a push and a "Claude" signature on every commit (the real repo on the PC uses the `focabr` authorship; its `origin` is GitHub, pushed by the user — published tags are never moved).
 - Delivery to the PC: copy to a NEW folder in `/mnt/user-data/outputs/` and `device_commit_files` (a reused folder delivers a stale cache). Check the version: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
 - The game only loads the new DLL after a restart: before analyzing a test, check `Loading [GK2 AutoKeeper x.y.z]` in `LogOutput.log`.
 - Closing a version: bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; update the project handoff.
@@ -43,6 +43,10 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
   one letter per line down the screen: the F11 description box until 0.3.24).
 - F11 option labels auto-shrink when too long: keep each label (pt and en) about as wide as "Ao ficar com Privação de Sono"
   (~30 chars) so it shows at the normal font size (pt labels shortened in 0.3.25; F11 checked on every tab).
+- Text created by the mod must NOT keep a material copied from an inactive template: the game makes TMP materials per
+  language (`TextStyle.GetMaterialFor`) and destroys them on a mods rescan (`ModsBootstrap.Tick` → `ReloadMods`, Steam
+  Workshop scan after startup or Shift+F10); its labels re-apply on enable (`TextStyleComponent`). The F11 description box
+  follows a live label (`SyncHintStyle`) since 0.3.26 — it was blank when F11 was opened before the rescan.
 - The native window clones the game's Settings window (works in the main menu too, seen on 0.3.23); if that fails it falls back to IMGUI.
 - Quest chests (customTag) and conveyor/garden chests are ignored on purpose.
 - NEVER hold Action without checking the game's target (`GuardAim`): Action on a chest = take all.
