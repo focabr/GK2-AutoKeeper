@@ -145,6 +145,7 @@ namespace AutoKeeper.Bot.Tasks
 
         // Sleep: go to sleep in the home bed when Lack of sleep hits ([Bot] OnLackOfSleep = Sleep).
         private bool sleepAnnounced;
+        private string lastIdle;   // last "nothing to do" summary written to the log
         private int sleepTries;
         private const int MaxSleepTries = 3;
         private const float SleepStartTimeout = 6f;
@@ -300,6 +301,7 @@ namespace AutoKeeper.Bot.Tasks
             pendingCredits.Clear();
             workItemId = null;
             sleepAnnounced = false;
+            lastIdle = null;
             sleepTries = 0;
             buriedSpots.Clear();
             chestWatch.Clear();
@@ -431,6 +433,26 @@ namespace AutoKeeper.Bot.Tasks
             return w;
         }
 
+        /// <summary>Why the bot has nothing to do: written to the log file once per change (diagnosing an idle bot).</summary>
+        private void LogIdle(WorldView w)
+        {
+            int tablesBusy = w.Tables.Count(t => GameApi.ObjectHasBody(t.Obj.Uid));
+            int palletsBusy = w.Pallets.Count(p => GameApi.ObjectHasBody(p.Obj.Uid));
+            string crem = w.Crematoriums.Count == 0
+                ? Lang.T("não achado", "not found")
+                : GameApi.GetCraftState(w.Crematoriums[0].Obj.Uid).ToString();
+            string s = Lang.T(
+                $"Corpos: nada a fazer agora — mesas ocupadas {tablesBusy}/{w.Tables.Count}, paletes ocupados {palletsBusy}/{w.Pallets.Count}, "
+                + $"crematório {crem}, corpos no chão: {w.GroundBodies.Count} aqui e {w.RemoteBodies.Count} em outras áreas",
+                $"Bodies: nothing to do now — tables in use {tablesBusy}/{w.Tables.Count}, pallets in use {palletsBusy}/{w.Pallets.Count}, "
+                + $"crematorium {crem}, ground bodies: {w.GroundBodies.Count} here and {w.RemoteBodies.Count} in other areas");
+            if (s != lastIdle)
+            {
+                lastIdle = s;
+                ModLog.Detail(s);
+            }
+        }
+
         /// <summary>Bodies on the ground in any reachable area (the whole scene is known), except those already seen nearby.</summary>
         private List<Decision> CollectRemoteBodies(WorldView w)
         {
@@ -476,6 +498,15 @@ namespace AutoKeeper.Bot.Tasks
             {
                 float straight = GameApi.DistanceTo(o.Position);
                 uint area = w.Here == 0 ? 0 : nav.AreaOf(o.Uid, o.Position);
+                if (w.Here != 0 && (area == 0 || !w.Routes.ContainsKey(area)))
+                {
+                    // Centre off the walkable regions (e.g. the crematorium): use the region of its work spot.
+                    uint stand = nav.StandAreaOf(o.Uid, o.Position);
+                    if (stand != 0 && w.Routes.ContainsKey(stand))
+                    {
+                        area = stand;
+                    }
+                }
                 if (area != 0 && w.Routes.TryGetValue(area, out AreaRoute route))
                 {
                     list.Add(new Candidate(o, area, area == w.Here ? straight : Navigator.CostTo(route, o.Position)));
@@ -500,6 +531,7 @@ namespace AutoKeeper.Bot.Tasks
             switch (d.Kind)
             {
                 case DecisionKind.None:
+                    LogIdle(w);
                     return false;
                 case DecisionKind.Fail:
                     return dryRun || Fail(d.Text) != TaskResult.Failed;

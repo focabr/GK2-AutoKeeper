@@ -44,6 +44,9 @@ namespace AutoKeeper.Bot
         private readonly List<DoorNode> doors = new List<DoorNode>();
         private readonly HashSet<string> brokenDoors = new HashSet<string>(); // doors that did not work in this session
         private readonly Dictionary<string, uint> areaByUid = new Dictionary<string, uint>();
+        private readonly Dictionary<string, uint> standAreaByUid = new Dictionary<string, uint>();
+        private readonly Dictionary<string, float> standAreaRetryAt = new Dictionary<string, float>();
+        private const float StandAreaRetrySeconds = 10f;
         private float doorsCachedAt = -999f;
         private string cachedScene;
         private string loggedDoors;     // "scene:count" already written to the debug log
@@ -58,6 +61,8 @@ namespace AutoKeeper.Bot
             doorsCachedAt = -999f;
             brokenDoors.Clear();
             areaByUid.Clear();
+            standAreaByUid.Clear();
+            standAreaRetryAt.Clear();
         }
 
         public void MarkDoorBroken(string doorUid)
@@ -79,6 +84,42 @@ namespace AutoKeeper.Bot
             if (uid != null && a != 0)
             {
                 areaByUid[uid] = a;
+            }
+            return a;
+        }
+
+        /// <summary>
+        /// Region where the player stands to use the object (its work spot), or 0 if it has no known work spot.
+        /// Some objects have their centre on an isolated navmesh island — the crematorium — so their own region is
+        /// never reachable; only the morgue's "same room" shortcut found it. From the house (after sleeping) the
+        /// crematorium was "not found" and the bot sat idle.
+        /// </summary>
+        public uint StandAreaOf(string uid, Vector3 centre)
+        {
+            if (uid == null)
+            {
+                return 0;
+            }
+            if (standAreaByUid.TryGetValue(uid, out uint a))
+            {
+                return a;
+            }
+            if (standAreaRetryAt.TryGetValue(uid, out float retry) && Time.unscaledTime < retry)
+            {
+                return 0;
+            }
+            a = 0;
+            if (GameApi.TryGetStandSpot(uid, out Vector3 spot, out _) && Vector3.Distance(spot, centre) > 0.01f)
+            {
+                a = GameApi.GetNavArea(spot);
+            }
+            if (a != 0)
+            {
+                standAreaByUid[uid] = a;
+            }
+            else
+            {
+                standAreaRetryAt[uid] = Time.unscaledTime + StandAreaRetrySeconds; // no work spot known yet (view not spawned)
             }
             return a;
         }

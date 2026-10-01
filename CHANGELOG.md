@@ -4,6 +4,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.29] - 2026-10-01
+- Fixed: after "Sleep, then resume", the bot stayed idle in the house when the body on the table was waiting for the
+  crematorium. The crematorium's centre is on a separate patch of walkable ground, so it was only found from inside the
+  morgue; from the house it counted as "not found" and there was nothing to do (bodies delivered outside piled up while
+  the bot slept, woke up and slept again). Objects are now located by the spot where the player stands to use them, so
+  the bot walks back to the morgue after sleeping.
+- The log file now says why the bot has nothing to do (tables and pallets in use, crematorium state, bodies on the
+  ground here and in other areas), once per change.
+
 ## [0.3.28] - 2026-09-30
 - Fixed: the description of "Process bodies" in the settings window (F11) showed gaps instead of arrows (the game's
   font has no "→"). It is now a plain sentence. "Keys 1–4" in "Eat from the hot bar" became "keys 1 to 4" for the same reason.

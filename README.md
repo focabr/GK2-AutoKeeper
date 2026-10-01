@@ -61,7 +61,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.28*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.29*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
