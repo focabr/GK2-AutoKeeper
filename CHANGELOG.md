@@ -4,6 +4,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.31] - 2026-10-01
+- Fixed (root cause of several "strange" stops): the game renumbers its walkable regions while you play (seen in the
+  F10 diagnostic files of a single session: house 766 → 765, yard 98 → 99, crematorium 1012 → 1011). The bot remembered
+  the numbers of doors and objects, so after a renumbering its routes broke: "Lack of sleep, but no reachable home bed
+  found", bodies outside "with no path" left on the ground, tables and crematorium "not found" right after a door.
+  Region numbers are now read fresh every time; only positions are remembered.
+- A door counts as crossed by distance (doors teleport far away), no longer by region number.
+- The "nothing to do" log line also shows how many areas are reachable from where the bot is.
+
 ## [0.3.30] - 2026-10-01
 - New option "Wait in the morgue" (`[Bodies] WaitInMorgue`, on by default): with nothing to do — for example after
   waking up at home — the bot walks to the morgue through the doors and waits there for the next bodies, instead of

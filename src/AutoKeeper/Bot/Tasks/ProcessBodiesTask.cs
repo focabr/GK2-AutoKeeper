@@ -187,7 +187,6 @@ namespace AutoKeeper.Bot.Tasks
         private float misaimSince = -1f;   // since when the game has been aiming at another object during work (-1 = aiming correctly)
         private bool planFailed;
         private bool nudged;
-        private uint doorFromArea;
         private string travelPurpose;   // for the panel: what the bot will do on the other side
         private int travelDoors;
 
@@ -446,10 +445,12 @@ namespace AutoKeeper.Bot.Tasks
             string s = Lang.T(
                 $"Corpos: nada a fazer agora — mesas ocupadas {tablesBusy}/{w.Tables.Count}, paletes ocupados {palletsBusy}/{w.Pallets.Count}, "
                 + $"crematório {crem}, corpos no chão: {w.GroundBodies.Count} aqui e {w.RemoteBodies.Count} em outras áreas"
-                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} sem caminho (área {w.UnroutableAreas}; aqui {w.Here})" : ""),
+                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} sem caminho (área {w.UnroutableAreas}; aqui {w.Here})" : "")
+                + $"; áreas alcançáveis: {w.Routes.Count}",
                 $"Bodies: nothing to do now — tables in use {tablesBusy}/{w.Tables.Count}, pallets in use {palletsBusy}/{w.Pallets.Count}, "
                 + $"crematorium {crem}, ground bodies: {w.GroundBodies.Count} here and {w.RemoteBodies.Count} in other areas"
-                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} with no path (area {w.UnroutableAreas}; here {w.Here})" : ""));
+                + (w.UnroutableBodies > 0 ? $", {w.UnroutableBodies} with no path (area {w.UnroutableAreas}; here {w.Here})" : "")
+                + $"; reachable areas: {w.Routes.Count}");
             if (s != lastIdle)
             {
                 lastIdle = s;
@@ -1002,7 +1003,6 @@ namespace AutoKeeper.Bot.Tasks
             DoorRef door = route.FirstDoor;
             travelPurpose = purpose;
             travelDoors = route.Doors;
-            doorFromArea = w.Here;
             ModLog.Info(Lang.T($"Corpos: indo pela porta \"{door.Label}\" para {purpose} ({route.Doors} porta(s), ~{route.Cost:0} m)",
                 $"Bodies: going through door \"{door.Label}\" to {purpose} ({route.Doors} door(s), ~{route.Cost:0} m)"));
             return Begin(false, Goal.UseDoor, door.Uid, door.Position, false, null, null);
@@ -1265,8 +1265,8 @@ namespace AutoKeeper.Bot.Tasks
                     break;
                 case Goal.UseDoor:
                     // Normally the game takes control away (fade) and the bot pauses before this; this is the no-fade case.
-                    uint now = GameApi.GetPlayerNavArea();
-                    done = (now != 0 && now != doorFromArea) || GameApi.DistanceTo(targetPos) > 10f;
+                    // Doors teleport far away: judge by distance, not by region number (those are renumbered while playing).
+                    done = GameApi.DistanceTo(targetPos) > 10f;
                     if (!done && Now - stepStartedAt > DoorTimeout)
                     {
                         return SkipDoor(Lang.T("a porta não levou a lugar nenhum", "the door led nowhere"));

@@ -27,7 +27,11 @@ namespace AutoKeeper.Bot
 
     /// <summary>
     /// Plans routes between regions using the game's doors (simple Dijkstra: doors = edges).
-    /// Logic only; everything that touches the game goes through GameApi. Door data is cached for a few seconds.
+    /// Logic only; everything that touches the game goes through GameApi. The door LIST is cached for a few seconds,
+    /// but region numbers are always read fresh: the game renumbers the navmesh regions (A* connected components,
+    /// node.Area) while playing — seen in the F10 dumps of a single session: house 766 → 765, yard 98 → 99,
+    /// crematorium 1012 → 1011 / 324 → 325. Cached numbers (0.2.3–0.3.30) went stale and broke the routes:
+    /// bodies outside "with no path", "no reachable home bed", tables/crematorium "not found".
     /// </summary>
     internal sealed class Navigator
     {
@@ -42,9 +46,9 @@ namespace AutoKeeper.Bot
         }
 
         private readonly List<DoorNode> doors = new List<DoorNode>();
+        private readonly List<DoorRef> doorRefs = new List<DoorRef>();        // the scene's usable doors (cached CacheSeconds)
         private readonly HashSet<string> brokenDoors = new HashSet<string>(); // doors that did not work in this session
-        private readonly Dictionary<string, uint> areaByUid = new Dictionary<string, uint>();
-        private readonly Dictionary<string, uint> standAreaByUid = new Dictionary<string, uint>();
+        private readonly Dictionary<string, Vector3> standSpotByUid = new Dictionary<string, Vector3>(); // positions never change
         private readonly Dictionary<string, float> standAreaRetryAt = new Dictionary<string, float>();
         private const float StandAreaRetrySeconds = 10f;
         private float doorsCachedAt = -999f;
@@ -60,8 +64,7 @@ namespace AutoKeeper.Bot
             Generation++;
             doorsCachedAt = -999f;
             brokenDoors.Clear();
-            areaByUid.Clear();
-            standAreaByUid.Clear();
+            standSpotByUid.Clear();
             standAreaRetryAt.Clear();
         }
 
@@ -73,20 +76,8 @@ namespace AutoKeeper.Bot
             }
         }
 
-        /// <summary>Region of an object (cached by uid; game objects do not move).</summary>
-        public uint AreaOf(string uid, Vector3 pos)
-        {
-            if (uid != null && areaByUid.TryGetValue(uid, out uint a))
-            {
-                return a;
-            }
-            a = GameApi.GetNavArea(pos);
-            if (uid != null && a != 0)
-            {
-                areaByUid[uid] = a;
-            }
-            return a;
-        }
+        /// <summary>Region of an object, read now (region numbers change while playing: never cache them).</summary>
+        public uint AreaOf(string uid, Vector3 pos) => GameApi.GetNavArea(pos);
 
         /// <summary>
         /// Region where the player stands to use the object (its work spot), or 0 if it has no known work spot.
@@ -100,28 +91,22 @@ namespace AutoKeeper.Bot
             {
                 return 0;
             }
-            if (standAreaByUid.TryGetValue(uid, out uint a))
+            // The spot's POSITION is cached (objects do not move); its region number is read now.
+            if (standSpotByUid.TryGetValue(uid, out Vector3 known))
             {
-                return a;
+                return GameApi.GetNavArea(known);
             }
             if (standAreaRetryAt.TryGetValue(uid, out float retry) && Time.unscaledTime < retry)
             {
                 return 0;
             }
-            a = 0;
             if (GameApi.TryGetStandSpot(uid, out Vector3 spot, out _) && Vector3.Distance(spot, centre) > 0.01f)
             {
-                a = GameApi.GetNavArea(spot);
+                standSpotByUid[uid] = spot;
+                return GameApi.GetNavArea(spot);
             }
-            if (a != 0)
-            {
-                standAreaByUid[uid] = a;
-            }
-            else
-            {
-                standAreaRetryAt[uid] = Time.unscaledTime + StandAreaRetrySeconds; // no work spot known yet (view not spawned)
-            }
-            return a;
+            standAreaRetryAt[uid] = Time.unscaledTime + StandAreaRetrySeconds; // no work spot known yet (view not spawned)
+            return 0;
         }
 
         /// <summary>All regions reachable from the player, with the first door of each route.</summary>
@@ -204,23 +189,25 @@ namespace AutoKeeper.Bot
         /// <summary>Estimated cost to go from the player to a point in an already-routed region.</summary>
         public static float CostTo(AreaRoute route, Vector3 target) => route.Cost + Vector3.Distance(route.Entry, target);
 
+        /// <summary>Door list cached for a few seconds (scanning the scene is costly); regions recomputed on every call.</summary>
         private void RefreshDoors()
         {
             string scene = GameApi.GetSceneId();
-            if (scene == cachedScene && Time.unscaledTime - doorsCachedAt < CacheSeconds)
+            if (scene != cachedScene || Time.unscaledTime - doorsCachedAt >= CacheSeconds)
             {
-                return;
+                cachedScene = scene;
+                doorsCachedAt = Time.unscaledTime;
+                doorRefs.Clear();
+                doorRefs.AddRange(GameApi.FindDoors());
             }
-            cachedScene = scene;
-            doorsCachedAt = Time.unscaledTime;
             doors.Clear();
-            foreach (DoorRef d in GameApi.FindDoors())
+            foreach (DoorRef d in doorRefs)
             {
                 if (brokenDoors.Contains(d.Uid))
                 {
                     continue;
                 }
-                uint area = AreaOf(d.Uid, d.Position);
+                uint area = GameApi.GetNavArea(d.Position);
                 uint landing = GameApi.GetNavArea(d.Landing);
                 if (area == 0 || landing == 0 || area == landing)
                 {
