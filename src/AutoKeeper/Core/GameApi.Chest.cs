@@ -90,6 +90,38 @@ namespace AutoKeeper.Core
             return false;
         }, false, nameof(ChestCanTakeAny));
 
+        /// <summary>
+        /// Does the chest look able to take ALL of these amounts in one go? Each item must fit on its own (stack space + the
+        /// game's filters), and the items the chest does not hold yet need a free slot each. An estimate: the deposit itself
+        /// still checks every item, so a wrong "yes" only means a partial deposit.
+        /// </summary>
+        public static bool ChestCanTakeAll(string chestUid, IDictionary<string, int> amounts) => Safe(() =>
+        {
+            WgoData chest = FindWgoByUid(chestUid);
+            Inventory inv = chest?.Inventory;
+            if (inv?.Data == null)
+            {
+                return false;
+            }
+            int newKinds = 0;
+            foreach (KeyValuePair<string, int> kv in amounts)
+            {
+                if (kv.Value <= 0)
+                {
+                    continue;
+                }
+                if (!inv.CanAddItemToInventory(kv.Key, kv.Value))
+                {
+                    return false;
+                }
+                if (inv.Data.GetTotalCountInInventory(kv.Key) <= 0)
+                {
+                    newKinds++;
+                }
+            }
+            return newKinds <= Mathf.Max(0, inv.Data.InventorySize - inv.Data.InventoryFillSize);
+        }, false, nameof(ChestCanTakeAll));
+
         /// <summary>Does the chest already hold any of these items? (marks the chest "for storing" that kind of thing)</summary>
         public static bool ChestHasAny(string chestUid, IEnumerable<string> itemIds) => Safe(() =>
         {

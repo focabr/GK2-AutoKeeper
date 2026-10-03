@@ -4,6 +4,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.35] - 2026-10-02
+- Fixed: with two chests in the morgue, the bot went to the nearest one, which was full and only took the salt, logged
+  "chest full" and went back to work carrying the rest, although the other chest had 20 free slots (it only used it
+  later, after more items came in — or never, while the full chest still took one or two kinds). Now it prefers a nearby
+  chest that takes everything, and if a chest fills up during a deposit it goes straight on to the next one, even when
+  the inventory still has room. The message now says the rest goes to another chest; if none takes it, the log says so.
+- Fixed: turned on about 2 m from a body on the ground, the bot did not walk up to it (it counted as "close enough"), the
+  game had nothing in front of the player to pick up, and the bot turned off with "could not aim at the target". It now
+  walks right up to items on the ground before picking them up.
+- The "high insanity" turn-off message no longer suggests resting: in the game, sleeping only removes insanity when it
+  cures Lack of sleep, so the message says so. It also shows one decimal (it read "60 > 60" at 60.1).
+
 ## [0.3.34] - 2026-10-02
 - Status panel (F9): the event list now reads top to bottom in the order things happened (the newest is at the bottom,
   right above the button), and each line shows the game clock time it happened at instead of a running "X s ago".

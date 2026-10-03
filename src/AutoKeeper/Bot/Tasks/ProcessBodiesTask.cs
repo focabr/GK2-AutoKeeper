@@ -168,6 +168,7 @@ namespace AutoKeeper.Bot.Tasks
         private int seenGeneration = -1;
         private bool chestWarned;
         private int freeAfterDeposit = int.MaxValue;   // free slots right after the last "store in the chest"
+        private bool depositLeftovers;                 // last deposit was partial (chest full): go on to the next chest now
 
         // Work spot the GAME ITSELF used (it moves the player to its own spot while Action is held). Without this the bot
         // walked back to the spot it had picked before each organ and the game moved it again to the other side of the table.
@@ -329,6 +330,7 @@ namespace AutoKeeper.Bot.Tasks
             chestWatchGen = -1;
             chestWarned = false;
             freeAfterDeposit = int.MaxValue;
+            depositLeftovers = false;
             workSpots.Clear();
             misaimSince = -1f;
             invBefore = null;
@@ -422,6 +424,7 @@ namespace AutoKeeper.Bot.Tasks
                 failedPallets.Clear();
                 chestWarned = false;
                 freeAfterDeposit = int.MaxValue;
+                depositLeftovers = false;
             }
             if (w.Here != 0 && w.Here != prevHere)
             {
@@ -440,7 +443,8 @@ namespace AutoKeeper.Bot.Tasks
             w.GravePlaces = settings.Destination.Value == BodyDestination.Grave && settings.DigGraves.Value && w.Graves.Count == 0
                 ? Collect(ObjectKind.GravePlace, w)
                 : new List<Candidate>();
-            bool wantsChest = settings.UseChest.Value && LedgerTotal() > 0 && GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value;
+            bool wantsChest = settings.UseChest.Value && LedgerTotal() > 0
+                && (depositLeftovers || GameApi.PlayerFreeSlots() < settings.ChestFreeSlots.Value);
             w.Chests = wantsChest ? Collect(ObjectKind.Chest, w) : new List<Candidate>();
             w.GraveBodies = settings.Destination.Value == BodyDestination.Grave && buriedSpots.Count > 0
                 ? Collect(ObjectKind.GraveBody, w).Where(c => buriedSpots.Any(sp => Vector3.Distance(sp, c.Obj.Position) < SameSpot)).ToList()
@@ -587,6 +591,22 @@ namespace AutoKeeper.Bot.Tasks
             return n;
         }
 
+        /// <summary>What the bot collected that is still in the inventory (ledger capped by what the player holds now).</summary>
+        private Dictionary<string, int> PendingDeposit()
+        {
+            Dictionary<string, int> inInventory = GameApi.SnapshotPlayerItems();
+            var pending = new Dictionary<string, int>();
+            foreach (KeyValuePair<string, int> kv in ledger)
+            {
+                int n = Math.Min(kv.Value, inInventory.TryGetValue(kv.Key, out int have) ? have : 0);
+                if (n > 0)
+                {
+                    pending[kv.Key] = n;
+                }
+            }
+            return pending;
+        }
+
         /// <summary>"First of all" rules (check the crematorium, store in the chest) on top of the normal plan.</summary>
         private Decision Decide(WorldView w)
         {
@@ -651,31 +671,53 @@ namespace AutoKeeper.Bot.Tasks
                 }
             }
 
-            // Inventory almost full: take only what the bot collected to the chest. After storing, only go back to the chest if
-            // the inventory filled up further (avoids a chest trip per item when the rest of the inventory is the player's).
+            // Inventory almost full: take only what the bot collected to the chest. After storing everything, only go back to the
+            // chest if the inventory filled up further (avoids a chest trip per item when the rest of the inventory is the
+            // player's); after a partial deposit (chest full), go straight on to another chest (DepositNow resets the mark).
             int freeNow = GameApi.PlayerFreeSlots();
             if (freeNow > freeAfterDeposit)
             {
                 freeAfterDeposit = freeNow; // the player freed up space: follow along
             }
-            if (settings.UseChest.Value && LedgerTotal() > 0 && freeNow < settings.ChestFreeSlots.Value && freeNow < freeAfterDeposit)
+            // A partial deposit (chest full) continues at once at the next chest, even above the free-slot threshold: the
+            // player sees "chest full" and expects the bot to use the other chest right away (0.3.35, user's test).
+            bool due = (freeNow < settings.ChestFreeSlots.Value && freeNow < freeAfterDeposit) || depositLeftovers;
+            Dictionary<string, int> pending = settings.UseChest.Value && LedgerTotal() > 0 && due ? PendingDeposit() : null;
+            if (pending != null && pending.Count == 0)
             {
-                // The nearest chest that accepts the items. A chest that already holds these items is only preferred if it is
-                // in the same area and almost as close (before, a chest 400 m away holding bones beat the empty morgue chest).
-                Func<Candidate, bool> usable = c => !failedChests.Contains(c.Obj.Uid) && GameApi.ChestCanTakeAny(c.Obj.Uid, ledger.Keys);
+                depositLeftovers = false; // nothing of the bot's left in the inventory (stored, used or moved by the player)
+            }
+            if (pending != null && pending.Count > 0)
+            {
+                // Among the chests in the same area and almost as close as the nearest one that accepts something, prefer one
+                // that takes EVERYTHING (0.3.35: the nearest chest was full and took only the salt, while the morgue's other
+                // chest had 20 free slots), then one that already holds these items (before, a chest 400 m away holding bones
+                // beat the empty morgue chest), then simply the nearest.
+                Func<Candidate, bool> usable = c => !failedChests.Contains(c.Obj.Uid) && GameApi.ChestCanTakeAny(c.Obj.Uid, pending.Keys);
                 Candidate? nearest = FirstFree(w.Chests, usable);
                 Candidate? chest = nearest;
                 if (nearest.HasValue)
                 {
                     Candidate n = nearest.Value;
-                    chest = FirstFree(w.Chests, c => c.Area == n.Area && c.Cost <= n.Cost + ChestPreferSlack
-                        && usable(c) && GameApi.ChestHasAny(c.Obj.Uid, ledger.Keys)) ?? nearest;
+                    Func<Candidate, bool> close = c => c.Area == n.Area && c.Cost <= n.Cost + ChestPreferSlack && usable(c);
+                    Func<Candidate, bool> takesAll = c => GameApi.ChestCanTakeAll(c.Obj.Uid, pending);
+                    Func<Candidate, bool> holdsSame = c => GameApi.ChestHasAny(c.Obj.Uid, pending.Keys);
+                    chest = FirstFree(w.Chests, c => close(c) && takesAll(c) && holdsSame(c))
+                        ?? FirstFree(w.Chests, c => close(c) && takesAll(c))
+                        ?? FirstFree(w.Chests, c => close(c) && holdsSame(c))
+                        ?? nearest;
                 }
                 if (chest.HasValue)
                 {
                     return Act(Goal.DepositChest, chest.Value, null);
                 }
-                if (!chestWarned)
+                if (depositLeftovers)
+                {
+                    depositLeftovers = false; // no other chest takes the rest: back to the normal threshold
+                    ModLog.Info(Lang.T($"Baú: nenhum outro baú alcançável aceita o resto ({string.Join(", ", pending.Select(kv => $"{kv.Key} x{kv.Value}"))}); fica no inventário.",
+                        $"Chest: no other reachable chest takes the rest ({string.Join(", ", pending.Select(kv => $"{kv.Key} x{kv.Value}"))}); it stays in the inventory."));
+                }
+                else if (!chestWarned)
                 {
                     chestWarned = true;
                     ModLog.Warn(Lang.T("Baú: inventário quase cheio, mas não achei baú alcançável que aceite os itens do bot.",
@@ -1108,8 +1150,10 @@ namespace AutoKeeper.Bot.Tasks
             moveStartPending = false;
             ResetProgress();
             // With a known work spot, only skip the walk if already on it: "near" is not enough
-            // (standing next to the chest, the game aimed at the chest instead of the table).
-            float near = standFacing != Vector2.zero ? 0.5f : NearEnough;
+            // (standing next to the chest, the game aimed at the chest instead of the table). The same for an item on the
+            // ground: the game only targets what is inside the small interaction box in front of the player, so "2 m away"
+            // is not reach (0.3.35: bot turned on 2.3 m from a body in the yard → no walk → "could not aim" → turned off).
+            float near = standFacing != Vector2.zero || ground ? 0.5f : NearEnough;
             if (dist <= near)
             {
                 GoTo(Step.Aim); // already in place
@@ -1319,9 +1363,12 @@ namespace AutoKeeper.Bot.Tasks
             }
             if (!nudged && Now - stepStartedAt > 1f)
             {
-                // Another object got in the way: take a short step toward the target, as the player would.
+                // Another object got in the way: take a short step toward the target, as the player would. An item on the
+                // ground must be right in front of the player: step up to ~0.6 m from it, however far that is.
                 nudged = true;
-                GameApi.StartMoveTo(Vector3.MoveTowards(GameApi.GetPlayerPosition(), targetPos, 0.4f));
+                Vector3 here = GameApi.GetPlayerPosition();
+                float step = targetIsGround ? Mathf.Max(0.4f, Vector3.Distance(here, targetPos) - 0.6f) : 0.4f;
+                GameApi.StartMoveTo(Vector3.MoveTowards(here, targetPos, step));
                 return TaskResult.Running;
             }
             if (Now - stepStartedAt > AimTimeout)
@@ -1513,25 +1560,29 @@ namespace AutoKeeper.Bot.Tasks
                 int left = have - kv.Value;
                 if (left > 0) { ledger[kv.Key] = left; } else { ledger.Remove(kv.Key); }
             }
-            freeAfterDeposit = GameApi.PlayerFreeSlots();
+            int freeNow = GameApi.PlayerFreeSlots();
             int chestFree = GameApi.ChestFreeSlots(targetUid);
             ModLog.Info(Lang.T("Baú: guardado ", "Chest: stored ") + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}"))
-                + Lang.T($" (livres agora: {freeAfterDeposit} no inventário", $" (free now: {freeAfterDeposit} in the inventory")
+                + Lang.T($" (livres agora: {freeNow} no inventário", $" (free now: {freeNow} in the inventory")
                 + (chestFree >= 0 ? Lang.T($", {chestFree} no baú)", $", {chestFree} in the chest)") : ")"));
 
-            // What the bot collected that did not fit (chest out of space/full stack): stays in the inventory and the next chest that accepts it takes it.
-            Dictionary<string, int> inInventory = GameApi.SnapshotPlayerItems();
-            List<string> notStored = ledger
-                .Select(kv => new KeyValuePair<string, int>(kv.Key, Math.Min(kv.Value, inInventory.TryGetValue(kv.Key, out int h) ? h : 0)))
-                .Where(kv => kv.Value > 0)
-                .Select(kv => $"{kv.Key} x{kv.Value}")
-                .ToList();
-            if (notStored.Count > 0)
+            // What the bot collected that did not fit (chest out of space/full stack) stays in the inventory.
+            List<string> notStored = PendingDeposit().Select(kv => $"{kv.Key} x{kv.Value}").ToList();
+            if (notStored.Count == 0)
             {
+                freeAfterDeposit = freeNow; // all stored: only come back when the inventory fills up further
+                depositLeftovers = false;
+            }
+            else
+            {
+                // Partial: go straight on to another chest that accepts the rest (0.3.35 — before, the "fills up further"
+                // rule kept the bot working with the leftovers until more items came in, even with a free chest nearby).
+                freeAfterDeposit = int.MaxValue;
+                depositLeftovers = true;
                 ModLog.Info(Lang.T($"Baú: não coube em {GameApi.GetObjectDefId(targetUid)}: {string.Join(", ", notStored)}",
                         $"Chest: did not fit in {GameApi.GetObjectDefId(targetUid)}: {string.Join(", ", notStored)}")
                     + (chestFree == 0 ? Lang.T(" — baú cheio", " — chest full") : Lang.T(" — o baú recusou (pilha cheia ou filtro)", " — the chest refused (full stack or filter)"))
-                    + Lang.T("; ficam no inventário até um baú aceitar.", "; they stay in the inventory until a chest accepts them."));
+                    + Lang.T("; o resto vai para outro baú que aceite.", "; the rest goes to another chest that accepts it."));
             }
             return Replan(null);
         }

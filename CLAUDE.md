@@ -3,7 +3,7 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-10-02)
-- Current version: **0.3.34** (tag v0.3.34). Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.34.zip`.
+- Current version: **0.3.35** (tag v0.3.35). Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.35.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Current state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (short handoff, read first); past
@@ -32,7 +32,13 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
   checker demands a push and a "Claude" signature on every commit (the real repo on the PC uses the `focabr` authorship; its `origin` is GitHub, pushed by the user — published tags are never moved).
 - Delivery to the PC: copy to a NEW folder in `/mnt/user-data/outputs/` and `device_commit_files` (a reused folder delivers a stale cache). Check the version: `strings -e l AutoKeeper.dll | grep -m1 "0\.[0-9]*\.[0-9]*"`.
 - The game only loads the new DLL after a restart: before analyzing a test, check `Loading [GK2 AutoKeeper x.y.z]` in `LogOutput.log`.
+  The plugin DLLs are not locked while the game runs (only `LogOutput.log` is): install right away, do not wait for the game to close.
 - Closing a version: bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; update the project handoff.
+  User's standing request: at the end of EVERY version (1) local commit + tag, (2) install the mod, (3) send the git
+  commands to push to GitHub and create the Release (cmd, `cd /d` first, chained with `&&`).
+  Without `device_bash` the commit cannot be made from here: writes into `.git` are refused by the remote file tools
+  ("Writing to .git is not permitted") and terminals are click-only under computer use (no typing). Then the commit +
+  tag go as the first line of the commands; do not try to work around it.
 - git on the device: ask for delete permission in `D:\Claude\GK2` (otherwise `.git/*.lock` files are left behind).
   Without a device shell (0.3.34): write the changed files into the working tree with `device_commit_files` (with
   `expectedMtimeMs`) and give the user the cmd lines (`cd /d …`, `git add`, `git commit`, `git tag`) — authorship focabr, no trailers.
@@ -62,7 +68,16 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
   The status panel (IMGUI) renders "—" fine.
 - The native window clones the game's Settings window (works in the main menu too, seen on 0.3.23); if that fails it falls back to IMGUI.
 - Quest chests (customTag) and conveyor/garden chests are ignored on purpose.
+- Chest choice (0.3.35): among chests in the same area within `ChestPreferSlack` of the nearest usable one, prefer one that
+  takes everything (`GameApi.ChestCanTakeAll`), then one that already holds those items, then the nearest. After a partial
+  deposit `depositLeftovers` sends the bot straight to the next chest, ignoring `ChestFreeSlots` (0.3.34 kept working with
+  the leftovers because of the "only return when the inventory fills further" rule, and kept picking the full chest while
+  it still took one or two kinds — logged "chest full" with a free chest 4 m away).
 - NEVER hold Action without checking the game's target (`GuardAim`): Action on a chest = take all.
+- The game's interaction target is whatever is inside a small box in front of the player (`PlayerInteractionComponent`,
+  `interactionCollider` + OverlapBox; drops via `BigDropUnderInteraction`): items on the ground need the player ~0.6 m
+  away, facing them. `Begin` only skips the walk for ground targets within 0.5 m of the approach spot (0.3.35: 2.3 m away
+  counted as "near" → no target → "could not aim" → bot off).
 - World memory (task sets, Navigator, static caches) must be reset in `ResetMemory` — a new load does not restart the plugin.
 - Crematorium: state read from a distance (`GetCraftState`); only visit if `ReadyToCollect`.
 - Off-screen objects: the game deactivates their view (chunk culling → `Wgo.RefreshVisuals` → `SetActive(false)`), so dock

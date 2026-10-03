@@ -30,7 +30,7 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
   that raises insanity).
 - **Sleeps when needed** (optional): on the game's Lack of Sleep debuff, or when the food runs out, it goes home,
   sleeps in the bed and then picks up where it left off.
-- **Stores what it collected** in the nearest chest when your inventory is nearly full.
+- **Stores what it collected** in the nearest chest with room when your inventory is nearly full (a full chest? the rest goes to the next one).
 - **Waits in the morgue** when there is nothing to do, ready for the next bodies.
 
 ## Safe by design

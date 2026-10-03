@@ -234,8 +234,10 @@ namespace AutoKeeper.Bot
             // 2b) Health: high insanity lowers max energy and blocks work; lack of sleep turns energy into insanity.
             if (s.Insanity > settings.MaxInsanity.Value)
             {
-                Stop(Lang.T($"insanidade alta ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade ou descanse",
-                    $"high insanity ({s.Insanity:0} > {settings.MaxInsanity.Value:0}) — eat something that lowers insanity or rest"));
+                // One decimal: 60.1 would read "60 > 60". Sleeping does not help here: the game only removes insanity (-20) when
+                // sleep cures Lack of sleep (EnergySystem.RestoreEnergyWhileSleeping, IL 1.008), so the message no longer says "rest".
+                Stop(Lang.T($"insanidade alta ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}) — coma algo que reduza a insanidade (dormir só tira insanidade quando cura a Privação de Sono)",
+                    $"high insanity ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}) — eat something that lowers insanity (sleeping only removes insanity when it cures Lack of sleep)"));
                 return;
             }
             // "When Lack of sleep hits": Turn off → stops here; Sleep, then resume → the task walks to the bed; Keep working → only the insanity limit.

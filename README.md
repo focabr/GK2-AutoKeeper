@@ -25,7 +25,7 @@ no save editing, no game files modified.
 | Parks autopsied bodies on an empty pallet while the crematorium burns | 0.3.5 | ✅ |
 | Fetches bodies left in other areas (e.g. outside the morgue) as its last task | 0.3.7 | ✅ |
 | With nothing to do (e.g. after sleeping at home), walks back to the morgue and waits there | 0.3.30 | ✅ |
-| Stores **only what it collected** in the nearest chest when the inventory is nearly full | 0.2.6 / 0.3.12 | ✅ |
+| Stores **only what it collected** in the nearest chest with room when the inventory is nearly full; if a chest fills up, the rest goes to the next one | 0.2.6 / 0.3.12 / 0.3.35 | ⏳ |
 | Safety: never holds Action while the game aims at another object; stops if a nearby chest loses items | 0.3.8 / 0.3.10 | ✅ |
 | Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
@@ -65,7 +65,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.34*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.35*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
