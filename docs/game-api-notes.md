@@ -237,3 +237,27 @@ The original plan below still applies to the grave (0.3).
   the debuff, came back through the "home basement enter" door and continued the body on the table (4 extractions).
   Afterwards: day 140 04:08, 0.21 days awake, energy 28/92.8, insanity 7.2 (autopsy extractions add insanity on their
   own), inventory +1 bones, skull, heart, flesh.
+
+## 16. Player movement and physics (0.3.33, IL of 1.007.1 + Player.log)
+- The bot walks with `MovementComponent.StartPath(..., MovementType.Recast, 3.3, ..., PlayerLocalAreaMovement.Seeker)`.
+  `StartPath` calls `PlayerController.OnPathStart` synchronously → `PlayerPhysicalBody.SetNonKinematicFlag(ByMovementComponent, false)`
+  (the flags are a `MultiFlagAND`: the body is dynamic only while every flag is true) → kinematic body.
+- Every step goes through `PlayerController.set_MovablePosition` → `PlayerPhysicalBody.MoveByPosition`, which only moves a
+  **kinematic** body. With a dynamic body it logs `Trying to move non-static RB by position` (Player.log, every frame) and
+  returns — the `MovementComponent` stays in "moving" forever: no failure, no progress.
+- `PlayerLocalAreaMovement.StopMovement(force: true)` sets `SetNonKinematicFlag(ByMovementComponent, true)` unconditionally
+  (same flag as the bot's path). It is called by `PlayerWorkComponent.StopInteraction`, which `WorkPlayerState.OnExit` always
+  calls (also `WorkPlayerState.Update` when the state stops being active with work in progress).
+- `WorkPlayerState.IsActive` = Action held **or** `ToolComponent.IsControlTakenByAnimation`: after Action is released the
+  state lasts until the tool motion ends. Current state: `PlayerController.Ssm.CurState` (type name `WorkPlayerState`).
+- Seen in 0.3.32 (Player.log of 2026-10-02): energy low mid-extraction → the bot aborted and started the walk to the door
+  in the same frame → `SetPauseState:[ByWork] isPaused:[False]`, `SSM.ExitState: WorkPlayerState` → ~2,700 ×
+  `Trying to move non-static RB by position` (45 s × 60 fps) → walk timeout. 4 out of 4 trips to the bed.
+  Fix (0.3.33): wait until the player leaves `WorkPlayerState` before `StartPath`; during a walk, a non-kinematic body for
+  0.5 s = frozen → stop and start the path again.
+- Real path length: `MovementComponent.SetOnPathLengthReady(Action<float>)`, called once in `OnPathCalculated`
+  (`Path.GetTotalLength()`), a few frames after `StartPath` (one-shot; cleared by `ForceStop`/failures). From the mine door
+  (0.9, −6.4) to the house door (−1.9, 22.2) — 29 m in a straight line — the game walks through forest, forest post, village,
+  crossroads and graveyard.
+- Player.log: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\Player.log` (previous session:
+  `Player-prev.log`). It has the game's Unity messages interleaved with the BepInEx lines (`LogOutput.log` does not).

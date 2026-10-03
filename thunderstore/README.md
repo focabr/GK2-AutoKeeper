@@ -1,43 +1,55 @@
 # GK2 AutoKeeper
 
-Automation bot for **Graveyard Keeper 2** (BepInEx 5). It performs routine chores using only actions
-the player could do — no item spawning, no save editing, no game files modified.
+**Runs your morgue hands-free.** Bodies go to the autopsy table, organs come out, the remains go to the crematorium,
+and the bot eats, sleeps and stores what it collects on its own. It plays fair: only actions the player could do,
+no item spawning, no save editing, no game files modified.
 
 *Code written with Claude (Anthropic) and tested in-game by the author.*
 
-> **Status: early release (0.3.x).** Routine: body processing in the morgue
-> (pallet → autopsy table → extract organs → crematorium). Next step: burial in graves (see *Next steps*).
->
-> **Bugs, help with the settings and suggestions: [open an issue on GitHub](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**
-> using a template — see *Support* below.
+> **Early release (0.3.x)** · tested on game version **1.007.1** · English and Brazilian Portuguese (follows the game
+> language) · Bugs and help: **[GitHub issues](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**
 
-## Features
-- **Body processing** (morgue): takes bodies from the pallets or the ground, puts them on a free autopsy table,
-  extracts organs and the "Others" items (flesh, fat, blood — all configurable), then takes the body to the
-  crematorium and collects the result when it is done
-- **Keeps working while the crematorium burns**: autopsied bodies are parked on an empty pallet so the tables
-  stay free, and go to the crematorium later
-- **Fetches bodies left outside** (e.g. delivered to another area) as its last task, through the game's doors
-- **Waits in the morgue**: with nothing to do (e.g. after sleeping at home), it walks back to the morgue and waits there
-- **Success chance check**: extracts item by item only when the game's success chance is above the minimum you choose
-- **Walks by itself** to where the work is, using the game's own doors (house → yard → morgue), and works from
-  the same spot the game uses (no shuffling around the table)
-- **Eats from your hot bar** when energy is low, several items in a row without going over the maximum
-  (skips items that raise insanity)
-- **Chest**: when your inventory is nearly full, stores **only what the bot collected** in the nearest chest.
-  It never takes items out of chests, and stops at once if a nearby chest loses items while it runs
-- **Insanity and sleep guard**: turns itself off above a configurable insanity (default 60) and when the game's
-  Lack of Sleep debuff is active (2 days awake: half of the energy spent becomes insanity) — or, if you choose, goes
-  home, sleeps in the bed and continues the work afterwards (also when the food runs out and energy is low)
-- Never holds the Action key while the game is aiming at a different object
-- Turns itself off and forgets everything when you load a save or go back to the main menu
-- **F8** – turn the bot on/off (kill switch)
-- **F9** – show/hide the status panel
-- **F11** – in-game settings window with the game's own look (also a button on the status panel)
-- **F10** – write a read-only discovery dump (JSON) of the current scene to `BepInEx/config/AutoKeeper/dumps`
-- Optional: with **GK2 Mod Framework** installed, the same settings appear under **Mods** in the main and pause menus
-- Pauses automatically in menus, pause screen, UI windows, dialogues, cutscenes and sleep
-- Settings window, status panel and log messages in English or Brazilian Portuguese (follows the game language)
+## Quick start
+1. Install with **r2modman / Thunderstore Mod Manager** (or manually, see *Installation*).
+2. Load your save and stand anywhere: the house, the yard or the morgue.
+3. Press **F8**. The bot walks to the morgue and starts working. Press **F8** again to stop it at any time.
+
+Adjust what it extracts, when it eats and what it does when tired in **F11**; follow what it is doing on the **F9** panel.
+
+## What it does
+- **Processes bodies:** takes them from the pallets or the ground, puts them on a free autopsy table, extracts organs
+  and the "Others" items (flesh, fat, blood — all configurable), takes the body to the crematorium and collects the
+  result when it is done.
+- **Keeps the tables free:** while the crematorium burns, autopsied bodies wait on an empty pallet.
+- **Fetches bodies left outside** (e.g. delivered to another area) through the game's doors.
+- **Respects the success chance:** extracts item by item only above the minimum chance you choose.
+- **Walks by itself** through the game's own doors (house → yard → morgue) and works from the same spot the game uses.
+
+## Takes care of itself
+- **Eats from your hot bar** when energy is low, several items in a row without going over the maximum (skips food
+  that raises insanity).
+- **Sleeps when needed** (optional): on the game's Lack of Sleep debuff, or when the food runs out, it goes home,
+  sleeps in the bed and then picks up where it left off.
+- **Stores what it collected** in the nearest chest when your inventory is nearly full.
+- **Waits in the morgue** when there is nothing to do, ready for the next bodies.
+
+## Safe by design
+- It never takes items out of chests, and stops at once if a nearby chest loses items while it runs.
+- It never holds the Action key while the game is aiming at a different object.
+- It turns itself off above a configurable insanity and, by default, on the game's Lack of Sleep debuff, and tells
+  you why on the panel and in the log.
+- It pauses in menus, the pause screen, windows, dialogues, cutscenes and sleep, and forgets everything when you load
+  a save or go back to the main menu.
+
+## Controls
+| Key | Action |
+|---|---|
+| **F8** | Turn the bot on/off (kill switch) |
+| **F9** | Show/hide the status panel |
+| **F11** | Settings window with the game's own look (also a button on the panel) |
+| **F10** | Write a diagnostic file of the current scene (for bug reports) |
+
+With **GK2 Mod Framework** installed, the same settings also appear under **Mods** in the main and pause menus.
 
 ## Requirements
 - Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.007.1**
@@ -65,7 +77,7 @@ Minimum for a bug report:
   `BepInEx/config/AutoKeeper/dumps/` (zipped if large);
 - your settings: `BepInEx/config/com.focabr.gk2.autokeeper.cfg` renamed to `.txt`.
 
-## Next steps
+## Roadmap
 - **Burial**: after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder,
   bury it and close the grave with the shovel (in testing, not available in the settings yet).
 

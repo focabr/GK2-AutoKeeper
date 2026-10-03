@@ -523,6 +523,7 @@ namespace AutoKeeper.Core
             string scene = MainGame.PlayerData.currentGameSceneId;
             MovementComponent mc = pc.MovementComponent;
             moveRequested = true;
+            lastPathLength = -1f;
             MovementComponent.StartPathResult r = mc.StartPath(target, scene, scene, MovementType.Recast, PlayerWalkSpeed, "", null,
                 pc.PlayerLocalAreaMovement.Seeker);
             if (r == MovementComponent.StartPathResult.AlreadyAtDestinationPoint)
@@ -536,8 +537,34 @@ namespace AutoKeeper.Core
                 ModLog.Warn(Lang.T($"Movimento recusado pelo jogo: {r}", $"Movement refused by the game: {r}"));
                 return false;
             }
+            // The path is computed a few frames later; the game reports its real length (stairs, detours) then.
+            mc.SetOnPathLengthReady(len => lastPathLength = len);
             return true;
         }, false, nameof(StartMoveTo));
+
+        private static float lastPathLength = -1f;
+
+        /// <summary>Real length (navmesh) of the last path started by the bot, or -1 while it is not computed yet.</summary>
+        public static float LastPathLength => lastPathLength;
+
+        /// <summary>
+        /// Is the player still in the game's work state (e.g. the scalpel animation goes on after Action is released)?
+        /// Leaving it calls the game's StopInteraction, which hands the player's body back to normal physics: a path
+        /// started before that never moves the player (Player.log: "Trying to move non-static RB by position").
+        /// </summary>
+        public static bool IsPlayerInWorkState() => Safe(() =>
+        {
+            object st = MainGame.PlayerController.Ssm?.CurState;
+            return st != null && st.GetType().Name == "WorkPlayerState";
+        }, false, nameof(IsPlayerInWorkState));
+
+        /// <summary>The game moves the player along a path only while the body is kinematic (set when the path starts).</summary>
+        public static bool IsPlayerBodyKinematic() => Safe(() => MainGame.PlayerController.PhysicalBody.Rb.isKinematic, true,
+            nameof(IsPlayerBodyKinematic));
+
+        /// <summary>Name of the player's current state in the game (log only).</summary>
+        public static string DescribePlayerState() => Safe(() => MainGame.PlayerController.Ssm?.CurState?.GetType().Name ?? "-", "?",
+            nameof(DescribePlayerState));
 
         /// <summary>State of the last movement requested by the bot.</summary>
         public static MoveState GetMoveState() => Safe(() =>

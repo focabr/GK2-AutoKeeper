@@ -3,7 +3,7 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-09-30)
-- Installed version: **0.3.32** (tag v0.3.32). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.32.zip`.
+- Installed version: **0.3.33** (tag v0.3.33). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.33.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Detailed state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (handoff). Do not keep volatile state here.
@@ -39,6 +39,15 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
 - git on the device: ask for delete permission in `D:\Claude\GK2` (otherwise `.git/*.lock` files are left behind).
 
 ## Pitfalls
+- Never start a walk while the player is in the game's `WorkPlayerState` (the tool motion goes on after Action is
+  released): leaving it calls `StopInteraction` → the body goes back to dynamic physics and the path never moves the
+  player (Player.log: "Trying to move non-static RB by position"). `GameApi.IsPlayerInWorkState` / `IsPlayerBodyKinematic`;
+  details in `docs/game-api-notes.md` §16. Seen 0.3.32: every trip to the bed after an interrupted extraction.
+- Door bans are temporary (`Navigator.MarkDoorBroken(uid, seconds)`), never for the session: 0.3.32 banned the only door
+  into the house. Walk limits use the real path length (`GameApi.LastPathLength`) and "no progress for 8 s", not the
+  straight line.
+- For "it stopped/froze" reports, read the game's own log too: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\Player.log`
+  (Unity messages + BepInEx lines interleaved).
 - NEVER cache navmesh region numbers (A* `node.Area`): the game renumbers them while playing (dumps of one session:
   house 766→765, yard 98→99, crematorium 1012→1011). Cache positions, read `GetNavArea` fresh. Cached numbers (0.2.3–0.3.30)
   broke routes: "no reachable home bed", bodies "with no path", tables "not found" after a door. Fixed in 0.3.31.

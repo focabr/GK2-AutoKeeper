@@ -47,7 +47,9 @@ namespace AutoKeeper.Bot
 
         private readonly List<DoorNode> doors = new List<DoorNode>();
         private readonly List<DoorRef> doorRefs = new List<DoorRef>();        // the scene's usable doors (cached CacheSeconds)
-        private readonly HashSet<string> brokenDoors = new HashSet<string>(); // doors that did not work in this session
+        // Doors that just failed, with the time they are usable again. Never for the whole session: a walk that failed for a
+        // passing reason (0.3.32: the game froze the player after the scalpel animation) banned the only door into the house.
+        private readonly Dictionary<string, float> brokenDoors = new Dictionary<string, float>();
         private readonly Dictionary<string, Vector3> standSpotByUid = new Dictionary<string, Vector3>(); // positions never change
         private readonly Dictionary<string, float> standAreaRetryAt = new Dictionary<string, float>();
         private const float StandAreaRetrySeconds = 10f;
@@ -68,13 +70,33 @@ namespace AutoKeeper.Bot
             standAreaRetryAt.Clear();
         }
 
-        public void MarkDoorBroken(string doorUid)
+        /// <summary>Leaves a door out of the routes for <paramref name="seconds"/>.</summary>
+        public void MarkDoorBroken(string doorUid, float seconds)
         {
-            if (doorUid != null && brokenDoors.Add(doorUid))
+            if (doorUid != null)
             {
+                brokenDoors[doorUid] = Time.unscaledTime + seconds;
                 doorsCachedAt = -999f;
             }
         }
+
+        /// <summary>Forgets the doors left out of the routes (before giving up for lack of a route). Returns how many there were.</summary>
+        public int ForgiveBrokenDoors()
+        {
+            int n = 0;
+            foreach (float until in brokenDoors.Values)
+            {
+                if (Time.unscaledTime < until)
+                {
+                    n++;
+                }
+            }
+            brokenDoors.Clear();
+            doorsCachedAt = -999f;
+            return n;
+        }
+
+        private bool IsDoorBroken(string uid) => brokenDoors.TryGetValue(uid, out float until) && Time.unscaledTime < until;
 
         /// <summary>Region of an object, read now (region numbers change while playing: never cache them).</summary>
         public uint AreaOf(string uid, Vector3 pos) => GameApi.GetNavArea(pos);
@@ -203,7 +225,7 @@ namespace AutoKeeper.Bot
             doors.Clear();
             foreach (DoorRef d in doorRefs)
             {
-                if (brokenDoors.Contains(d.Uid))
+                if (IsDoorBroken(d.Uid))
                 {
                     continue;
                 }

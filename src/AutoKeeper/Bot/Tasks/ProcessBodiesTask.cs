@@ -111,6 +111,13 @@ namespace AutoKeeper.Bot.Tasks
         private const float ChestPreferSlack = 15f;   // extra m accepted to walk to the chest that already holds the same items
         private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
+        private const float WorkStateWaitMax = 3f;   // s waiting for the game's work animation to end before walking
+        private const float StallSeconds = 8f;       // s without leaving the spot (path active) = stuck
+        private const float FrozenBodySeconds = 0.5f; // s with a non-kinematic body on an active path = the game will not move it
+        private const int MaxBodyFixes = 3;
+        private const float MaxWalkSeconds = 300f;   // hard cap for a walk that keeps making progress
+        private const float DoorBanWalkSeconds = 60f;   // door left out of the routes after a failed walk to it
+        private const float DoorBanUseSeconds = 120f;   // ... after using it led nowhere
         private const float SameRoomDistance = 20f;  // object with no known region but nearby = same room
         private const float IdleRecheckSeconds = 2f;
 
@@ -150,6 +157,8 @@ namespace AutoKeeper.Bot.Tasks
         private bool sleepForEnergy;   // going to bed because the food ran out (not Lack of sleep)
         private string lastIdle;   // last "nothing to do" summary written to the log
         private int sleepTries;
+        private int doorForgives;   // times the door bans were lifted to find the bed (per trip to the bed)
+        private const int MaxDoorForgives = 2;
         private const int MaxSleepTries = 3;
         private const float SleepStartTimeout = 6f;
         private uint prevHere;
@@ -183,6 +192,13 @@ namespace AutoKeeper.Bot.Tasks
         private float stepStartedAt;
         private float moveTimeout;
         private int moveRetries;
+        private bool moveStartPending;   // walk waits for the game's work state to end (see GameApi.IsPlayerInWorkState)
+        private float straightDist;
+        private bool pathLengthKnown;
+        private Vector3 progressPos;
+        private float progressAt;
+        private float frozenSince = -1f;
+        private int bodyFixes;
         private int lastProgress;
         private float lastProgressAt;
         private float misaimSince = -1f;   // since when the game has been aiming at another object during work (-1 = aiming correctly)
@@ -305,6 +321,7 @@ namespace AutoKeeper.Bot.Tasks
             sleepAnnounced = false;
             lastIdle = null;
             sleepTries = 0;
+            doorForgives = 0;
             buriedSpots.Clear();
             chestWatch.Clear();
             prevHere = 0;
@@ -586,6 +603,7 @@ namespace AutoKeeper.Bot.Tasks
                         ModLog.Info(Lang.T("Sono: descansado — voltando ao trabalho de onde parei.", "Sleep: rested — back to work where I left off."));
                     }
                     sleepTries = 0;
+                    doorForgives = 0;
                 }
                 else if (!GameApi.IsCarryingBody())
                 {
@@ -597,10 +615,20 @@ namespace AutoKeeper.Bot.Tasks
                             $"{why}: pressed E on the bed {MaxSleepTries} times and the character did not sleep — sleep manually"));
                     }
                     Candidate? bed = FirstFree(Collect(ObjectKind.Bed, w), c => true);
-                    return bed.HasValue
-                        ? Act(Goal.Sleep, bed.Value, null)
-                        : FailWith(Lang.T($"{why}, mas não achei a cama de casa alcançável — durma manualmente",
-                            $"{why}, but no reachable home bed found — sleep manually"));
+                    if (bed.HasValue)
+                    {
+                        return Act(Goal.Sleep, bed.Value, null);
+                    }
+                    int forgiven = doorForgives < MaxDoorForgives ? nav.ForgiveBrokenDoors() : 0;
+                    if (forgiven > 0)
+                    {
+                        doorForgives++;
+                        // A door left out after a failed walk may be the only way home: try the routes again with all doors.
+                        return WaitAt(0, Lang.T($"sem rota até a cama com {forgiven} porta(s) ignorada(s) — tentando de novo com todas as portas",
+                            $"no route to the bed with {forgiven} door(s) ignored — trying again with every door"));
+                    }
+                    return FailWith(Lang.T($"{why}, mas não achei a cama de casa alcançável — durma manualmente",
+                        $"{why}, but no reachable home bed found — sleep manually"));
                 }
             }
 
@@ -1070,13 +1098,27 @@ namespace AutoKeeper.Bot.Tasks
             ModLog.Detail(Lang.T($"Corpos: objetivo {GoalText()}", $"Bodies: goal {GoalText()}"));
             GoTo(Step.Move);
             float dist = GameApi.DistanceTo(standSpot);
+            // Until the game reports the real path length, the limit comes from the straight line (stairs and detours make
+            // the path much longer: 0.3.32, mine door → house = 29 m straight, walked through forest, village and crossroads).
             moveTimeout = Mathf.Max(settings.MoveTimeoutSeconds.Value, dist / 3.3f * 2f + 10f);
+            straightDist = dist;
+            pathLengthKnown = false;
+            bodyFixes = 0;
+            frozenSince = -1f;
+            moveStartPending = false;
+            ResetProgress();
             // With a known work spot, only skip the walk if already on it: "near" is not enough
             // (standing next to the chest, the game aimed at the chest instead of the table).
             float near = standFacing != Vector2.zero ? 0.5f : NearEnough;
             if (dist <= near)
             {
                 GoTo(Step.Aim); // already in place
+            }
+            else if (GameApi.IsPlayerInWorkState())
+            {
+                // Interrupted mid-extraction (low energy, sleep): the scalpel animation is still playing. When the game leaves
+                // its work state it hands the body back to normal physics, which freezes a path started now (0.3.32).
+                moveStartPending = true;
             }
             else if (!GameApi.StartMoveTo(standSpot))
             {
@@ -1095,8 +1137,33 @@ namespace AutoKeeper.Bot.Tasks
                 return Replan(gone);
             }
             float dist = GameApi.DistanceTo(standSpot);
+            if (moveStartPending)
+            {
+                if (GameApi.IsPlayerInWorkState() && Now - stepStartedAt < WorkStateWaitMax)
+                {
+                    Status = Lang.T($"{GoalText()}: esperando terminar o movimento de trabalho", $"{GoalText()}: waiting for the work motion to end");
+                    return TaskResult.Running;
+                }
+                moveStartPending = false;
+                pathLengthKnown = false;
+                stepStartedAt = Now;
+                ResetProgress();
+                if (!GameApi.StartMoveTo(standSpot))
+                {
+                    return FailOrSkipDoorResult(Lang.T("o jogo recusou o caminho até o alvo", "the game refused the path to the target"));
+                }
+                return TaskResult.Running;
+            }
             Status = Lang.T($"{GoalText()}: andando ({dist:0.0} m)", $"{GoalText()}: walking ({dist:0.0} m)");
             MoveState ms = GameApi.GetMoveState();
+            if (!pathLengthKnown && GameApi.LastPathLength > 0f)
+            {
+                pathLengthKnown = true;
+                float len = GameApi.LastPathLength;
+                moveTimeout = Mathf.Max(settings.MoveTimeoutSeconds.Value, len / 3.3f * 1.5f + 15f);
+                ModLog.Detail(Lang.T($"Corpos: caminho de {len:0} m ({straightDist:0} m em linha reta) — limite {moveTimeout:0} s",
+                    $"Bodies: path of {len:0} m ({straightDist:0} m in a straight line) — limit {moveTimeout:0} s"));
+            }
 
             if (ms == MoveState.Arrived || dist <= 0.35f)
             {
@@ -1120,17 +1187,82 @@ namespace AutoKeeper.Bot.Tasks
                         && GameApi.GetNavArea(targetPos) == GameApi.GetPlayerNavArea() ? targetPos : standSpot;
                     ModLog.Debug(Lang.T($"Movimento falhou; nova tentativa {moveRetries} para {dest}", $"Move failed; retry {moveRetries} to {dest}"));
                     GameApi.StartMoveTo(dest);
+                    pathLengthKnown = false;
                     stepStartedAt = Now;
+                    ResetProgress();
                     return TaskResult.Running;
                 }
                 return FailOrSkipDoorResult(Lang.T("não achei caminho até o alvo", "no path found to the target"));
             }
-            if (Now - stepStartedAt > moveTimeout)
+            // Body handed back to normal physics while the path is active: the game will never move the player (it only
+            // logs "Trying to move non-static RB by position" every frame). Seen in 0.3.32 after interrupting an extraction.
+            if (ms == MoveState.Moving && !GameApi.IsPlayerBodyKinematic())
+            {
+                if (frozenSince < 0f)
+                {
+                    frozenSince = Now;
+                }
+                else if (Now - frozenSince > FrozenBodySeconds)
+                {
+                    frozenSince = -1f;
+                    GameApi.StopMoving();
+                    if (bodyFixes++ >= MaxBodyFixes)
+                    {
+                        return FailOrSkipDoorResult(Lang.T("o jogo não deixa o personagem andar (física normal no meio do caminho)",
+                            "the game does not let the character walk (normal physics in the middle of the path)"));
+                    }
+                    ModLog.Warn(Lang.T($"Corpos: o jogo travou o personagem no caminho (estado: {GameApi.DescribePlayerState()}) — refazendo o caminho ({bodyFixes}/{MaxBodyFixes}).",
+                        $"Bodies: the game froze the character on the path (state: {GameApi.DescribePlayerState()}) — restarting the path ({bodyFixes}/{MaxBodyFixes})."));
+                    moveStartPending = true;   // starts again at once, or when the work state is over
+                    stepStartedAt = Now;
+                    return TaskResult.Running;
+                }
+            }
+            else
+            {
+                frozenSince = -1f;
+            }
+
+            // Progress: count only real movement (1 m). Not leaving the spot for StallSeconds = stuck; while it keeps moving
+            // the walk goes on (the straight-line limit was too short for long detours).
+            Vector3 here = GameApi.GetPlayerPosition();
+            if ((here - progressPos).sqrMagnitude >= 1f)
+            {
+                progressPos = here;
+                progressAt = Now;
+            }
+            else if (Now - progressAt > StallSeconds)
             {
                 GameApi.StopMoving();
-                return FailOrSkipDoorResult(Lang.T("demorei demais andando até o alvo", "took too long walking to the target"));
+                if (moveRetries++ < MaxMoveRetries)
+                {
+                    ModLog.Warn(Lang.T($"Corpos: parado há {StallSeconds:0} s sem sair do lugar a {dist:0} m do alvo (estado: {GameApi.DescribePlayerState()}) — nova tentativa {moveRetries}.",
+                        $"Bodies: stuck for {StallSeconds:0} s without moving, {dist:0} m from the target (state: {GameApi.DescribePlayerState()}) — retry {moveRetries}."));
+                    moveStartPending = true;
+                    stepStartedAt = Now;
+                    return TaskResult.Running;
+                }
+                return FailOrSkipDoorResult(Lang.T("o personagem ficou parado sem sair do lugar", "the character stood still without moving"));
+            }
+            float walked = Now - stepStartedAt;
+            if (walked > moveTimeout)
+            {
+                // Still moving and the real length is unknown: keep walking up to the hard cap.
+                bool moving = Now - progressAt < 3f;
+                if (pathLengthKnown || !moving || walked > MaxWalkSeconds)
+                {
+                    GameApi.StopMoving();
+                    return FailOrSkipDoorResult(Lang.T($"demorei demais andando até o alvo ({walked:0} s, faltando {dist:0} m)",
+                        $"took too long walking to the target ({walked:0} s, {dist:0} m left)"));
+                }
             }
             return TaskResult.Running;
+        }
+
+        private void ResetProgress()
+        {
+            progressPos = GameApi.GetPlayerPosition();
+            progressAt = Now;
         }
 
         private TaskResult TickAim()
@@ -1276,7 +1408,7 @@ namespace AutoKeeper.Bot.Tasks
                     done = GameApi.DistanceTo(targetPos) > 10f;
                     if (!done && Now - stepStartedAt > DoorTimeout)
                     {
-                        return SkipDoor(Lang.T("a porta não levou a lugar nenhum", "the door led nowhere"));
+                        return SkipDoor(Lang.T("a porta não levou a lugar nenhum", "the door led nowhere"), DoorBanUseSeconds);
                     }
                     break;
                 default:
@@ -1705,12 +1837,15 @@ namespace AutoKeeper.Bot.Tasks
             return reason == null;
         }
 
-        /// <summary>Door that did not work: mark it as broken and try another route, instead of turning the bot off.</summary>
-        private TaskResult SkipDoor(string why)
+        /// <summary>
+        /// Door that did not work: leave it out of the routes for a while and try another route, instead of turning the bot
+        /// off. Never for the whole session — 0.3.32 banned, one walk at a time, the only door into the house.
+        /// </summary>
+        private TaskResult SkipDoor(string why, float seconds = DoorBanWalkSeconds)
         {
-            ModLog.Warn(Lang.T($"Corpos: porta {WorldObjectRef.ShortUid(targetUid)} ignorada nesta sessão — {why}",
-                $"Bodies: door {WorldObjectRef.ShortUid(targetUid)} ignored this session — {why}"));
-            nav.MarkDoorBroken(targetUid);
+            ModLog.Warn(Lang.T($"Corpos: porta {WorldObjectRef.ShortUid(targetUid)} ignorada por {seconds:0} s — {why}",
+                $"Bodies: door {WorldObjectRef.ShortUid(targetUid)} ignored for {seconds:0} s — {why}"));
+            nav.MarkDoorBroken(targetUid, seconds);
             return Replan(null);
         }
 

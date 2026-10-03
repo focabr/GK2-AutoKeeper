@@ -4,6 +4,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.33] - 2026-10-02
+- Fixed (root cause of "it stopped again" on 0.3.32): when low energy interrupted an extraction to go to sleep, the bot
+  started walking while the scalpel motion was still playing. When the game ended that motion it put the character back
+  on normal physics, and from then on it refused to move the character along the path (the game's own log,
+  `Player.log`, shows "Trying to move non-static RB by position" about 2,700 times per stuck walk). The character stood
+  at the table for 45 s, the bot gave up on that door — and it did that on every trip to the bed.
+  Now the bot waits for the work motion to end before walking, and if the game freezes the character on a path anyway,
+  it notices within half a second and starts the path again.
+- Fixed: a door that failed was ignored for the whole session. After four of these, the only door into the house was
+  ignored and the bot turned off with "no reachable home bed found". Doors are now left out for 1–2 minutes only, and
+  before giving up for lack of a route the bot tries again with every door.
+- Fixed: the walking time limit came from the straight-line distance. A long detour (from the mine door to the house
+  the game walks through the forest, the village and the crossroads, but it is only 29 m in a straight line) ran out
+  of time with the character still walking. The limit now uses the real path length the game computes, and a walk
+  only counts as stuck when the character stops moving for 8 s.
+- New Thunderstore icon and description.
+
 ## [0.3.32] - 2026-10-01
 - Out of food with "Sleep, then resume": when energy drops below the turn-off value and there is nothing to eat on
   the hot bar, the bot finishes placing the body it carries, sleeps in the home bed (sleeping refills energy) and then
