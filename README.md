@@ -25,7 +25,7 @@ no save editing, no game files modified.
 | Parks autopsied bodies on an empty pallet while the crematorium burns | 0.3.5 | ✅ |
 | Fetches bodies left in other areas (e.g. outside the morgue) as its last task | 0.3.7 | ✅ |
 | With nothing to do (e.g. after sleeping at home), walks back to the morgue and waits there | 0.3.30 | ✅ |
-| Stores **only what it collected** in the nearest chest with room when the inventory is nearly full — between bodies, not mid-autopsy; if a chest fills up, the rest goes to the next one | 0.2.6 / 0.3.12 / 0.3.35 / 0.3.36 | ⏳ |
+| Stores **only what it collected** in the nearest chest with room when the inventory is nearly full — between bodies, not mid-autopsy; if a chest fills up, the rest goes to the next one | 0.2.6 / 0.3.12 / 0.3.35 / 0.3.36 | ✅ |
 | Safety: never holds Action while the game aims at another object; stops if a nearby chest loses items | 0.3.8 / 0.3.10 | ✅ |
 | Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
