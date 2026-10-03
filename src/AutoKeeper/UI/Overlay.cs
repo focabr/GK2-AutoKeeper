@@ -12,7 +12,8 @@ namespace AutoKeeper.UI
     /// Status panel (IMGUI) with the game's palette and font. Organized in blocks:
     ///   title + state (and the reason, when off/paused/idle);
     ///   aligned "label: value" rows (task, place, energy, sleep, hands);
-    ///   recent events (newest on top, with "X ago");
+    ///   recent events in chronological order (newest at the bottom), each with the game clock time it happened at
+    ///   (fixed, not a running "X ago"); identical consecutive messages are one line with "×N";
     ///   settings button + keys.
     /// The content is rebuilt at most 5x per second; drawing uses fixed rectangles (alignment and indent of wrapped lines).
     /// </summary>
@@ -194,14 +195,16 @@ namespace AutoKeeper.UI
                 });
             }
 
+            // Events: the last N, oldest first (reads top to bottom like a chat; the newest is right above the button).
             int n = settings.OverlayLogLines.Value;
-            List<LogEntry> events = n > 0 ? ModLog.Recent.Reverse().Take(n).ToList() : new List<LogEntry>();
+            List<LogEntry> all = n > 0 ? ModLog.Recent.ToList() : new List<LogEntry>();
+            List<LogEntry> events = all.Skip(Mathf.Max(0, all.Count - n)).ToList();
             if (events.Count > 0)
             {
                 rows.Add(new Row { Kind = RowKind.Separator });
                 foreach (LogEntry e in events)
                 {
-                    rows.Add(new Row { Kind = RowKind.Event, A = Ago(Time.unscaledTime - e.At, pt), B = EventText(e) });
+                    rows.Add(new Row { Kind = RowKind.Event, A = e.Clock ?? "—", B = EventText(e) });
                 }
             }
             rows.Add(new Row { Kind = RowKind.Separator });
@@ -216,7 +219,7 @@ namespace AutoKeeper.UI
                 }
             }
             labelWidth += 6f;
-            timeWidth = timeStyle.CalcSize(new GUIContent(pt ? "59 min" : "59 min")).x + 6f;
+            timeWidth = timeStyle.CalcSize(new GUIContent("00:00")).x + 8f;
         }
 
         /// <summary>Why the bot is not working (null when it is).</summary>
@@ -240,27 +243,10 @@ namespace AutoKeeper.UI
             string t = Escape(e.Text);
             switch (e.Level)
             {
-                case LogLevel.Warning: return Warn(t, true);
-                case LogLevel.Error: return Bad(t);
-                default: return t;
+                case LogLevel.Warning: t = Warn(t, true); break;
+                case LogLevel.Error: t = Bad(t); break;
             }
-        }
-
-        private static string Ago(float seconds, bool pt)
-        {
-            if (seconds < 5f)
-            {
-                return pt ? "agora" : "now";
-            }
-            if (seconds < 60f)
-            {
-                return $"{seconds:0} s";
-            }
-            if (seconds < 3600f)
-            {
-                return $"{seconds / 60f:0} min";
-            }
-            return $"{seconds / 3600f:0} h";
+            return e.Count > 1 ? t + Muted($" ×{e.Count}") : t;
         }
 
         private static string ItemName(string id, bool pt)

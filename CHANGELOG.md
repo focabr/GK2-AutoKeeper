@@ -4,6 +4,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.34] - 2026-10-02
+- Status panel (F9): the event list now reads top to bottom in the order things happened (the newest is at the bottom,
+  right above the button), and each line shows the game clock time it happened at instead of a running "X s ago".
+  The same message several times in a row is one line with "×N" (e.g. "flesh extracted ×4"); the log file still keeps
+  every line.
+- Tested on game version 1.008 (the "untested game version" warning no longer shows on 1.008). The 0.3.33 fix was
+  checked on 1.008: four trips to the bed in a row with no food, no frozen character and no ignored doors.
+- Fixed: the low-energy message could read "10 < 10" (energy 9.6 was rounded up); it now shows the whole number below.
+
 ## [0.3.33] - 2026-10-02
 - Fixed (root cause of "it stopped again" on 0.3.32): when low energy interrupted an extraction to go to sleep, the bot
   started walking while the scalpel motion was still playing. When the game ended that motion it put the character back

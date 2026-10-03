@@ -216,17 +216,18 @@ namespace AutoKeeper.Bot
             {
                 string why = NoFoodReason();
                 float min = settings.MinEnergy.Value;
+                int shown = (int)System.Math.Floor(s.Energy); // 9.6 would round to "10 < 10"
                 if (settings.OnLackOfSleep.Value != LackOfSleepAction.Sleep || !settings.BodiesEnabled.Value)
                 {
-                    Stop(Lang.T($"energia baixa ({s.Energy:0} < {min:0}){why}", $"low energy ({s.Energy:0} < {min:0}){why}"));
+                    Stop(Lang.T($"energia baixa ({shown} < {min:0}){why}", $"low energy ({shown} < {min:0}){why}"));
                     return;
                 }
                 if (!RestRequested)
                 {
                     RestRequested = true;
                     AbortCurrent(); // the task replans: finishes placing a carried body, then walks to the bed
-                    ModLog.Warn(Lang.T($"Energia baixa ({s.Energy:0} < {min:0}){why} — vou dormir na cama de casa para recuperar a energia e depois continuo.",
-                        $"Low energy ({s.Energy:0} < {min:0}){why} — going to sleep in the home bed to recover energy, then I'll carry on."));
+                    ModLog.Warn(Lang.T($"Energia baixa ({shown} < {min:0}){why} — vou dormir na cama de casa para recuperar a energia e depois continuo.",
+                        $"Low energy ({shown} < {min:0}){why} — going to sleep in the home bed to recover energy, then I'll carry on."));
                 }
             }
 

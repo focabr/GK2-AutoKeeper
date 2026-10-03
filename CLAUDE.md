@@ -3,7 +3,7 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-10-02)
-- Installed version: **0.3.33** (tag v0.3.33). Game 1.007.1 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.33.zip`.
+- Current version: **0.3.34** (tag v0.3.34). Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.34.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Current state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (short handoff, read first); past
@@ -34,6 +34,8 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
 - The game only loads the new DLL after a restart: before analyzing a test, check `Loading [GK2 AutoKeeper x.y.z]` in `LogOutput.log`.
 - Closing a version: bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md`, `git commit` + `git tag vX.Y.Z`; update the project handoff.
 - git on the device: ask for delete permission in `D:\Claude\GK2` (otherwise `.git/*.lock` files are left behind).
+  Without a device shell (0.3.34): write the changed files into the working tree with `device_commit_files` (with
+  `expectedMtimeMs`) and give the user the cmd lines (`cd /d …`, `git add`, `git commit`, `git tag`) — authorship focabr, no trailers.
 
 ## Pitfalls
 - Never start a walk while the player is in the game's `WorkPlayerState` (the tool motion goes on after Action is
@@ -81,5 +83,7 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
   Claude project "GK2" → `claude/revisao-textos.md`.
 - Language: code comments and dev docs in English; every player/log message goes through `Lang.T(pt, en)` (follows the game language, like the settings window and panel).
 - Status panel (`UI/Overlay.cs`): technical/step-by-step messages use `ModLog.Detail` (file only); `ModLog.Info` shows up
-  in the panel events — keep it short and with context.
+  in the panel events — keep it short and with context. Events are chronological (newest at the bottom) with the game
+  clock of the latest occurrence (`LogEntry.Clock`, null outside a game → "—"); identical consecutive messages are merged
+  in `ModLog.Write` (`LogEntry.Count` → "×N"). User's choice in 0.3.34: newest-on-top + running "X ago" was confusing.
 - `LogOutput.log` drops BepInEx Debug: `ModLog.Debug` writes as Info with `[dbg]` (only with VerboseLogging).

@@ -23,19 +23,8 @@ namespace AutoKeeper.Core
         public float DaysWithoutSleep = -1f;
         public bool LackOfSleep;
 
-        /// <summary>Approximate time (assumes timeOfDay 0 = 00:00). To be confirmed in game.</summary>
-        public string ClockText
-        {
-            get
-            {
-                if (TimeOfDay < 0f)
-                {
-                    return "?";
-                }
-                int minutes = Mathf.FloorToInt(TimeOfDay * 24f * 60f) % (24 * 60);
-                return $"{minutes / 60:00}:{minutes % 60:00}";
-            }
-        }
+        /// <summary>Game clock "HH:MM" (assumes timeOfDay 0 = 00:00).</summary>
+        public string ClockText => GameApi.FormatClock(TimeOfDay);
     }
 
     /// <summary>Reads the state through GameApi (never touches game classes directly).</summary>

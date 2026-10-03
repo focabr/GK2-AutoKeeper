@@ -1,6 +1,6 @@
 {
   "name": "GK2_AutoKeeper",
-  "version_number": "0.3.33",
+  "version_number": "0.3.34",
   "website_url": "https://github.com/focabr/GK2-AutoKeeper",
   "description": "Runs your morgue hands-free: bodies to the autopsy table, organs extracted, remains cremated. Eats, sleeps and stores what it collects. Fair play: only actions the player could do, no spawning or save edits. EN/PT-BR.",
   "dependencies": [

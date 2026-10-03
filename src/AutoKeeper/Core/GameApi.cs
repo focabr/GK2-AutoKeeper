@@ -232,6 +232,20 @@ namespace AutoKeeper.Core
         /// <summary>Fraction of the day 0..1 (EnvironmentEngine.timeOfDay).</summary>
         public static float GetTimeOfDay() => Safe(() => EnvironmentEngine.Instance.timeOfDay, -1f, nameof(GetTimeOfDay));
 
+        /// <summary>Game clock as "HH:MM" (assumes timeOfDay 0 = 00:00); "?" when unknown.</summary>
+        public static string FormatClock(float timeOfDay)
+        {
+            if (timeOfDay < 0f)
+            {
+                return "?";
+            }
+            int minutes = UnityEngine.Mathf.FloorToInt(timeOfDay * 24f * 60f) % (24 * 60);
+            return $"{minutes / 60:00}:{minutes % 60:00}";
+        }
+
+        /// <summary>Current game clock ("HH:MM"), or null outside a loaded game (menu, loading).</summary>
+        public static string GetClockText() => IsInGame ? FormatClock(GetTimeOfDay()) : null;
+
         /// <summary>Current day of the save (EnvironmentData.Day).</summary>
         public static int GetDay() => Safe(() => MainGame.Instance.GameSave.environmentData.Day, -1, nameof(GetDay));
 
