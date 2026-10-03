@@ -3,7 +3,7 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. It only does what the player could do (no cheats, no save editing). Player-facing texts: en + pt-BR (follow the game language).
 
 ## State (2026-10-02)
-- Current version: **0.3.35** (tag v0.3.35). Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.35.zip`.
+- Current version: **0.3.36** (tag v0.3.36). Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-0.3.36.zip`.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (categories Mods + AI Generated), Nexus
   (tags AI-Generated Content + AI Media). Guide: Claude project "GK2" → `claude/publicacao.md`.
 - Current state and next steps: Claude project "GK2" → `claude/status-autokeeper.md` (short handoff, read first); past
@@ -101,4 +101,6 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
   in the panel events — keep it short and with context. Events are chronological (newest at the bottom) with the game
   clock of the latest occurrence (`LogEntry.Clock`, null outside a game → "—"); identical consecutive messages are merged
   in `ModLog.Write` (`LogEntry.Count` → "×N"). User's choice in 0.3.34: newest-on-top + running "X ago" was confusing.
+  "Session:" row (0.3.36): `Bot/SessionStats` (bodies, sleeps, time on), cleared in `ResetForNewWorld`. The "Detailed"
+  option (position, zone, scene, money) is for debugging only.
 - `LogOutput.log` drops BepInEx Debug: `ModLog.Debug` writes as Info with `[dbg]` (only with VerboseLogging).

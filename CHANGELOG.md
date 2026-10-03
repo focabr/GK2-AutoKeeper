@@ -4,6 +4,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.36] - 2026-10-03
+- Status panel (F9): a "Session" line with what the bot did since the save was loaded — bodies done, times it slept and
+  how long it has been on (e.g. "34 bodies · slept 19× · on for 5h02").
+- Chest trips wait for the body on the table to be done and then store everything at once, instead of breaking off the
+  autopsy for a single skin or bone (a 5-hour test had 50 trips for 34 bodies, 12 of them for one item). If the
+  inventory is about to fill up (2 free slots or fewer) it still goes at once.
+- Chests filling up: a warning when the chest just used is nearly full, and when no chest has room the turn-off
+  message now says to empty a chest or build another (it used to say to turn on "Store what the bot collected", which
+  was already on).
+- With "Sleep, then resume", the "1.75 days without sleep" notice is a normal event, no longer a yellow warning (it is
+  the expected cycle, not a problem).
+
 ## [0.3.35] - 2026-10-02
 - Fixed: with two chests in the morgue, the bot went to the nearest one, which was full and only took the salt, logged
   "chest full" and went back to work carrying the rest, although the other chest had 20 free slots (it only used it

@@ -73,6 +73,15 @@ namespace AutoKeeper.Core
             }
         }
 
+        /// <summary>Logs an event only the first time for the same key (same key space as <see cref="WarnOnce"/>).</summary>
+        public static void InfoOnce(string key, string msg)
+        {
+            if (onceKeys.Add(key))
+            {
+                Info(msg);
+            }
+        }
+
         /// <summary>Lets the key's "once" warning appear again (e.g. when the bot is turned back on).</summary>
         public static void ResetOnce(string key) => onceKeys.Remove(key);
 

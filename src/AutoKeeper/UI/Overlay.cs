@@ -11,7 +11,7 @@ namespace AutoKeeper.UI
     /// <summary>
     /// Status panel (IMGUI) with the game's palette and font. Organized in blocks:
     ///   title + state (and the reason, when off/paused/idle);
-    ///   aligned "label: value" rows (task, place, energy, sleep, hands);
+    ///   aligned "label: value" rows (task, place, energy, sleep, session summary, hands);
     ///   recent events in chronological order (newest at the bottom), each with the game clock time it happened at
     ///   (fixed, not a running "X ago"); identical consecutive messages are one line with "×N";
     ///   settings button + keys.
@@ -174,6 +174,11 @@ namespace AutoKeeper.UI
                     }
                     rows.Add(Pair(pt ? "Sono:" : "Sleep:", sleep));
                 }
+                string session = SessionLine(pt);
+                if (session != null)
+                {
+                    rows.Add(Pair(pt ? "Sessão:" : "Session:", session));
+                }
                 if (s.Overhead.Count > 0)
                 {
                     rows.Add(Pair(pt ? "Carregando:" : "Carrying:", string.Join(", ", s.Overhead.Select(id => ItemName(id, pt)))));
@@ -247,6 +252,31 @@ namespace AutoKeeper.UI
                 case LogLevel.Error: t = Bad(t); break;
             }
             return e.Count > 1 ? t + Muted($" ×{e.Count}") : t;
+        }
+
+        /// <summary>
+        /// One line with what the bot did since the save was loaded (0.3.36, user's request: after 5 h away he wanted to
+        /// know how many bodies were done). Null before the bot has run.
+        /// </summary>
+        private static string SessionLine(bool pt)
+        {
+            if (SessionStats.OnSeconds < 1f && SessionStats.Bodies == 0)
+            {
+                return null;
+            }
+            int mins = Mathf.FloorToInt(SessionStats.OnSeconds / 60f);
+            string time = mins >= 60 ? $"{mins / 60}h{mins % 60:00}" : $"{mins} min";
+            int b = SessionStats.Bodies;
+            var parts = new List<string>
+            {
+                pt ? (b == 1 ? "1 corpo" : $"{b} corpos") : (b == 1 ? "1 body" : $"{b} bodies"),
+            };
+            if (SessionStats.Sleeps > 0)
+            {
+                parts.Add(pt ? $"dormiu {SessionStats.Sleeps}×" : $"slept {SessionStats.Sleeps}×");
+            }
+            parts.Add(pt ? $"{time} ligado" : $"on for {time}");
+            return string.Join(Muted(" · "), parts);
         }
 
         private static string ItemName(string id, bool pt)

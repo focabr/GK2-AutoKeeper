@@ -129,6 +129,10 @@ namespace AutoKeeper.Bot
 
         public void Update(float unscaledDeltaTime)
         {
+            if (State != BotState.Off)
+            {
+                SessionStats.OnSeconds += unscaledDeltaTime; // "on for 5h02" on the panel's session line
+            }
             accumulator += unscaledDeltaTime;
             if (accumulator < settings.TickIntervalSeconds.Value)
             {
@@ -158,6 +162,7 @@ namespace AutoKeeper.Bot
             }
             current = null;
             Navigator.Reset();
+            SessionStats.Reset();
             skippedFoodLogged.Clear();
             eatBroken = false;
             eatsInARow = 0;
@@ -251,11 +256,17 @@ namespace AutoKeeper.Bot
             float awake = GameApi.GetDaysWithoutSleep();
             if (onLack != LackOfSleepAction.KeepWorking && awake >= 1.75f && awake < 2f)
             {
-                ModLog.WarnOnce("SleepSoon", onLack == LackOfSleepAction.Sleep
-                    ? Lang.T($"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot vai dormir na cama de casa.",
-                        $"Sleep: {awake:0.00} day(s) without sleep — at 2 days the game applies Lack of sleep and the bot will sleep in the home bed.")
-                    : Lang.T($"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot desliga. Durma logo.",
+                if (onLack == LackOfSleepAction.Sleep)
+                {
+                    // With "Sleep, then resume" this is the normal cycle, not a problem: a plain event, not a yellow warning (0.3.36).
+                    ModLog.InfoOnce("SleepSoon", Lang.T($"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot vai dormir na cama de casa.",
+                        $"Sleep: {awake:0.00} day(s) without sleep — at 2 days the game applies Lack of sleep and the bot will sleep in the home bed."));
+                }
+                else
+                {
+                    ModLog.WarnOnce("SleepSoon", Lang.T($"Sono: {awake:0.00} dia(s) sem dormir — em 2 dias o jogo aplica a Privação de Sono e o bot desliga. Durma logo.",
                         $"Sleep: {awake:0.00} day(s) without sleep — at 2 days the game applies Lack of sleep and the bot turns off. Sleep soon."));
+                }
             }
             else if (awake >= 0f && awake < 1.75f)
             {

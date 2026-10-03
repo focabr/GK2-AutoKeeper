@@ -109,6 +109,8 @@ namespace AutoKeeper.Bot.Tasks
         private const float InteractTimeout = 3f;
         private const float MisaimTimeout = 6f;       // s spent trying to re-aim at the target before giving up
         private const float ChestPreferSlack = 15f;   // extra m accepted to walk to the chest that already holds the same items
+        private const int MidAutopsyMinFree = 2;      // free slots below which the chest trip cannot wait for the body to be done
+        private const int ChestLowFree = 2;           // a chest with this many free slots or fewer gets a "nearly full" warning
         private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
         private const float WorkStateWaitMax = 3f;   // s waiting for the game's work animation to end before walking
@@ -620,6 +622,7 @@ namespace AutoKeeper.Bot.Tasks
                     if (sleepAnnounced)
                     {
                         sleepAnnounced = false;
+                        SessionStats.Sleeps++;
                         ModLog.Info(Lang.T("Sono: descansado — voltando ao trabalho de onde parei.", "Sleep: rested — back to work where I left off."));
                     }
                     sleepTries = 0;
@@ -681,7 +684,12 @@ namespace AutoKeeper.Bot.Tasks
             }
             // A partial deposit (chest full) continues at once at the next chest, even above the free-slot threshold: the
             // player sees "chest full" and expects the bot to use the other chest right away (0.3.35, user's test).
-            bool due = (freeNow < settings.ChestFreeSlots.Value && freeNow < freeAfterDeposit) || depositLeftovers;
+            bool wanted = (freeNow < settings.ChestFreeSlots.Value && freeNow < freeAfterDeposit) || depositLeftovers;
+            // Not in the middle of an autopsy: finish the body on the table and then store everything in one trip, unless
+            // the inventory is about to fill up (0.3.36: 50 chest trips for 34 bodies, 12 of them for a single skin or bone,
+            // each one breaking off the extractions).
+            bool midAutopsy = d.Kind == DecisionKind.Act && (d.Goal == Goal.ExtractOrgan || d.Goal == Goal.ExtractPocket);
+            bool due = wanted && !(midAutopsy && freeNow > MidAutopsyMinFree);
             Dictionary<string, int> pending = settings.UseChest.Value && LedgerTotal() > 0 && due ? PendingDeposit() : null;
             if (pending != null && pending.Count == 0)
             {
@@ -720,8 +728,8 @@ namespace AutoKeeper.Bot.Tasks
                 else if (!chestWarned)
                 {
                     chestWarned = true;
-                    ModLog.Warn(Lang.T("Baú: inventário quase cheio, mas não achei baú alcançável que aceite os itens do bot.",
-                        "Chest: inventory almost full, but no reachable chest accepts the bot's items."));
+                    ModLog.Warn(Lang.T("Baú: inventário quase cheio, mas nenhum baú alcançável tem espaço para os itens do bot — esvazie um baú ou construa outro; com o inventário cheio o bot para.",
+                        "Chest: inventory almost full, but no reachable chest has room for the bot's items — empty a chest or build another; with a full inventory the bot stops."));
                 }
             }
             return d;
@@ -1426,6 +1434,7 @@ namespace AutoKeeper.Bot.Tasks
                     if (done)
                     {
                         bodiesFinished++;
+                        SessionStats.Bodies++;
                         ModLog.Info(Lang.T($"Corpos: corpo no crematório ({bodiesFinished} nesta sessão)", $"Bodies: body in the crematorium ({bodiesFinished} this session)"));
                         ResetGoal();
                         Status = Lang.T("corpo cremado", "body cremated");
@@ -1493,8 +1502,7 @@ namespace AutoKeeper.Bot.Tasks
                     }
                     if (InventoryFullFor(partId))
                     {
-                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que recolheu\") antes de extrair",
-                            "inventory full: free up space (or turn on \"Store what the bot collected\") before extracting"));
+                        return Fail(InventoryFullText());
                     }
                     if (GameApi.StartAutopsyExtract(targetUid, partId, out reason))
                     {
@@ -1510,8 +1518,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.ExtractPocket:
                     if (InventoryFullFor(partId))
                     {
-                        return Fail(Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que recolheu\") antes de extrair",
-                            "inventory full: free up space (or turn on \"Store what the bot collected\") before extracting"));
+                        return Fail(InventoryFullText());
                     }
                     if (GameApi.StartPocketExtract(targetUid, partId, out reason))
                     {
@@ -1562,6 +1569,12 @@ namespace AutoKeeper.Bot.Tasks
             }
             int freeNow = GameApi.PlayerFreeSlots();
             int chestFree = GameApi.ChestFreeSlots(targetUid);
+            if (chestFree >= 0 && chestFree <= ChestLowFree)
+            {
+                // Once per chest: when they are all full the inventory fills up and the bot stops (0.3.36).
+                ModLog.WarnOnce("ChestLow:" + targetUid, Lang.T($"Baú: {GameApi.GetObjectDefId(targetUid)} quase cheio ({chestFree} espaço(s) livre(s); só cabe o que completa pilhas já começadas) — quando lotar, o bot procura outro baú; esvazie-o ou construa outro por perto.",
+                    $"Chest: {GameApi.GetObjectDefId(targetUid)} nearly full ({chestFree} free slot(s); only what tops up existing stacks fits) — when it is full the bot looks for another chest; empty it or build another nearby."));
+            }
             ModLog.Info(Lang.T("Baú: guardado ", "Chest: stored ") + string.Join(", ", moved.Select(kv => $"{kv.Key} x{kv.Value}"))
                 + Lang.T($" (livres agora: {freeNow} no inventário", $" (free now: {freeNow} in the inventory")
                 + (chestFree >= 0 ? Lang.T($", {chestFree} no baú)", $", {chestFree} in the chest)") : ")"));
@@ -1674,6 +1687,25 @@ namespace AutoKeeper.Bot.Tasks
             GameApi.SetHoldAction(true);
         }
 
+        /// <summary>
+        /// Why an extraction cannot start with a full inventory. With the chest option on, the bot's own items should have
+        /// gone to a chest: either no chest has room, or what fills the inventory is the player's (0.3.36 — the old text
+        /// said to turn on the chest option even when it was on).
+        /// </summary>
+        private string InventoryFullText()
+        {
+            if (!settings.UseChest.Value)
+            {
+                return Lang.T("inventário cheio: libere espaço (ou ligue \"Guardar no baú o que recolheu\") antes de extrair",
+                    "inventory full: free up space (or turn on \"Store what the bot collected\") before extracting");
+            }
+            return PendingDeposit().Count > 0
+                ? Lang.T("inventário cheio e nenhum baú alcançável tem espaço para o que o bot recolheu — esvazie um baú ou construa outro",
+                    "inventory full and no reachable chest has room for what the bot collected — empty a chest or build another")
+                : Lang.T("inventário cheio com itens que o bot não recolheu — libere espaço antes de extrair",
+                    "inventory full of items the bot did not collect — free up space before extracting");
+        }
+
         /// <summary>No free slot and no stack of the same item to add to: the extraction would have nowhere to land.</summary>
         private static bool InventoryFullFor(string itemId)
             => GameApi.PlayerFreeSlots() == 0 && !GameApi.SnapshotPlayerItems().ContainsKey(itemId);
@@ -1736,6 +1768,7 @@ namespace AutoKeeper.Bot.Tasks
                 GameApi.SetHoldAction(false);
                 buriedSpots.RemoveAll(sp => Vector3.Distance(sp, targetPos) < SameSpot);
                 bodiesFinished++;
+                SessionStats.Bodies++;
                 ModLog.Info(Lang.T($"Corpos: corpo enterrado ({bodiesFinished} nesta sessão)", $"Bodies: body buried ({bodiesFinished} this session)"));
                 ResetGoal();
                 Status = Lang.T("corpo enterrado", "body buried");
