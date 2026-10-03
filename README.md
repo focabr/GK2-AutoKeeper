@@ -32,7 +32,7 @@ no save editing, no game files modified.
 | Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | ✅ |
 | On Lack of Sleep you choose: turn off (default), go home and sleep in the bed then resume, or keep working | 0.3.18 / 0.3.19 | ✅ |
 | Out of food with "Sleep, then resume": sleeps in the bed to recover energy instead of turning off; warns when the food runs out | 0.3.32 / 0.3.33 | ✅ |
-| Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, a one-line session summary (bodies done, sleeps, time on), latest events in order with the game time (repeats as ×N) | 0.3.19 / 0.3.34 / 0.3.36 | ⏳ |
+| Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, a one-line session summary (bodies done, sleeps, time on), latest events in order with the game time (repeats as ×N) | 0.3.19 / 0.3.34 / 0.3.36 | ✅ |
 
 ⏳ = fixed in the latest version, waiting for an in-game test.
 
@@ -65,7 +65,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.36*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.37*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the

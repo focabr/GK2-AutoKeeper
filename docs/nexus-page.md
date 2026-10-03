@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — Nexus page (copy and paste)
 
 **Mod name:** GK2 AutoKeeper
-**Version:** 0.3.36 · **Main file:** `GK2_AutoKeeper-0.3.36.zip` (the same zip as on Thunderstore)
+**Version:** 0.3.37 · **Main file:** `GK2_AutoKeeper-0.3.37.zip` (the same zip as on Thunderstore)
 **Summary (short field):** Runs your morgue hands-free: bodies to the autopsy table, organs extracted, remains cremated. Eats, sleeps and stores what it collects. Fair play: only actions the player could do, no spawning or save edits. EN/PT-BR.
 **Suggested category:** Gameplay (or Utilities, if it exists) · **Language:** English (also pt-BR, following the game language)
 **Requirements (Requirements tab):** BepInEx for Graveyard Keeper 2 — https://www.nexusmods.com/graveyardkeeper2/mods/48
@@ -19,7 +19,7 @@
 
 **Bugs, help with the settings and suggestions:** please open an issue on GitHub using a template — https://github.com/focabr/GK2-AutoKeeper/issues/new/choose (details under *Support* below).
 
-**What it does (0.3.36)**
+**What it does (0.3.37)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium (or leave on the table).
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.

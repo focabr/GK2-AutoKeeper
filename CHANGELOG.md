@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.37] - 2026-10-03
+- Fixed: waking up (or turning the bot on) about 2 m from a door — e.g. the house's basement door next to the bed — the bot
+  counted as already there and did not walk up to it; the game had nothing in front of the player to use, the bot logged
+  "could not aim at the target", left that door out for a minute and took a 51 m detour through the yard. It now walks
+  right up to every target (doors, graves, objects) unless it is already on the spot.
+
 ## [0.3.36] - 2026-10-03
 - Status panel (F9): a "Session" line with what the bot did since the save was loaded — bodies done, times it slept and
   how long it has been on (e.g. "34 bodies · slept 19× · on for 5h02").

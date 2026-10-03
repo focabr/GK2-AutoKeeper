@@ -1157,11 +1157,12 @@ namespace AutoKeeper.Bot.Tasks
             frozenSince = -1f;
             moveStartPending = false;
             ResetProgress();
-            // With a known work spot, only skip the walk if already on it: "near" is not enough
-            // (standing next to the chest, the game aimed at the chest instead of the table). The same for an item on the
-            // ground: the game only targets what is inside the small interaction box in front of the player, so "2 m away"
-            // is not reach (0.3.35: bot turned on 2.3 m from a body in the yard → no walk → "could not aim" → turned off).
-            float near = standFacing != Vector2.zero || ground ? 0.5f : NearEnough;
+            // Only skip the walk when already on the stop point: the game only targets what is inside the small interaction
+            // box in front of the player, so "2 m away" is not reach. Seen with a work spot (standing next to the chest, the
+            // game aimed at the chest instead of the table), an item on the ground (0.3.35: 2.3 m from a body → "could not
+            // aim" → bot off) and a door (0.3.37: woke up 2.35 m from "home basement enter" → "could not aim" → door left out
+            // for 60 s → 51 m detour through the yard).
+            const float near = 0.5f;
             if (dist <= near)
             {
                 GoTo(Step.Aim); // already in place
@@ -1372,11 +1373,14 @@ namespace AutoKeeper.Bot.Tasks
             if (!nudged && Now - stepStartedAt > 1f)
             {
                 // Another object got in the way: take a short step toward the target, as the player would. An item on the
-                // ground must be right in front of the player: step up to ~0.6 m from it, however far that is.
+                // ground must be right in front of the player: step up to ~0.6 m from it, however far that is. Away from the
+                // stop point (a door, an object), walk to it first (0.3.37).
                 nudged = true;
                 Vector3 here = GameApi.GetPlayerPosition();
-                float step = targetIsGround ? Mathf.Max(0.4f, Vector3.Distance(here, targetPos) - 0.6f) : 0.4f;
-                GameApi.StartMoveTo(Vector3.MoveTowards(here, targetPos, step));
+                Vector3 dest = targetIsGround
+                    ? Vector3.MoveTowards(here, targetPos, Mathf.Max(0.4f, Vector3.Distance(here, targetPos) - 0.6f))
+                    : Vector3.Distance(here, standSpot) > 0.6f ? standSpot : Vector3.MoveTowards(here, targetPos, 0.4f);
+                GameApi.StartMoveTo(dest);
                 return TaskResult.Running;
             }
             if (Now - stepStartedAt > AimTimeout)
