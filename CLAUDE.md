@@ -4,11 +4,12 @@ BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine
 editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game language); code and dev docs in English.
 
 ## State (2026-10-03)
-- Current version: **0.3.37**. Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-<version>.zip`.
+- Current version: **0.3.38**. Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-<version>.zip`.
 - Handoff (read first): Claude project "GK2" → `claude/status-autokeeper.md`; past decisions, tests and in-game validations:
   `claude/historico-autokeeper.md`. Do not keep volatile state here.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (Mods + AI Generated), Nexus (AI-Generated
-  Content + AI Media); guide `claude/publicacao.md`. Support = issue templates in `.github/ISSUE_TEMPLATE/` (EN + pt-BR).
+  Content + AI Media), Steam Workshop showcase item 3813049587 (type "Translation"; subscribing does not install; kit in
+  `D:\Claude\GK2\steam-workshop\item`); guide `claude/publicacao.md`. Support = issue templates in `.github/ISSUE_TEMPLATE/`.
 - Grave (`Grave` + `DigGraves`) hidden from the UI since 0.3.21 (`[HiddenOption]`, `BindHidden`, `KeepVisibleDestination`)
   until tested in game — the announced next step. To release: remove the attribute, switch `DigGraves` back to `Toggle`.
 
@@ -34,6 +35,8 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
   README, nexus page) → local commit + tag (author focabr, no trailers, unsigned) → install → send the cmd lines (`cd /d`
   first, chained with `&&`) to push and `gh release create`. Without `device_bash`, writes into `.git` are refused and
   terminals are click-only: the commit + tag go as the first command line (new files need `git add`). Published tags never move.
+  Also copy the DLLs to `D:\Claude\GK2\steam-workshop\item\BepInEx\plugins\AutoKeeper\` and remind the user: in game
+  Shift+F11 → item → Upload, then re-paste the description and set Public (the game's uploader resets both every time).
 
 ## Top pitfalls (details in `docs/pitfalls.md`)
 - Never start a walk while the player is in `WorkPlayerState` (frozen body: "Trying to move non-static RB by position").
@@ -41,5 +44,7 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
 - Never hold Action without `GuardAim` (Action on a chest = take all). Ground items need the player ~0.6 m away, facing them.
 - World memory must be reset in `ResetMemory` / `ResetForNewWorld` — a new load does not restart the plugin.
 - F11 texts: no "→" or "–" (missing glyphs); labels ~30 chars; mod TMP text follows a live label (`SyncHintStyle`).
+- Panel messages re-translate on a language switch only when the logged string is the result of ONE `Lang.T` call
+  (`Lang.TryPair`); pass `Lang.T(...)` straight to `ModLog`/`Stop`, do not glue translated pieces together.
 - Sleep only removes insanity (−20) when it cures Lack of sleep; max energy = 100 − insanity.
 - For "it stopped/froze" reports read `Player.log` too (`%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2`).

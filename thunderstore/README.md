@@ -45,7 +45,7 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
 | Key | Action |
 |---|---|
 | **F8** | Turn the bot on/off (kill switch) |
-| **F9** | Show/hide the status panel |
+| **F9** | Show/hide the status panel (game-styled, with buttons for the bot, settings and diagnostic) |
 | **F11** | Settings window with the game's own look (also a button on the panel) |
 | **F10** | Write a diagnostic file of the current scene (for bug reports) |
 

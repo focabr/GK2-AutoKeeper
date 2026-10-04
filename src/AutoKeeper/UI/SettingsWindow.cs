@@ -341,6 +341,10 @@ namespace AutoKeeper.UI
                     case OverlayCorner.BottomRight: return T(pt, "Inferior direito", "Bottom right");
                 }
             }
+            if (v is OverlaySize z)
+            {
+                return z == OverlaySize.Large ? T(pt, "Grande", "Large") : T(pt, "Pequeno", "Small");
+            }
             return v.ToString();
         }
 

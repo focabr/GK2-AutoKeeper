@@ -4,6 +4,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.38] - 2026-10-04
+- Status panel (F9) with the game's own look: the frame and title plate of the game's windows, the game's font (per
+  language, like its own windows) and its buttons. Sections "Status", "Session" and "Events", and four buttons: bot
+  on/off, settings, diagnostic file and close. Everything is taken from the game's UI while it runs (no images copied
+  into the mod). New options in F11 → Panel: "Game-styled panel" (on by default; off = the simple panel, which is also
+  used automatically if the game's pieces are not found) and "Panel size" (Small = half the size of the game's windows,
+  pixel-sharp; Large = the size of the game's windows).
+- Switching the game language now also switches what is already on the status panel: the event list and the stop
+  reason are shown again in the new language. Before, messages written before the switch — e.g. "loaded" and "game
+  version compatible" at startup — stayed in the old language until they scrolled away. The log file keeps each line
+  as it was written.
+
 ## [0.3.37] - 2026-10-03
 - Fixed: waking up (or turning the bot on) about 2 m from a door — e.g. the house's basement door next to the bed — the bot
   counted as already there and did not walk up to it; the game had nothing in front of the player to use, the bot logged

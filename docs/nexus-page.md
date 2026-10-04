@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — Nexus page (copy and paste)
 
 **Mod name:** GK2 AutoKeeper
-**Version:** 0.3.37 · **Main file:** `GK2_AutoKeeper-0.3.37.zip` (the same zip as on Thunderstore)
+**Version:** 0.3.38 · **Main file:** `GK2_AutoKeeper-0.3.38.zip` (the same zip as on Thunderstore)
 **Summary (short field):** Runs your morgue hands-free: bodies to the autopsy table, organs extracted, remains cremated. Eats, sleeps and stores what it collects. Fair play: only actions the player could do, no spawning or save edits. EN/PT-BR.
 **Suggested category:** Gameplay (or Utilities, if it exists) · **Language:** English (also pt-BR, following the game language)
 **Requirements (Requirements tab):** BepInEx for Graveyard Keeper 2 — https://www.nexusmods.com/graveyardkeeper2/mods/48
@@ -19,7 +19,7 @@
 
 **Bugs, help with the settings and suggestions:** please open an issue on GitHub using a template — https://github.com/focabr/GK2-AutoKeeper/issues/new/choose (details under *Support* below).
 
-**What it does (0.3.37)**
+**What it does (0.3.38)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium (or leave on the table).
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.
@@ -30,6 +30,7 @@
 - Stores only what it collected in the nearest chest with room when your inventory is nearly full; if a chest fills up, the rest goes to the next one. It never takes items out of chests and stops at once if a nearby chest loses items while it runs.
 - Insanity and sleep guard: turns itself off above a configurable insanity (default 60) and when the game's Lack of sleep hits. Or, if you choose: go home, sleep in the bed and continue the work afterwards — also when the food runs out and energy is low.
 - Pauses automatically in menus, dialogues, cutscenes and sleep; turns itself off and forgets everything when you load a save.
+- Status panel (F9) with the game's own frame, font and buttons: state, session summary (bodies, sleeps, time on) and the latest events with the game time.
 - Settings window, status panel and log messages in English or Brazilian Portuguese (follows the game language).
 
 **Controls**

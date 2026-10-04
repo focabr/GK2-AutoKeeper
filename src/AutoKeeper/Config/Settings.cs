@@ -39,6 +39,13 @@ namespace AutoKeeper.Config
         BottomRight,
     }
 
+    /// <summary>Size of the game-styled status panel.</summary>
+    public enum OverlaySize
+    {
+        Small,  // half the size of the game's windows (pixel-sharp, takes less screen)
+        Large,  // the same size as the game's windows
+    }
+
     /// <summary>Tabs of the settings window (and sections in the GK2 Mod Framework Mods menu).</summary>
     public enum SettingTab
     {
@@ -136,6 +143,8 @@ namespace AutoKeeper.Config
 
         // [Overlay]
         public ConfigEntry<bool> ShowOverlay { get; }
+        public ConfigEntry<bool> OverlayGameLook { get; }
+        public ConfigEntry<OverlaySize> OverlayScale { get; }
         public ConfigEntry<int> OverlayLogLines { get; }
         public ConfigEntry<OverlayCorner> OverlayPosition { get; }
         public ConfigEntry<bool> OverlayDetailed { get; }
@@ -264,6 +273,14 @@ namespace AutoKeeper.Config
             ShowOverlay = Toggle(config, SettingTab.Overlay, "Overlay", "ShowOverlay", true,
                 "Mostrar painel de status", "Show status panel",
                 "Painel com o estado do bot, no canto escolhido em \"Posição do painel\".", "Panel with the bot state, in the corner chosen in \"Panel position\".");
+            OverlayGameLook = Toggle(config, SettingTab.Overlay, "Overlay", "GameLook", true,
+                "Painel com visual do jogo", "Game-styled panel",
+                "Moldura, fonte e botões do próprio jogo. Desligado: painel simples (use se o painel não aparecer ou ficar estranho).",
+                "The game's own frame, font and buttons. Off: simple panel (use it if the panel does not show or looks wrong).");
+            OverlayScale = Bind(config, SettingTab.Overlay, "Overlay", "GameLookSize", OverlaySize.Small,
+                "Tamanho do painel", "Panel size",
+                "Pequeno: metade do tamanho das janelas do jogo (nítido, ocupa menos tela). Grande: o tamanho das janelas do jogo.",
+                "Small: half the size of the game's windows (sharp, takes less screen). Large: the size of the game's windows.");
             OverlayPosition = Bind(config, SettingTab.Overlay, "Overlay", "Position", OverlayCorner.TopLeft,
                 "Posição do painel", "Panel position",
                 "Canto da tela onde o painel aparece (para não cobrir o HUD do jogo).",

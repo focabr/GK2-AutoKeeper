@@ -11,20 +11,31 @@ namespace AutoKeeper.Core
         public readonly float At;          // Time.unscaledTime of the latest occurrence
         public readonly string Clock;      // game clock ("HH:MM") of the latest occurrence; null outside a loaded game
         public readonly LogLevel Level;
-        public readonly string Text;
+        public readonly string Text;       // as written (language of that moment)
+        public readonly string Pt;         // both texts when the message came from one Lang.T call, else null
+        public readonly string En;
         public readonly int Count;         // identical consecutive messages merged into this entry (1 = single)
 
-        public LogEntry(float at, string clock, LogLevel level, string text, int count = 1)
+        public LogEntry(float at, string clock, LogLevel level, string text, string pt, string en, int count = 1)
         {
             At = at;
             Clock = clock;
             Level = level;
             Text = text;
+            Pt = pt;
+            En = en;
             Count = count;
         }
 
+        /// <summary>The text in the game's current language (follows a language switch made after it was written).</summary>
+        public string Display => Lang.Pick(Text, Pt, En);
+
+        /// <summary>Same message, whatever language it was written in.</summary>
+        public bool SameAs(LogLevel level, string text, string en) =>
+            Level == level && (En != null && en != null ? En == en : Text == text);
+
         /// <summary>The same message again: one more repeat, time of the latest occurrence.</summary>
-        public LogEntry Repeated(float at, string clock) => new LogEntry(at, clock, Level, Text, Count + 1);
+        public LogEntry Repeated(float at, string clock) => new LogEntry(at, clock, Level, Text, Pt, En, Count + 1);
     }
 
     /// <summary>
@@ -93,17 +104,19 @@ namespace AutoKeeper.Core
                 source?.Log(LogLevel.Info, "[dbg] " + msg);
                 return;
             }
+            // Read the pair first: anything below may call Lang.T again.
+            Lang.TryPair(msg, out string pt, out string en);
             source?.Log(level, msg);
             float now = UnityEngine.Time.unscaledTime;
             string clock = GameApi.GetClockText();
             LinkedListNode<LogEntry> last = recent.Last;
-            if (last != null && last.Value.Level == level && last.Value.Text == msg)
+            if (last != null && last.Value.SameAs(level, msg, en))
             {
                 // Same message again in a row: the panel shows one line with "×N" (the file keeps every line).
                 last.Value = last.Value.Repeated(now, clock);
                 return;
             }
-            recent.AddLast(new LogEntry(now, clock, level, msg));
+            recent.AddLast(new LogEntry(now, clock, level, msg, pt, en));
             while (recent.Count > MaxRecent)
             {
                 recent.RemoveFirst();

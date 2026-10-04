@@ -55,7 +55,30 @@ namespace AutoKeeper.Bot
         public BotState State { get; private set; } = BotState.Off;
 
         /// <summary>Reason for the current state (pause, idle, shutdown).</summary>
-        public string StateDetail { get; private set; } = "";
+        private string stateDetail = "";
+        private string stateDetailPt;
+        private string stateDetailEn;
+
+        /// <summary>
+        /// What the bot is doing or why it stopped, in the game's current language: when the text came from one
+        /// <see cref="Lang.T"/> call it follows a language switch made afterwards (0.3.38).
+        /// </summary>
+        public string StateDetail
+        {
+            get => Lang.Pick(stateDetail, stateDetailPt, stateDetailEn);
+            private set
+            {
+                Lang.TryPair(value, out string pt, out string en);
+                SetDetail(value, pt, en);
+            }
+        }
+
+        private void SetDetail(string text, string pt, string en)
+        {
+            stateDetail = text ?? "";
+            stateDetailPt = pt;
+            stateDetailEn = en;
+        }
 
         /// <summary>Latest game reading (updated every tick, even with the bot off, for the overlay).</summary>
         public GameSnapshot LastSnapshot { get; private set; } = new GameSnapshot();
@@ -114,6 +137,8 @@ namespace AutoKeeper.Bot
 
         public void Stop(string reason)
         {
+            // Both texts of the reason, read before anything else calls Lang.T (the panel re-translates them).
+            bool paired = Lang.TryPair(reason, out string reasonPt, out string reasonEn);
             if (State == BotState.Off)
             {
                 return;
@@ -123,8 +148,10 @@ namespace AutoKeeper.Bot
             toppingUp = false;
             RestRequested = false;
             State = BotState.Off;
-            StateDetail = reason;
-            ModLog.Info(Lang.T($"Bot DESLIGADO: {reason}", $"Bot OFF: {reason}"));
+            SetDetail(reason, reasonPt, reasonEn);
+            ModLog.Info(paired
+                ? Lang.T($"Bot DESLIGADO: {reasonPt}", $"Bot OFF: {reasonEn}")
+                : Lang.T($"Bot DESLIGADO: {reason}", $"Bot OFF: {reason}"));
         }
 
         public void Update(float unscaledDeltaTime)

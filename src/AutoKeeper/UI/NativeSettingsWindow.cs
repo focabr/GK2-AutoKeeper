@@ -133,14 +133,14 @@ namespace AutoKeeper.UI
             }
         }
 
-        private static Transform FindUiRoot(Component sourceWindow)
+        internal static Transform FindUiRoot(Component sourceWindow)
         {
             GUIElements gui = GUIElements.Instance;
             var fitter = gui == null ? null : AccessTools.Field(typeof(GUIElements), "uiFitter")?.GetValue(gui) as Component;
             return fitter != null ? fitter.transform : sourceWindow.transform.parent;
         }
 
-        private static GameObject CloneInactive(GameObject template, Transform inactiveParent)
+        internal static GameObject CloneInactive(GameObject template, Transform inactiveParent)
         {
             GameObject clone = Instantiate(template, inactiveParent, false);
             clone.name = template.name + "_AK";
@@ -785,6 +785,10 @@ namespace AutoKeeper.UI
                     case OverlayCorner.BottomLeft: return T("Inferior esquerdo", "Bottom left");
                     case OverlayCorner.BottomRight: return T("Inferior direito", "Bottom right");
                 }
+            }
+            if (v is OverlaySize z)
+            {
+                return z == OverlaySize.Large ? T("Grande", "Large") : T("Pequeno", "Small");
             }
             return v.ToString();
         }

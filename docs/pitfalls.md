@@ -86,3 +86,8 @@ doors, chests, the status panel or the F11 window.
   "Session:" row (0.3.36): `Bot/SessionStats` (bodies, sleeps, time on), cleared in `ResetForNewWorld`. The "Detailed"
   option (position, zone, scene, money) is for debugging only.
 - `LogOutput.log` drops BepInEx Debug: `ModLog.Debug` writes as Info with `[dbg]` (only with VerboseLogging).
+- Game-styled F9 panel (`UI/NativeStatusPanel.cs`, 0.3.38): pads come from the frame's `BackMask` insets, never from the
+  `comm-frame_1-border` 9-slice border (87/34 px: 88-unit margins); the game's `TextStyleComponent` re-applies alignment →
+  `ForceTextLayout` on every refresh; the game's dialog buttons size themselves to their text (measure with
+  `VisibleBounds`, do not force a width); a GameObject left active at its default rect draws a 100×100 square. 1080p:
+  canvas ×2, `small_font` 16 — "Small" size scales the whole panel to 1 px per art pixel.

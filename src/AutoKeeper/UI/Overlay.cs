@@ -1,15 +1,14 @@
 using System.Collections.Generic;
-using System.Linq;
 using AutoKeeper.Bot;
 using AutoKeeper.Config;
 using AutoKeeper.Core;
-using BepInEx.Logging;
 using UnityEngine;
 
 namespace AutoKeeper.UI
 {
     /// <summary>
-    /// Status panel (IMGUI) with the game's palette and font. Organized in blocks:
+    /// Simple status panel (IMGUI) with the game's palette — used when the game-styled panel (<see cref="NativeStatusPanel"/>)
+    /// is turned off or cannot be built. Content from <see cref="StatusContent"/>. Organized in blocks:
     ///   title + state (and the reason, when off/paused/idle);
     ///   aligned "label: value" rows (task, place, energy, sleep, session summary, hands);
     ///   recent events in chronological order (newest at the bottom), each with the game clock time it happened at
@@ -66,9 +65,12 @@ namespace AutoKeeper.UI
         /// <summary>Called when the player clicks the panel's settings button.</summary>
         public System.Action OnSettingsClicked;
 
+        /// <summary>The game-styled panel is shown instead: draw nothing.</summary>
+        public bool Suppressed { get; set; }
+
         public void Draw()
         {
-            if (!settings.ShowOverlay.Value || Event.current == null)
+            if (!settings.ShowOverlay.Value || Suppressed || Event.current == null)
             {
                 Rect = Rect.zero;
                 return;
@@ -133,83 +135,29 @@ namespace AutoKeeper.UI
         private void BuildRows()
         {
             bool pt = GameApi.IsGameLanguagePortuguese();
-            GameSnapshot s = bot.LastSnapshot ?? new GameSnapshot();
+            StatusContent sc = StatusContent.Build(settings, bot, pt);
             rows.Clear();
 
-            rows.Add(new Row { Kind = RowKind.Title, A = $"{Plugin.Name} {Plugin.Version}", B = StateColored(bot.State, pt) });
-            string reason = StateReason(pt);
-            if (reason != null)
+            rows.Add(new Row { Kind = RowKind.Title, A = sc.Title, B = sc.State });
+            if (sc.Reason != null)
             {
-                rows.Add(Pair(pt ? "Motivo:" : "Reason:", reason));
+                rows.Add(Pair(pt ? "Motivo:" : "Reason:", sc.Reason));
             }
             rows.Add(new Row { Kind = RowKind.Separator });
-
-            string step = bot.CurrentStepText;
-            rows.Add(Pair(pt ? "Tarefa:" : "Task:", string.IsNullOrEmpty(step) ? "—" : step));
-            if (!s.InGame)
+            foreach (StatusContent.Pair p in sc.Rows)
             {
-                rows.Add(Pair(pt ? "Local:" : "Place:", pt ? "menu / carregando" : "menu / loading"));
+                rows.Add(new Row { Kind = RowKind.Pair, A = p.Label, B = p.Value, Muted = p.Muted });
             }
-            else
+            if (sc.Note != null)
             {
-                string place = string.IsNullOrEmpty(s.ZoneName) ? "?" : s.ZoneName;
-                rows.Add(Pair(pt ? "Local:" : "Place:", $"{place} · {(pt ? "dia" : "day")} {s.Day}, {s.ClockText}"));
-
-                bool lowEnergy = s.EnergyMax > 0f && s.Energy < settings.EatBelowEnergy.Value;
-                bool highInsanity = s.Insanity >= settings.MaxInsanity.Value * 0.8f;
-                rows.Add(Pair(pt ? "Energia:" : "Energy:",
-                    Warn($"{s.Energy:0}/{s.EnergyMax:0}", lowEnergy) + Muted(" · ") + Warn($"{(pt ? "insanidade" : "insanity")} {s.Insanity:0}", highInsanity)));
-
-                if (s.DaysWithoutSleep >= 0f)
-                {
-                    string days = s.DaysWithoutSleep.ToString("0.0");
-                    string sleep = pt ? $"{days} dia(s) sem dormir" : $"{days} day(s) without sleep";
-                    if (s.LackOfSleep)
-                    {
-                        sleep = Bad(sleep + (pt ? " — Privação de Sono" : " — Lack of sleep"));
-                    }
-                    else
-                    {
-                        sleep = Warn(sleep, s.DaysWithoutSleep >= 1.75f);
-                    }
-                    rows.Add(Pair(pt ? "Sono:" : "Sleep:", sleep));
-                }
-                string session = SessionLine(pt);
-                if (session != null)
-                {
-                    rows.Add(Pair(pt ? "Sessão:" : "Session:", session));
-                }
-                if (s.Overhead.Count > 0)
-                {
-                    rows.Add(Pair(pt ? "Carregando:" : "Carrying:", string.Join(", ", s.Overhead.Select(id => ItemName(id, pt)))));
-                }
-                if (settings.OverlayDetailed.Value)
-                {
-                    rows.Add(MutedPair(pt ? "Posição:" : "Position:", $"{s.Position.x:0.0}, {s.Position.y:0.0}, {s.Position.z:0.0}"));
-                    rows.Add(MutedPair(pt ? "Zona:" : "Zone:", $"{s.ZoneId ?? "-"} · {(pt ? "cena" : "scene")} {s.SceneId}"));
-                    rows.Add(MutedPair(pt ? "Dinheiro:" : "Money:", $"{s.Money:0}"));
-                }
+                rows.Add(new Row { Kind = RowKind.Note, B = sc.Note });
             }
-            if (s.GameVersion != null && s.GameVersion != Plugin.TestedGameVersion)
-            {
-                rows.Add(new Row
-                {
-                    Kind = RowKind.Note,
-                    B = Warn(pt ? $"Jogo {s.GameVersion} não testado (testado: {Plugin.TestedGameVersion})"
-                                : $"Game {s.GameVersion} untested (tested: {Plugin.TestedGameVersion})", true),
-                });
-            }
-
-            // Events: the last N, oldest first (reads top to bottom like a chat; the newest is right above the button).
-            int n = settings.OverlayLogLines.Value;
-            List<LogEntry> all = n > 0 ? ModLog.Recent.ToList() : new List<LogEntry>();
-            List<LogEntry> events = all.Skip(Mathf.Max(0, all.Count - n)).ToList();
-            if (events.Count > 0)
+            if (sc.Events.Count > 0)
             {
                 rows.Add(new Row { Kind = RowKind.Separator });
-                foreach (LogEntry e in events)
+                foreach (StatusContent.EventLine e in sc.Events)
                 {
-                    rows.Add(new Row { Kind = RowKind.Event, A = e.Clock ?? "—", B = EventText(e) });
+                    rows.Add(new Row { Kind = RowKind.Event, A = e.Clock, B = e.Text });
                 }
             }
             rows.Add(new Row { Kind = RowKind.Separator });
@@ -227,88 +175,7 @@ namespace AutoKeeper.UI
             timeWidth = timeStyle.CalcSize(new GUIContent("00:00")).x + 8f;
         }
 
-        /// <summary>Why the bot is not working (null when it is).</summary>
-        private string StateReason(bool pt)
-        {
-            string d = bot.StateDetail;
-            switch (bot.State)
-            {
-                case BotController.BotState.Running:
-                    return null;
-                case BotController.BotState.Off:
-                    // Empty = initial state: the footer already says how to turn it on.
-                    return string.IsNullOrEmpty(d) ? null : d;
-                default:
-                    return string.IsNullOrEmpty(d) ? null : d;
-            }
-        }
-
-        private static string EventText(LogEntry e)
-        {
-            string t = Escape(e.Text);
-            switch (e.Level)
-            {
-                case LogLevel.Warning: t = Warn(t, true); break;
-                case LogLevel.Error: t = Bad(t); break;
-            }
-            return e.Count > 1 ? t + Muted($" ×{e.Count}") : t;
-        }
-
-        /// <summary>
-        /// One line with what the bot did since the save was loaded (0.3.36, user's request: after 5 h away he wanted to
-        /// know how many bodies were done). Null before the bot has run.
-        /// </summary>
-        private static string SessionLine(bool pt)
-        {
-            if (SessionStats.OnSeconds < 1f && SessionStats.Bodies == 0)
-            {
-                return null;
-            }
-            int mins = Mathf.FloorToInt(SessionStats.OnSeconds / 60f);
-            string time = mins >= 60 ? $"{mins / 60}h{mins % 60:00}" : $"{mins} min";
-            int b = SessionStats.Bodies;
-            var parts = new List<string>
-            {
-                pt ? (b == 1 ? "1 corpo" : $"{b} corpos") : (b == 1 ? "1 body" : $"{b} bodies"),
-            };
-            if (SessionStats.Sleeps > 0)
-            {
-                parts.Add(pt ? $"dormiu {SessionStats.Sleeps}×" : $"slept {SessionStats.Sleeps}×");
-            }
-            parts.Add(pt ? $"{time} ligado" : $"on for {time}");
-            return string.Join(Muted(" · "), parts);
-        }
-
-        private static string ItemName(string id, bool pt)
-        {
-            if (id != null && id.StartsWith("body"))
-            {
-                return pt ? "corpo" : "body";
-            }
-            return id;
-        }
-
         private static Row Pair(string label, string value) => new Row { Kind = RowKind.Pair, A = label, B = value };
-
-        private static Row MutedPair(string label, string value) => new Row { Kind = RowKind.Pair, A = label, B = value, Muted = true };
-
-        private static string Muted(string t) => "<color=" + GameUiTheme.MutedHex + ">" + t + "</color>";
-        private static string Bad(string t) => "<color=" + GameUiTheme.BadHex + ">" + t + "</color>";
-        private static string Warn(string t, bool warn) => warn ? "<color=" + GameUiTheme.BadHex + ">" + t + "</color>" : t;
-
-        private static string StateColored(BotController.BotState state, bool pt)
-        {
-            switch (state)
-            {
-                case BotController.BotState.Running: return "<color=" + GameUiTheme.GoodHex + "><b>" + (pt ? "TRABALHANDO" : "WORKING") + "</b></color>";
-                case BotController.BotState.Idle: return "<color=" + GameUiTheme.GoodHex + ">" + (pt ? "AGUARDANDO" : "WAITING") + "</color>";
-                case BotController.BotState.Paused: return "<color=" + GameUiTheme.ValueHex + ">" + (pt ? "PAUSADO" : "PAUSED") + "</color>";
-                default: return "<color=" + GameUiTheme.BadHex + ">" + (pt ? "DESLIGADO" : "OFF") + "</color>";
-            }
-        }
-
-        /// <summary>Keeps "&lt;" in log messages from breaking the rich text.</summary>
-        private static string Escape(string s) => s.Replace("<", "‹").Replace(">", "›");
 
         // ------------------------------------------------------------------ drawing
 

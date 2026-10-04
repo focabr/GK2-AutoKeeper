@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.37";
+        public const string Version = "0.3.38";
 
         /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.008";
@@ -37,6 +37,9 @@ namespace AutoKeeper
         private Overlay overlay;
         private SettingsWindow settingsWindow;          // simple window (IMGUI), used only if the native one fails
         private NativeSettingsWindow nativeWindow;      // window with the game's look
+        private NativeStatusPanel nativePanel;          // F9 panel with the game's look (null = simple IMGUI panel)
+        private bool nativePanelGaveUp;
+        private float nextPanelTry;
         private bool compatibilityChecked;
         private bool configDirty;
         private float configDirtySince;
@@ -134,11 +137,52 @@ namespace AutoKeeper
             CheckCompatibilityOnce();
             HandleHotkeys();
             Bot.Update(Time.unscaledDeltaTime);
+            UpdateStatusPanel();
             SaveConfigIfDirty(force: !SettingsOpen);
+        }
+
+        /// <summary>The game-styled F9 panel replaces the simple one while it exists and is wanted.</summary>
+        private bool NativePanelShown => nativePanel != null && nativePanel.gameObject.activeSelf;
+
+        /// <summary>
+        /// Creates the game-styled status panel once the game's windows exist (retries every 2 s; it is destroyed with the
+        /// game's UI and built again), shows/hides it with F9 and the option. If it cannot be built, the simple panel stays.
+        /// </summary>
+        private void UpdateStatusPanel()
+        {
+            bool want = Settings.ShowOverlay.Value && Settings.OverlayGameLook.Value;
+            if (nativePanel == null)
+            {
+                if (!want || nativePanelGaveUp || Time.unscaledTime < nextPanelTry || !GameApi.IsMainGameReady)
+                {
+                    return;
+                }
+                nextPanelTry = Time.unscaledTime + 2f;
+                nativePanel = NativeStatusPanel.TryCreate(Settings, Bot, ToggleSettingsWindow, WriteDump, out string error, out bool retry);
+                if (nativePanel == null && !retry)
+                {
+                    nativePanelGaveUp = true;
+                    ModLog.WarnOnce("native-panel", Lang.T($"Painel com visual do jogo indisponível ({error}); usando o painel simples.",
+                        $"Game-styled panel unavailable ({error}); using the simple panel."));
+                }
+                return;
+            }
+            if (nativePanel.Failed)
+            {
+                Destroy(nativePanel.gameObject);
+                nativePanel = null;
+                nativePanelGaveUp = true;
+                return;
+            }
+            if (nativePanel.gameObject.activeSelf != want)
+            {
+                nativePanel.gameObject.SetActive(want);
+            }
         }
 
         private void OnGUI()
         {
+            overlay.Suppressed = NativePanelShown;
             overlay.Draw();
             settingsWindow.Draw();
 
@@ -146,7 +190,8 @@ namespace AutoKeeper
             if (Event.current != null && Event.current.type == EventType.Repaint)
             {
                 Vector2 m = Event.current.mousePosition;
-                bool over = overlay.Rect.Contains(m) || (settingsWindow.IsOpen && settingsWindow.Rect.Contains(m));
+                bool over = overlay.Rect.Contains(m) || (settingsWindow.IsOpen && settingsWindow.Rect.Contains(m))
+                    || (NativePanelShown && nativePanel.GuiRect.Contains(m));
                 GameApi.SetModUiState(settingsWindow.IsOpen, over);
             }
         }
@@ -241,12 +286,18 @@ namespace AutoKeeper
             }
             if (Settings.DumpKey.Value.IsDown())
             {
-                string path = GameApi.WriteDiscoveryDump();
-                if (path != null)
-                {
-                    ModLog.Detail(Lang.T($"Dump de descoberta salvo em: {path}", $"Discovery dump saved to: {path}"));
-                    ModLog.Info(Lang.T($"Dump salvo: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)", $"Dump saved: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)"));
-                }
+                WriteDump();
+            }
+        }
+
+        /// <summary>Read-only diagnostic file (F10 or the panel's button).</summary>
+        private void WriteDump()
+        {
+            string path = GameApi.WriteDiscoveryDump();
+            if (path != null)
+            {
+                ModLog.Detail(Lang.T($"Dump de descoberta salvo em: {path}", $"Discovery dump saved to: {path}"));
+                ModLog.Info(Lang.T($"Dump salvo: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)", $"Dump saved: {System.IO.Path.GetFileName(path)} (BepInEx/config/AutoKeeper/dumps)"));
             }
         }
     }
