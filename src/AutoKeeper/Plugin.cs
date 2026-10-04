@@ -20,7 +20,7 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.38";
+        public const string Version = "0.3.39";
 
         /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
         public const string TestedGameVersion = "1.008";
@@ -234,7 +234,8 @@ namespace AutoKeeper
             }
             compatibilityChecked = true;
 
-            ModLog.Info(Lang.T($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.",
+            // Log file only (support): the panel already shows the version in its title and the keys on its buttons.
+            ModLog.Detail(Lang.T($"{Name} {Version} carregado. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = configurações, {Settings.ToggleOverlayKey.Value} = painel.",
                 $"{Name} {Version} loaded. {Settings.ToggleBotKey.Value} = bot, {Settings.OpenSettingsKey.Value} = settings, {Settings.ToggleOverlayKey.Value} = status panel."));
 
             string gameVersion = GameApi.GetGameVersion();
@@ -249,7 +250,8 @@ namespace AutoKeeper
             }
             else
             {
-                ModLog.Info(Lang.T($"Versão do jogo {gameVersion} — compatível (testada).", $"Game version {gameVersion} — compatible (tested)."));
+                // Log file only: an untested version shows as a warning on the panel; "all good" needs no event.
+                ModLog.Detail(Lang.T($"Versão do jogo {gameVersion} — compatível (testada).", $"Game version {gameVersion} — compatible (tested)."));
             }
         }
 

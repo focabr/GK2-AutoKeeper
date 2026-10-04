@@ -4,6 +4,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.39] - 2026-10-04
+- Status panel (F9) in a top corner: it now sits right below the game's location name (e.g. "Writing Basement", top
+  right of the screen) instead of covering it, and goes back up when the game hides that name. Both the game-styled and
+  the simple panel.
+- Fewer redundant events on the panel: "AutoKeeper x.y.z loaded (F8 = bot, …)" and "game version compatible" now go only
+  to the log file — the panel title already shows the version and its buttons show the keys. An untested game version
+  still shows a warning. "Bot memory cleared (save loaded)" no longer adds "turn it back on with the bot key" (the button
+  is right below) and now also follows a game language switch.
+
 ## [0.3.38] - 2026-10-04
 - Status panel (F9) with the game's own look: the frame and title plate of the game's windows, the game's font (per
   language, like its own windows) and its buttons. Sections "Status", "Session" and "Events", and four buttons: bot

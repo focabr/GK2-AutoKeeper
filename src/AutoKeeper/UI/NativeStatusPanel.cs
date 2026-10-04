@@ -676,9 +676,43 @@ namespace AutoKeeper.UI
             // Position from the current size: the size changes with the texts.
             Vector2 size = rootRt.sizeDelta * rootRt.localScale.x; // in the parent's units
             Vector2 a = rootRt.anchorMin;
-            rootRt.anchoredPosition = new Vector2(
+            var pos = new Vector2(
                 cornerOffset.x - (a.x > 0.5f ? size.x : 0f),
                 cornerOffset.y + (a.y < 0.5f ? size.y : 0f));
+            if (a.y > 0.5f)
+            {
+                pos.y = Mathf.Min(pos.y, BelowZoneLabel(pos.x, size.x, a.x));
+            }
+            rootRt.anchoredPosition = pos;
+        }
+
+        /// <summary>
+        /// Top edge (anchored y, parent units) that keeps a top-corner panel below the game's location name plate when
+        /// both would overlap sideways; +infinity when the plate is not on screen or does not get in the way.
+        /// </summary>
+        private float BelowZoneLabel(float x, float width, float anchorX)
+        {
+            Rect label = GameApi.GetZoneLabelRect(); // screen pixels, origin top-left
+            var parent = rootRt.parent as RectTransform;
+            if (label.width <= 0f || parent == null)
+            {
+                return float.PositiveInfinity;
+            }
+            Canvas c = parent.GetComponentInParent<Canvas>();
+            Canvas rootCanvas = c != null ? c.rootCanvas : null;
+            Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay ? rootCanvas.worldCamera : null;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, new Vector2(label.xMin, Screen.height - label.yMax), cam, out Vector2 bottomLeft)
+                || !RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, new Vector2(label.xMax, Screen.height - label.yMax), cam, out Vector2 bottomRight))
+            {
+                return float.PositiveInfinity;
+            }
+            Rect pr = parent.rect;
+            float left = Mathf.Lerp(pr.xMin, pr.xMax, anchorX) + x; // the panel's horizontal span in parent units
+            if (bottomRight.x <= left || bottomLeft.x >= left + width)
+            {
+                return float.PositiveInfinity;
+            }
+            return bottomLeft.y - pr.yMax - Margin;
         }
 
         private void UpdateGuiRect()

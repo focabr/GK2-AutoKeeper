@@ -3,8 +3,8 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. Only player actions (no cheats, no save
 editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game language); code and dev docs in English.
 
-## State (2026-10-03)
-- Current version: **0.3.38**. Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-<version>.zip`.
+## State (2026-10-04)
+- Current version: **0.3.39**. Game 1.008 validated (`Plugin.TestedGameVersion`). Package: `dist/GK2_AutoKeeper-<version>.zip`.
 - Handoff (read first): Claude project "GK2" → `claude/status-autokeeper.md`; past decisions, tests and in-game validations:
   `claude/historico-autokeeper.md`. Do not keep volatile state here.
 - Publishing: GitHub `focabr/GK2-AutoKeeper`, Thunderstore `focabr-GK2_AutoKeeper` (Mods + AI Generated), Nexus (AI-Generated

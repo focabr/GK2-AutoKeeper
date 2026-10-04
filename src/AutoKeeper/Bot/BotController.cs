@@ -203,7 +203,7 @@ namespace AutoKeeper.Bot
                 return;
             }
             memoryClean = true;
-            ModLog.Info(msg + Lang.T(" Ligue de novo com a tecla do bot quando quiser.", " Turn it back on with the bot key whenever you want."));
+            ModLog.Info(msg); // the panel's "turn on" button sits right below the event list
         }
 
         private void Tick(GameSnapshot s)

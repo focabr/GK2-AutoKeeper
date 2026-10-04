@@ -261,3 +261,10 @@ The original plan below still applies to the grave (0.3).
   crossroads and graveyard.
 - Player.log: `%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2\Player.log` (previous session:
   `Player-prev.log`). It has the game's Unity messages interleaved with the BepInEx lines (`LogOutput.log` does not).
+
+## 17. HUD: location name plate (0.3.39, IL of 1.008)
+- The plate with the zone name at the top right of the screen (e.g. "Writing Basement") is `WorldZoneWidget`, reached via
+  `GUIElements.Instance.WorldZoneWidget`. `Redraw()` turns its GameObject off when there is no `WorldZoneData` and, inside
+  the town, turns on `townSubZoneParent` (a second line with the sub-zone) under `worldZoneLabel` (TMP).
+- `GameApi.GetZoneLabelRect()` unions the visible `Graphic`s under it (alpha incl. CanvasGroups; TMP by `textBounds`) into
+  an IMGUI-style screen rect; the F9 panel in a top corner moves below it when they overlap sideways.

@@ -107,6 +107,83 @@ namespace AutoKeeper.Core
             return cachedGameVersion;
         }
 
+        // ------------------------------------------------------------------ HUD
+
+        private static readonly List<UnityEngine.UI.Graphic> zoneGraphics = new List<UnityEngine.UI.Graphic>();
+        private static readonly Vector3[] zoneCorners = new Vector3[4];
+        private static float zoneRectAt = -1f;
+        private static Rect zoneRect;
+
+        /// <summary>
+        /// Where the game's location name plate (e.g. "Writing Basement", top-right of the HUD) is drawn, in screen
+        /// pixels with the origin at the top-left (like IMGUI). Rect.zero when it is not on screen. Only what is
+        /// actually visible counts (the plate's images and the text itself), so the town line below it is included
+        /// when the game shows it. Read at most 5 times a second.
+        /// </summary>
+        public static Rect GetZoneLabelRect()
+        {
+            float now = Time.unscaledTime;
+            if (zoneRectAt >= 0f && now - zoneRectAt < 0.2f && now >= zoneRectAt)
+            {
+                return zoneRect;
+            }
+            zoneRectAt = now;
+            zoneRect = Safe(ZoneLabelRectImpl, Rect.zero, nameof(GetZoneLabelRect));
+            return zoneRect;
+        }
+
+        private static Rect ZoneLabelRectImpl()
+        {
+            GUIElements gui = GUIElements.Instance;
+            WorldZoneWidget widget = gui != null ? gui.WorldZoneWidget : null;
+            if (widget == null || !widget.isActiveAndEnabled)
+            {
+                return Rect.zero;
+            }
+            widget.GetComponentsInChildren(false, zoneGraphics);
+            float xMin = float.MaxValue, yMin = float.MaxValue, xMax = float.MinValue, yMax = float.MinValue;
+            foreach (UnityEngine.UI.Graphic g in zoneGraphics)
+            {
+                if (g == null || !g.isActiveAndEnabled || g.canvas == null || g.color.a * g.canvasRenderer.GetInheritedAlpha() < 0.05f)
+                {
+                    continue;
+                }
+                RectTransform rt = g.rectTransform;
+                if (g is TMPro.TMP_Text text)
+                {
+                    // The text's own box may be much wider than the words: use what is drawn.
+                    Bounds b = text.textBounds;
+                    if (b.size.x <= 0.01f || b.size.y <= 0.01f)
+                    {
+                        continue;
+                    }
+                    zoneCorners[0] = rt.TransformPoint(b.min);
+                    zoneCorners[2] = rt.TransformPoint(b.max);
+                }
+                else
+                {
+                    rt.GetWorldCorners(zoneCorners);
+                }
+                Canvas root = g.canvas.rootCanvas;
+                Camera cam = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+                for (int i = 0; i <= 2; i += 2)
+                {
+                    Vector2 p = RectTransformUtility.WorldToScreenPoint(cam, zoneCorners[i]);
+                    xMin = Mathf.Min(xMin, p.x);
+                    xMax = Mathf.Max(xMax, p.x);
+                    yMin = Mathf.Min(yMin, p.y);
+                    yMax = Mathf.Max(yMax, p.y);
+                }
+            }
+            zoneGraphics.Clear();
+            if (xMax - xMin < 1f || yMax - yMin < 1f)
+            {
+                return Rect.zero;
+            }
+            // Screen y grows upwards; IMGUI's y grows downwards.
+            return new Rect(xMin, Screen.height - yMax, xMax - xMin, yMax - yMin);
+        }
+
         /// <summary>
         /// null = the player is free (the bot may act). Otherwise, the reason for the automatic pause:
         /// menu, pause, UI window, dialogue/script (ByFlow), cutscene, sleep, teleport, death.

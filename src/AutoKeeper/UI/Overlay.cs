@@ -226,11 +226,22 @@ namespace AutoKeeper.UI
         {
             switch (settings.OverlayPosition.Value)
             {
-                case OverlayCorner.TopRight: return new Rect(Screen.width - w - Margin, Margin, w, h);
+                case OverlayCorner.TopRight: return BelowZoneLabel(new Rect(Screen.width - w - Margin, Margin, w, h));
                 case OverlayCorner.BottomLeft: return new Rect(Margin, Screen.height - h - Margin, w, h);
                 case OverlayCorner.BottomRight: return new Rect(Screen.width - w - Margin, Screen.height - h - Margin, w, h);
-                default: return new Rect(Margin, Margin, w, h);
+                default: return BelowZoneLabel(new Rect(Margin, Margin, w, h));
             }
+        }
+
+        /// <summary>A top-corner panel moves down below the game's location name plate when they would overlap sideways.</summary>
+        private static Rect BelowZoneLabel(Rect r)
+        {
+            Rect label = GameApi.GetZoneLabelRect();
+            if (label.width > 0f && label.xMax > r.xMin && label.xMin < r.xMax)
+            {
+                r.y = Mathf.Max(r.y, label.yMax + Margin);
+            }
+            return r;
         }
 
         private void EnsureStyle()
