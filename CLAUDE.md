@@ -29,9 +29,8 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
   `-p:FrameworkDll=<tools/FrameworkStub build>`. Cloud: dotnet-sdk-8.0, `nuget.config` with `<clear/>`, stage `Managed/` +
   `BepInEx/core`; read the game code with `tools/Inspect`.
 - Deliver from a NEW folder in `/mnt/user-data/outputs/` with `device_commit_files`; check `strings -e l AutoKeeper.dll`.
-  ALWAYS install the plugin yourself (standing request): `build.ps1` fails while the game runs ("DLL in use"), so `mv` the
-  loaded `AutoKeeper.dll` to `.dll.old` (rename works), `cp` `src/AutoKeeper/bin/Release/AutoKeeper.dll` in, delete the `.old`,
-  and verify the version string. The game loads it on restart — check
+  ALWAYS install the plugin yourself (standing request): `build.ps1` does it, also with the game open (it renames the loaded
+  DLL to `.old`, copies the new one, deletes the `.old`); verify the version string in the installed DLL. The game loads it on restart — check
   `Loading [GK2 AutoKeeper x.y.z]` before analyzing a test.
 - ALWAYS end the reply with ONE code block holding the full, ready-to-run cmd lines (`cd /d` first, chained with `&&`): `git add`,
   `commit`, `tag`, `push` (branch + tags) and `gh release create` — even when the commit/tag were already made locally (user's standing request).

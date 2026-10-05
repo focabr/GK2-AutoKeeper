@@ -4,7 +4,8 @@
 
 .DESCRIPTION
     GamePath is resolved in this order: -GamePath parameter > GK2_GAME_PATH variable > GamePath.props file.
-    Deploy only writes to <game>\BepInEx\plugins\AutoKeeper\. No game file is changed.
+    Deploy only writes to <game>\BepInEx\plugins\AutoKeeper\. No game file is changed. It also works with the game open
+    (the loaded DLL is renamed to .old, the new one is copied in); restart the game to load it.
 
 .EXAMPLE
     .\build.ps1                      # Release build + copy to BepInEx\plugins\AutoKeeper
@@ -84,16 +85,28 @@ else {
 }
 
 # ---------------------------------------------------------------- deploy
-if (-not $NoDeploy) {
-    if (Get-Process -Name 'GraveyardKeeper2' -ErrorAction SilentlyContinue) {
-        Write-Warning 'The game is running: the DLL in use cannot be replaced. Close the game and run again.'
+# Windows does not allow overwriting a DLL the game has loaded, but it does allow renaming it: the loaded file is moved
+# to <name>.old, the new one is copied in place and the .old is deleted (or left for the next run if it is still locked).
+function Install-Dll([string]$Source, [string]$DestDir) {
+    $target = Join-Path $DestDir (Split-Path $Source -Leaf)
+    $old = "$target.old"
+    if (Test-Path $old) { Remove-Item $old -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $target) {
+        try { Copy-Item $Source -Destination $target -Force -ErrorAction Stop; return }
+        catch { Move-Item $target $old -Force }   # locked by the running game
     }
-    else {
-        $dest = Join-Path $GamePath "BepInEx\plugins\$pluginFolderName"
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
-        Copy-Item $dll -Destination $dest -Force
-        if ($bridgeDll) { Copy-Item $bridgeDll -Destination $dest -Force }
-        Write-Host "   Installed to: $dest" -ForegroundColor Green
+    Copy-Item $Source -Destination $target -Force
+    if (Test-Path $old) { Remove-Item $old -Force -ErrorAction SilentlyContinue }
+}
+
+if (-not $NoDeploy) {
+    $dest = Join-Path $GamePath "BepInEx\plugins\$pluginFolderName"
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Install-Dll $dll $dest
+    if ($bridgeDll) { Install-Dll $bridgeDll $dest }
+    Write-Host "   Installed to: $dest" -ForegroundColor Green
+    if (Get-Process -Name 'GraveyardKeeper2' -ErrorAction SilentlyContinue) {
+        Write-Host '   The game is running: restart it to load the new version.' -ForegroundColor Yellow
     }
 }
 
