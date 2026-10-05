@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.41] - 2026-10-05
+- With "Sleep, then resume", high insanity WITHOUT Lack of sleep no longer turns the bot off: it stands still (no energy spent,
+  so no insanity gained) until the game applies Lack of sleep (2 days awake), then sleeps in the bed, which cures it and
+  removes 20 insanity. It also stops sleeping for energy meanwhile, because every sleep restarts the 2 days. Out of food,
+  this was why insanity kept climbing (~5 per body) with no cure.
+
 ## [0.3.40] - 2026-10-05
 - Fix: with "Sleep, then resume" and Lack of sleep active, the bot no longer turns off for high insanity - it goes to
   the bed first, because sleeping cures Lack of sleep and removes 20 insanity (checked in game: 60.2 -> 40.2, energy

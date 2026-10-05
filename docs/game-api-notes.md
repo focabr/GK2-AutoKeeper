@@ -237,6 +237,11 @@ The original plan below still applies to the grave (0.3).
   the debuff, came back through the "home basement enter" door and continued the body on the table (4 extractions).
   Afterwards: day 140 04:08, 0.21 days awake, energy 28/92.8, insanity 7.2 (autopsy extractions add insanity on their
   own), inventory +1 bones, skull, heart, flesh.
+- Verified in game 2026-10-05 (0.3.40, dumps 185248/185316/185416 + IL): the -20 happens only if the perk exists when energy
+  fills. Sleeping again right after (0.02 days awake) removes nothing (40.3 -> 40.9). **Every** sleep start zeroes
+  `timeWithoutSleep` (`StartSleeping` fade-in callback), including energy-only sleeps, so out of food the perk never appears
+  and insanity only climbs (~5 per body from autopsy work). Fix (0.3.41): above the limit without the perk the bot waits idle
+  (~2 game days, ~17 real min) instead of stopping/sleeping, then sleeps to cure.
 
 ## 16. Player movement and physics (0.3.33, IL of 1.007.1 + Player.log)
 - The bot walks with `MovementComponent.StartPath(..., MovementType.Recast, 3.3, ..., PlayerLocalAreaMovement.Seeker)`.

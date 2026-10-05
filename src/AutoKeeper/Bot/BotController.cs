@@ -244,7 +244,21 @@ namespace AutoKeeper.Bot
             {
                 RestRequested = false; // slept: energy is back
             }
-            if (energyKnown && s.Energy < settings.MinEnergy.Value)
+            // High insanity without Lack of sleep: only the cure (-20) lowers it, and the game applies Lack of sleep after 2 days awake.
+            // Any sleep zeroes that counter, so the bot waits idle (no energy spent = no insanity gained) instead of turning off or
+            // sleeping for energy. Verified in game 2026-10-05: sleep right after waking removes nothing; the sleep that cured did -20.
+            float awakeDays = GameApi.GetDaysWithoutSleep();
+            bool waitForLack = settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep && settings.BodiesEnabled.Value
+                && s.Insanity > settings.MaxInsanity.Value && !GameApi.HasLackOfSleep() && awakeDays >= 0f && awakeDays < 2f;
+            if (!waitForLack)
+            {
+                ModLog.ResetOnce("WaitLack");
+            }
+            else
+            {
+                RestRequested = false; // sleeping for energy would restart the 2 days
+            }
+            if (!waitForLack && energyKnown && s.Energy < settings.MinEnergy.Value)
             {
                 string why = NoFoodReason();
                 float min = settings.MinEnergy.Value;
@@ -267,7 +281,7 @@ namespace AutoKeeper.Bot
             // With Lack of sleep and "Sleep, then resume" the bed is the cure (-20 insanity, verified in game 2026-10-05: 60.2 -> 40.2),
             // so the limit only stops the bot when sleeping cannot help.
             bool sleepCures = settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep && settings.BodiesEnabled.Value && GameApi.HasLackOfSleep();
-            if (s.Insanity > settings.MaxInsanity.Value && !sleepCures)
+            if (s.Insanity > settings.MaxInsanity.Value && !sleepCures && !waitForLack)
             {
                 // One decimal: 60.1 would read "60 > 60". Sleeping does not help here: the game only removes insanity (-20) when
                 // sleep cures Lack of sleep (EnergySystem.RestoreEnergyWhileSleeping, IL 1.008), so the message no longer says "rest".
@@ -301,6 +315,18 @@ namespace AutoKeeper.Bot
             else if (awake >= 0f && awake < 1.75f)
             {
                 ModLog.ResetOnce("SleepSoon"); // slept: the warning applies again in the next cycle
+            }
+
+            // 2c) Waiting for Lack of sleep (see waitForLack): finish placing a carried body, then stand still.
+            if (waitForLack && !GameApi.IsCarryingAnything())
+            {
+                AbortCurrent();
+                float left = 2f - awakeDays;
+                ModLog.InfoOnce("WaitLack", Lang.T($"Insanidade alta ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}): espero parado até a Privação de Sono ({left:0.0} dia(s) de jogo); então durmo na cama para curar (-20 de insanidade).",
+                    $"High insanity ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}): waiting idle for Lack of sleep ({left:0.0} game day(s)); then I'll sleep in the bed to cure it (-20 insanity)."));
+                State = BotState.Idle;
+                StateDetail = Lang.T($"esperando a Privação de Sono ({left:0.0} dia)", $"waiting for Lack of sleep ({left:0.0} day)");
+                return;
             }
 
             // 3) Picks the first task that can run.

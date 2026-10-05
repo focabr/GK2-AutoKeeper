@@ -36,6 +36,7 @@ no save editing, no game files modified.
 | Status panel with the game's own look: frame and title plate of the game's windows, the game's font, sections (Status, Session, Events) and game buttons (bot on/off, settings, diagnostic, close); follows a language switch | 0.3.38 | ✅ |
 | Status panel in a top corner sits right below the game's location name (top-right of the screen) instead of covering it | 0.3.39 | ⏳ |
 | With "Sleep, then resume", high insanity during Lack of sleep sends the bot to bed instead of turning it off; only the newest 30 dumps are kept | 0.3.40 | ⏳ |
+| High insanity with "Sleep, then resume": waits idle for Lack of sleep, then sleeps to cure it (-20), instead of turning off | 0.3.41 | ⏳ |
 
 ⏳ = fixed in the latest version, waiting for an in-game test.
 
@@ -68,7 +69,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.40*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.41*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
