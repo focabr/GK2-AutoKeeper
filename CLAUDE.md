@@ -29,7 +29,9 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
   `-p:FrameworkDll=<tools/FrameworkStub build>`. Cloud: dotnet-sdk-8.0, `nuget.config` with `<clear/>`, stage `Managed/` +
   `BepInEx/core`; read the game code with `tools/Inspect`.
 - Deliver from a NEW folder in `/mnt/user-data/outputs/` with `device_commit_files`; check `strings -e l AutoKeeper.dll`.
-  The DLLs can be installed with the game open (only `LogOutput.log` is locked); the game loads them on restart — check
+  ALWAYS install the plugin yourself (standing request): `build.ps1` fails while the game runs ("DLL in use"), so `mv` the
+  loaded `AutoKeeper.dll` to `.dll.old` (rename works), `cp` `src/AutoKeeper/bin/Release/AutoKeeper.dll` in, delete the `.old`,
+  and verify the version string. The game loads it on restart — check
   `Loading [GK2 AutoKeeper x.y.z]` before analyzing a test.
 - End of EVERY version (user's standing request): bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md` (+ manifest,
   README, nexus page) → local commit + tag (author focabr, no trailers, unsigned) → install → send the cmd lines (`cd /d`
