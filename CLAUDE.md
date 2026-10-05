@@ -33,6 +33,8 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
   loaded `AutoKeeper.dll` to `.dll.old` (rename works), `cp` `src/AutoKeeper/bin/Release/AutoKeeper.dll` in, delete the `.old`,
   and verify the version string. The game loads it on restart — check
   `Loading [GK2 AutoKeeper x.y.z]` before analyzing a test.
+- ALWAYS end the reply with ONE code block holding the full, ready-to-run cmd lines (`cd /d` first, chained with `&&`): `git add`,
+  `commit`, `tag`, `push` (branch + tags) and `gh release create` — even when the commit/tag were already made locally (user's standing request).
 - End of EVERY version (user's standing request): bump `Directory.Build.props` + `Plugin.cs` + `CHANGELOG.md` (+ manifest,
   README, nexus page) → local commit + tag (author focabr, no trailers, unsigned) → install → send the cmd lines (`cd /d`
   first, chained with `&&`) to push and `gh release create`. Without `device_bash`, writes into `.git` are refused and
