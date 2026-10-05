@@ -115,7 +115,32 @@ namespace AutoKeeper.Core
             string safeScene = string.Concat((sceneId ?? "scene").Split(Path.GetInvalidFileNameChars()));
             string path = Path.Combine(dir, $"dump-{safeScene}-{DateTime.Now:yyyyMMdd-HHmmss}.json");
             File.WriteAllText(path, root.ToString(Formatting.Indented));
+            PruneOldDumps(dir, MaxDumpFiles);
             return path;
+        }
+
+        private const int MaxDumpFiles = 30;
+
+        /// <summary>Keeps only the newest <paramref name="keep"/> dump files (each is ~1.2 MB).</summary>
+        private static void PruneOldDumps(string dir, int keep)
+        {
+            try
+            {
+                string[] files = Directory.GetFiles(dir, "dump-*.json");
+                if (files.Length <= keep)
+                {
+                    return;
+                }
+                Array.Sort(files, StringComparer.Ordinal); // the timestamp in the name sorts oldest first
+                for (int i = 0; i < files.Length - keep; i++)
+                {
+                    File.Delete(files[i]);
+                }
+            }
+            catch (Exception)
+            {
+                // best effort: a locked file is not worth failing the dump
+            }
         }
 
         private static JObject WgoToJson(WgoData w, Vector3 playerPos, JObject craftsByWgoDef)

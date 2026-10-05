@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.40] - 2026-10-05
+- Fix: with "Sleep, then resume" and Lack of sleep active, the bot no longer turns off for high insanity - it goes to
+  the bed first, because sleeping cures Lack of sleep and removes 20 insanity (checked in game: 60.2 -> 40.2, energy
+  max 39.8 -> 59.8). It still turns off if insanity stays above the limit without Lack of sleep.
+- Discovery dumps (F10 / panel button): only the newest 30 are kept (each is ~1.2 MB).
+
 ## [0.3.39] - 2026-10-04
 - Status panel (F9) in a top corner: it now sits right below the game's location name (e.g. "Writing Basement", top
   right of the screen) instead of covering it, and goes back up when the game hides that name. Both the game-styled and

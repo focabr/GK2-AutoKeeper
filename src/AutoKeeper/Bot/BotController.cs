@@ -264,7 +264,10 @@ namespace AutoKeeper.Bot
             }
 
             // 2b) Health: high insanity lowers max energy and blocks work; lack of sleep turns energy into insanity.
-            if (s.Insanity > settings.MaxInsanity.Value)
+            // With Lack of sleep and "Sleep, then resume" the bed is the cure (-20 insanity, verified in game 2026-10-05: 60.2 -> 40.2),
+            // so the limit only stops the bot when sleeping cannot help.
+            bool sleepCures = settings.OnLackOfSleep.Value == LackOfSleepAction.Sleep && settings.BodiesEnabled.Value && GameApi.HasLackOfSleep();
+            if (s.Insanity > settings.MaxInsanity.Value && !sleepCures)
             {
                 // One decimal: 60.1 would read "60 > 60". Sleeping does not help here: the game only removes insanity (-20) when
                 // sleep cures Lack of sleep (EnergySystem.RestoreEnergyWhileSleeping, IL 1.008), so the message no longer says "rest".
