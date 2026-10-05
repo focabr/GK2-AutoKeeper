@@ -1097,6 +1097,7 @@ namespace AutoKeeper.Bot.Tasks
                 return true;
             }
             goal = g;
+            insanityAtGoalStart = GameApi.GetPlayerRes("insanity");
             targetUid = uid;
             targetPos = pos;
             targetIsGround = ground;
@@ -1482,6 +1483,7 @@ namespace AutoKeeper.Bot.Tasks
                     QueueCredit();
                 }
                 ModLog.Info(Lang.T($"Corpos: {GoalText()} — ok", $"Bodies: {GoalText()} — ok"));
+                LogInsanityDelta();
                 return Replan(null);
             }
             if (goal != Goal.UseDoor && Now - stepStartedAt > InteractTimeout)
@@ -1842,6 +1844,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 GameApi.SetHoldAction(false);
                 ModLog.Info(Lang.T($"Corpos: {GoalText()} concluído", $"Bodies: {GoalText()} done"));
+                LogInsanityDelta();
                 QueueCredit();
                 return Replan(null);
             }
@@ -1960,6 +1963,20 @@ namespace AutoKeeper.Bot.Tasks
             ResetGoal();
             Status = why;
             return TaskResult.Failed;
+        }
+
+        private float insanityAtGoalStart = -1f;
+
+        /// <summary>Log-file line with how much insanity the finished action cost (0.3.42): shows which actions are expensive.</summary>
+        private void LogInsanityDelta()
+        {
+            float now = GameApi.GetPlayerRes("insanity");
+            if (goal == Goal.UseDoor || insanityAtGoalStart < 0f || now < 0f)
+            {
+                return;
+            }
+            float delta = now - insanityAtGoalStart;
+            ModLog.Detail(Lang.T($"Insanidade: {delta:+0.00;-0.00;0.00} (agora {now:0.0}) — {GoalText()}", $"Insanity: {delta:+0.00;-0.00;0.00} (now {now:0.0}) — {GoalText()}"));
         }
 
         private void ResetGoal()

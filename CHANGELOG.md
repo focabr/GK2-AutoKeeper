@@ -4,6 +4,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.42] - 2026-10-05
+- Log file only: after each finished action the bot writes how much insanity it cost, e.g.
+  "Insanity: +0.80 (now 41.3) - extract skull_0_0:1", to find which actions make insanity climb. No behaviour change.
+
 ## [0.3.41] - 2026-10-05
 - With "Sleep, then resume", high insanity WITHOUT Lack of sleep no longer turns the bot off: it stands still (no energy spent,
   so no insanity gained) until the game applies Lack of sleep (2 days awake), then sleeps in the bed, which cures it and
