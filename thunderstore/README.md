@@ -6,7 +6,7 @@ no item spawning, no save editing, no game files modified.
 
 *Code written with Claude (Anthropic) and tested in-game by the author.*
 
-> **Early release (0.3.x)** · tested on game version **1.008** · English and Brazilian Portuguese (follows the game
+> **Early release (0.3.x)** · tested on game version **1.009.1** · English and Brazilian Portuguese (follows the game
 > language) · Bugs and help: **[GitHub issues](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose)**
 
 ## Quick start
@@ -52,7 +52,7 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
 With **GK2 Mod Framework** installed, the same settings also appear under **Mods** in the main and pause menus.
 
 ## Requirements
-- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.008**
+- Graveyard Keeper 2 (Steam, Windows) — tested on game version **1.009.1**
 - [BepInExPack 5.4.2305](https://thunderstore.io/c/graveyard-keeper-2/p/BepInEx/BepInExPack/) (BepInEx 5.4.23.x)
 
 ## Installation

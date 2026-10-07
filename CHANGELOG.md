@@ -4,6 +4,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.43] - 2026-10-06
+- Status panel (F9) in a top corner now stays in one place, below the game's location name, instead of moving up
+  and down every time that name appears or disappears. The mod remembers how far down the name has reached since the
+  screen size last changed; until the name has been seen once (e.g. at the main menu) the panel sits at the very top,
+  then settles below it. Both the game-styled and the simple panel.
+- Tested on game version 1.009.1 (F9 panel and F11 window checked in game); the "untested game version" warning no
+  longer shows on it.
+
 ## [0.3.42] - 2026-10-05
 - Log file only: after each finished action the bot writes how much insanity it cost, e.g.
   "Insanity: +0.80 (now 41.3) - extract skull_0_0:1", to find which actions make insanity climb. No behaviour change.

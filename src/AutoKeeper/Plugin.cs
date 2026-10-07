@@ -20,10 +20,10 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.42";
+        public const string Version = "0.3.43";
 
         /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
-        public const string TestedGameVersion = "1.008";
+        public const string TestedGameVersion = "1.009.1";
 
         /// <summary>Active instance (used by the optional GK2 Mod Framework bridge).</summary>
         public static Plugin Instance { get; private set; }

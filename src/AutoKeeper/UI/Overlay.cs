@@ -236,7 +236,7 @@ namespace AutoKeeper.UI
         /// <summary>A top-corner panel moves down below the game's location name plate when they would overlap sideways.</summary>
         private static Rect BelowZoneLabel(Rect r)
         {
-            Rect label = GameApi.GetZoneLabelRect();
+            Rect label = GameApi.GetZoneLabelRectSticky();
             if (label.width > 0f && label.xMax > r.xMin && label.xMin < r.xMax)
             {
                 r.y = Mathf.Max(r.y, label.yMax + Margin);

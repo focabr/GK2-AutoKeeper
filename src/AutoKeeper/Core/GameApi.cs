@@ -132,6 +132,41 @@ namespace AutoKeeper.Core
             return zoneRect;
         }
 
+        private static Rect stickyZone;
+        private static int stickyW, stickyH;
+
+        /// <summary>
+        /// Like <see cref="GetZoneLabelRect"/>, but remembers the largest area the name plate has covered (since the
+        /// screen size last changed), so a panel placed below it stays put instead of moving up whenever the plate
+        /// hides. Rect.zero until the plate has been seen once.
+        /// </summary>
+        public static Rect GetZoneLabelRectSticky()
+        {
+            if (Screen.width != stickyW || Screen.height != stickyH)
+            {
+                stickyW = Screen.width;
+                stickyH = Screen.height;
+                stickyZone = Rect.zero;
+            }
+            Rect r = GetZoneLabelRect();
+            if (r.width > 0f)
+            {
+                if (stickyZone.width > 0f)
+                {
+                    float xMin = Mathf.Min(stickyZone.xMin, r.xMin);
+                    float yMin = Mathf.Min(stickyZone.yMin, r.yMin);
+                    float xMax = Mathf.Max(stickyZone.xMax, r.xMax);
+                    float yMax = Mathf.Max(stickyZone.yMax, r.yMax);
+                    stickyZone = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+                }
+                else
+                {
+                    stickyZone = r;
+                }
+            }
+            return stickyZone;
+        }
+
         private static Rect ZoneLabelRectImpl()
         {
             GUIElements gui = GUIElements.Instance;

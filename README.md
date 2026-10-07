@@ -7,7 +7,7 @@ no save editing, no game files modified.
 > Code written with Claude (Anthropic) and tested in-game by the author. Published with the "AI Generated" category on
 > Thunderstore and the matching Generative AI tags on Nexus Mods.
 
-- Game: Graveyard Keeper 2 **1.008** (Steam, Windows) · BepInEx **5.4.23.x** (BepInExPack 5.4.2305)
+- Game: Graveyard Keeper 2 **1.009.1** (Steam, Windows) · BepInEx **5.4.23.x** (BepInExPack 5.4.2305)
 - Plugin GUID: `com.focabr.gk2.autokeeper` · Version: see `Directory.Build.props` / [CHANGELOG](CHANGELOG.md)
 - Downloads: Thunderstore (`focabr-GK2_AutoKeeper`) · Nexus Mods · [Releases](../../releases)
 - **Bugs, help and suggestions: [open an issue](https://github.com/focabr/GK2-AutoKeeper/issues/new/choose) with a template** — see [Support](#support--suporte)
@@ -69,7 +69,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.42*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.3.43*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the

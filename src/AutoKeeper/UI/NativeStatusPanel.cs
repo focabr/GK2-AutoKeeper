@@ -692,7 +692,7 @@ namespace AutoKeeper.UI
         /// </summary>
         private float BelowZoneLabel(float x, float width, float anchorX)
         {
-            Rect label = GameApi.GetZoneLabelRect(); // screen pixels, origin top-left
+            Rect label = GameApi.GetZoneLabelRectSticky(); // screen pixels, origin top-left; stays below the plate even while it is hidden
             var parent = rootRt.parent as RectTransform;
             if (label.width <= 0f || parent == null)
             {
