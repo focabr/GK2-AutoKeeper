@@ -4,6 +4,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.44] - 2026-10-13
+- Tested on game version 1.010 (bodies from the pallets and from the ground outside the morgue, autopsy, cremation,
+  storing in a chest, eating from the hotbar, doors between house, church and morgue; Player.log without errors); the
+  "untested game version" warning no longer shows on it. No code change was needed: every game type, method and field
+  the mod uses is unchanged in 1.010, and the same code compiled against 1.010 gives identical IL.
+
 ## [0.3.43] - 2026-10-06
 - Status panel (F9) in a top corner now stays in one place, below the game's location name, instead of moving up
   and down every time that name appears or disappears. The mod remembers how far down the name has reached since the
