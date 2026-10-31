@@ -34,10 +34,11 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
 - **Waits in the morgue** when there is nothing to do, ready for the next bodies.
 
 ## Safe by design
-- It never takes items out of chests, and stops at once if a nearby chest loses items while it runs.
+- It never takes items out of chests, and stops at once if items go from a nearby chest into your inventory while it
+  runs (chests your zombie workers use are fine).
 - It never holds the Action key while the game is aiming at a different object.
-- It turns itself off above a configurable insanity and, by default, on the game's Lack of Sleep debuff, and tells
-  you why on the panel and in the log.
+- On the game's Lack of Sleep debuff it goes home, sleeps and resumes (default; it can turn itself off instead), and it
+  turns itself off above a configurable insanity, telling you why on the panel and in the log.
 - It pauses in menus, the pause screen, windows, dialogues, cutscenes and sleep, and forgets everything when you load
   a save or go back to the main menu.
 

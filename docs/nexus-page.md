@@ -1,7 +1,7 @@
 # GK2 AutoKeeper — Nexus page (copy and paste)
 
 **Mod name:** GK2 AutoKeeper
-**Version:** 0.4.0 · **Main file:** `GK2_AutoKeeper-0.4.0.zip` (the same zip as on Thunderstore)
+**Version:** 0.4.1 · **Main file:** `GK2_AutoKeeper-0.4.1.zip` (the same zip as on Thunderstore)
 **Summary (short field):** Runs your morgue hands-free: bodies to the autopsy table, organs extracted, remains cremated. Eats, sleeps and stores what it collects. Fair play: only actions the player could do, no spawning or save edits. EN/PT-BR.
 **Suggested category:** Gameplay (or Utilities, if it exists) · **Language:** English (also pt-BR, following the game language)
 **Requirements (Requirements tab):** BepInEx for Graveyard Keeper 2 — https://www.nexusmods.com/graveyardkeeper2/mods/48
@@ -19,7 +19,7 @@
 
 **Bugs, help with the settings and suggestions:** please open an issue on GitHub using a template — https://github.com/focabr/GK2-AutoKeeper/issues/new/choose (details under *Support* below).
 
-**What it does (0.4.0)**
+**What it does (0.4.1)**
 - Body processing in the morgue: pallet/ground → autopsy table → extract organs and "Others" items (flesh, fat, blood) → crematorium (or leave on the table).
 - Keeps working while the crematorium burns: autopsied bodies are parked on an empty pallet and cremated later.
 - Fetches bodies left in other areas (e.g. outside the morgue) as its last task, through the game's doors.
@@ -27,8 +27,8 @@
 - Success chance check: extracts item by item only when the game's success chance is above the minimum you choose.
 - Walks by itself to where the work is and works from the same spot the game uses.
 - Eats from your hot bar when energy is low, several items in a row without going over the maximum (skips items that raise insanity).
-- Stores only what it collected in the nearest chest with room when your inventory is nearly full; if a chest fills up, the rest goes to the next one. It never takes items out of chests and stops at once if a nearby chest loses items while it runs.
-- Insanity and sleep guard: turns itself off above a configurable insanity (default 60) and when the game's Lack of sleep hits. Or, if you choose: go home, sleep in the bed and continue the work afterwards — also when the food runs out and energy is low.
+- Stores only what it collected in the nearest chest with room when your inventory is nearly full; if a chest fills up, the rest goes to the next one. It never takes items out of chests and stops at once if items go from a nearby chest into your inventory while it runs (chests your zombie workers use are fine).
+- Insanity and sleep guard: when the game's Lack of sleep hits, goes home, sleeps in the bed and continues the work afterwards (default; also when the food runs out and energy is low), and turns itself off above a configurable insanity (default 60). Or, if you choose: turn off on Lack of sleep.
 - Pauses automatically in menus, dialogues, cutscenes and sleep; turns itself off and forgets everything when you load a save.
 - Status panel (F9) with the game's own frame, font and buttons: state, session summary (bodies, sleeps, time on) and the latest events with the game time.
 - Settings window, status panel and log messages in English or Brazilian Portuguese (follows the game language).
@@ -61,7 +61,7 @@ Minimum for a bug report:
 
 ## Description (pt-BR, optional)
 
-**GK2 AutoKeeper** automatiza a rotina do necrotério no **Graveyard Keeper 2** usando só ações que o jogador faria (sem criar itens, sem editar o save). Palete/chão → mesa de autópsia → extrai órgãos e "Outros" → crematório (ou deixa na mesa); estaciona corpos no palete com o crematório ocupado; busca corpos largados em outras áreas; come da barra de atalhos; desliga com insanidade alta ou Privação de Sono (ou, se você escolher, vai dormir e continua); guarda no baú só o que recolheu. **F8** liga/desliga, **F9** painel, **F11** configurações, **F10** arquivo de diagnóstico. Código escrito com o Claude (Anthropic) e testado no jogo pelo autor.
+**GK2 AutoKeeper** automatiza a rotina do necrotério no **Graveyard Keeper 2** usando só ações que o jogador faria (sem criar itens, sem editar o save). Palete/chão → mesa de autópsia → extrai órgãos e "Outros" → crematório (ou deixa na mesa); estaciona corpos no palete com o crematório ocupado; busca corpos largados em outras áreas; come da barra de atalhos; na Privação de Sono vai dormir e continua (ou, se você escolher, desliga); desliga com insanidade alta; guarda no baú só o que recolheu. **F8** liga/desliga, **F9** painel, **F11** configurações, **F10** arquivo de diagnóstico. Código escrito com o Claude (Anthropic) e testado no jogo pelo autor.
 
 **Suporte:** problemas, ajuda na configuração e sugestões por issue no GitHub, escolhendo o modelo: https://github.com/focabr/GK2-AutoKeeper/issues/new/choose — envie a versão do mod e do jogo, o que aconteceu e como reproduzir, o `LogOutput.log` (copiado **antes** de reiniciar o jogo), o diagnóstico **F10** se o bot travou e o arquivo de configurações renomeado para `.txt`.
 

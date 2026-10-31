@@ -40,23 +40,30 @@ namespace AutoKeeper.Core
             }
         }
 
-        /// <summary>Total units stored in the chest (for the watchdog: the bot never takes anything from a chest).</summary>
-        public static int ChestItemTotal(string chestUid) => Safe(() =>
+        /// <summary>
+        /// Player item counts for the chest watch: main inventory and tool belt (where the game's "take all" puts things).
+        /// Bodies are left out.
+        /// </summary>
+        public static Dictionary<string, int> SnapshotPlayerItemsForWatch() => Safe(() =>
+        {
+            var counts = new Dictionary<string, int>();
+            CountItems(MainGame.PlayerData.inventory.Data, counts);
+            CountItems(MainGame.PlayerData.toolBeltInventory?.Data, counts);
+            return counts;
+        }, new Dictionary<string, int>(), nameof(SnapshotPlayerItemsForWatch));
+
+        /// <summary>Units stored in the chest by item id (null if it cannot be read). Used by the chest watch.</summary>
+        public static Dictionary<string, int> ChestItemCounts(string chestUid) => Safe(() =>
         {
             WgoData chest = FindWgoByUid(chestUid);
             if (chest?.Inventory == null)
             {
-                return -1;
+                return null;
             }
             var counts = new Dictionary<string, int>();
             CountItems(chest.Inventory.Data, counts);
-            int n = 0;
-            foreach (int c in counts.Values)
-            {
-                n += c;
-            }
-            return n;
-        }, -1, nameof(ChestItemTotal));
+            return counts;
+        }, null, nameof(ChestItemCounts));
 
         /// <summary>Free slots in the player's inventory (same count as the game window).</summary>
         public static int PlayerFreeSlots() => Safe(() =>

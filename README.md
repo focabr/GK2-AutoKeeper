@@ -23,14 +23,15 @@ no save editing, no game files modified.
 | Eats from the hotbar when energy is low, several items in a row without going over the max; skips insanity food | 0.2.3 / 0.3.13 | ✅ |
 | Checks the crematorium on arrival and collects what is ready | 0.2.6 / 0.3.4 | ✅ |
 | Parks autopsied bodies on an empty pallet while the crematorium burns | 0.3.5 | ✅ |
+| A free crematorium is fed first: a finished body goes in before the next extraction starts | 0.4.1 | ⏳ |
 | Fetches bodies left in other areas (e.g. outside the morgue) as its last task | 0.3.7 | ✅ |
 | With nothing to do (e.g. after sleeping at home), walks back to the morgue and waits there | 0.3.30 | ✅ |
-| Stores **only what it collected** in the nearest chest with room when the inventory is nearly full — between bodies, not mid-autopsy; if a chest fills up, the rest goes to the next one | 0.2.6 / 0.3.12 / 0.3.35 / 0.3.36 | ✅ |
-| Safety: never holds Action while the game aims at another object; stops if a nearby chest loses items | 0.3.8 / 0.3.10 | ✅ |
+| Stores **only what it collected** in the nearest chest with room when the inventory is nearly full — between bodies, not mid-autopsy; if a chest fills up, the rest goes to the next one; goes straight to a chest that takes everything instead of two chests per trip | 0.2.6 / 0.3.12 / 0.3.35 / 0.3.36 / 0.4.1 | ⏳ |
+| Safety: never holds Action while the game aims at another object; stops if items go from a nearby chest into the inventory (zombie workers taking from chests no longer stop it) | 0.3.8 / 0.3.10 / 0.4.1 | ⏳ |
 | Works from the spot the game itself uses (no shuffling around the table) | 0.3.13 | ✅ |
 | Resets its memory when you load a save or return to the menu | 0.3.11 | ✅ |
 | Turns off above a configurable insanity and on the game's Lack of Sleep debuff | 0.3.15 | ✅ |
-| On Lack of Sleep you choose: turn off (default), go home and sleep in the bed then resume, or keep working | 0.3.18 / 0.3.19 | ✅ |
+| On Lack of Sleep you choose: turn off, go home and sleep in the bed then resume (default since 0.4.1), or keep working | 0.3.18 / 0.3.19 / 0.4.1 | ✅ |
 | Out of food with "Sleep, then resume": sleeps in the bed to recover energy instead of turning off; warns when the food runs out | 0.3.32 / 0.3.33 | ✅ |
 | Status panel in aligned blocks: state and reason, task, place/time, energy/insanity, sleep, a one-line session summary (bodies done, sleeps, time on), latest events in order with the game time (repeats as ×N) | 0.3.19 / 0.3.34 / 0.3.36 | ✅ |
 | Status panel with the game's own look: frame and title plate of the game's windows, the game's font, sections (Status, Session, Events) and game buttons (bot on/off, settings, diagnostic, close); follows a language switch | 0.3.38 | ✅ |
@@ -69,7 +70,7 @@ Where the files are (`<game>` = the Graveyard Keeper 2 folder):
 - **F10 diagnostic:** press **F10** at the moment of the problem → `<game>/BepInEx/config/AutoKeeper/dumps/*.json`
   (read-only snapshot of the scene; zip it if it is large).
 - **Settings:** `<game>/BepInEx/config/com.focabr.gk2.autokeeper.cfg` — GitHub does not accept `.cfg`, rename it to `.txt`.
-- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.4.0*.
+- **Mod version:** title of the status panel (F9) or of the F11 window, e.g. *GK2 AutoKeeper 0.4.1*.
 
 ## Roadmap / Próximos passos
 - **Burial:** after the autopsy, carry the body to the graveyard, dig a grave you placed with the graveyard builder, bury the
@@ -95,7 +96,7 @@ Settings window, status panel and log messages in English or Brazilian Portugues
 | General | `[Bot] EatBelowEnergy` | 20 | energy that triggers eating |
 | General | `[Bot] MinEnergy` | 10 | turn off below this energy (when there is no food) |
 | General | `[Bot] MaxInsanity` | 60 | turn off above this insanity (each point lowers max energy by 1; near 80 the game blocks autopsy) |
-| General | `[Bot] OnLackOfSleep` | Stop | when the game's Lack of sleep hits (2 days awake: half of the energy spent becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
+| General | `[Bot] OnLackOfSleep` | Sleep | when the game's Lack of sleep hits (2 days awake: half of the energy spent becomes insanity): `Stop` the bot, `Sleep` (go home, sleep in the bed, then resume) or `KeepWorking` |
 | General | `[Bot] UseDoors` | on | go through doors along the shortest route to the work |
 | Bodies | `[Bodies] Enabled` | on | body routine on/off |
 | Bodies | `[Bodies] Destination` | Crematorium | `Crematorium` or `LeaveOnTable` (burial is on the roadmap) |
@@ -105,12 +106,12 @@ Settings window, status panel and log messages in English or Brazilian Portugues
 | Bodies | `[Bodies] CheckCrematoriumFirst` | on | collect finished crematorium results before starting |
 | Bodies | `[Bodies] UseChest` | on | store only what the bot collected in the nearest chest |
 | Bodies | `[Bodies] ChestFreeSlots` | 3 | go to the chest below this many free inventory slots |
-| Extraction | `[Bodies] RequireMastery` / `MinMasteryChance` | on / 100 | extract only above the chosen success chance |
+| Extraction | `[Bodies] RequireMastery` / `MinMasteryChance` | on / 60 | extract only above the chosen success chance |
 | Extraction | `[Bodies] ExtractSkin` … `ExtractGuts` | on | which organs to extract |
 | Extraction | `[Bodies] ExtractFlesh` / `ExtractFat` / `ExtractBlood` | on | "Others" items |
 | Extraction | `[Bodies] ExtractOtherPocket` | off | any other "Others" item |
 | Hotkeys | `[Hotkeys] ToggleBot` / `ToggleOverlay` / `DiscoveryDump` / `OpenSettings` | F8 / F9 / F10 / F11 | keys |
-| Panel | `[Overlay] ShowOverlay` / `GameLook` / `GameLookSize` / `Position` / `Detailed` / `LogLines` | on / on / Small / top-left / off / 3 | status panel (`GameLook` off = simple panel; `GameLookSize` Large = the game's window size) |
+| Panel | `[Overlay] ShowOverlay` / `GameLook` / `GameLookSize` / `Position` / `Detailed` / `LogLines` | on / on / Small / top-right / off / 3 | status panel (`GameLook` off = simple panel; `GameLookSize` Large = the game's window size) |
 | Advanced | `[Debug] VerboseLogging` | off | debug lines (`[dbg]`) in `BepInEx/LogOutput.log` |
 | Advanced | `[Bot] TickIntervalSeconds` / `MoveTimeoutSeconds` / `WorkStallSeconds` | 0.25 / 45 / 20 | timing and give-up limits |
 

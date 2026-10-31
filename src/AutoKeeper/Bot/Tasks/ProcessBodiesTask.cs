@@ -110,6 +110,8 @@ namespace AutoKeeper.Bot.Tasks
         private const float MisaimTimeout = 6f;       // s spent trying to re-aim at the target before giving up
         private const float ChestPreferSlack = 15f;   // extra m accepted to walk to the chest that already holds the same items
         private const int MidAutopsyMinFree = 2;      // free slots below which the chest trip cannot wait for the body to be done
+        private const int CrampedMidAutopsyMinFree = 1; // same, when the player's own items keep the inventory below the threshold
+        private const float ChestAllInSlack = 60f;    // extra m accepted to reach a chest that takes everything (vs. a partial one)
         private const int ChestLowFree = 2;           // a chest with this many free slots or fewer gets a "nearly full" warning
         private const float DoorTimeout = 4f;
         private const int MaxMoveRetries = 2;
@@ -330,6 +332,7 @@ namespace AutoKeeper.Bot.Tasks
             prevHere = 0;
             seenGeneration = -1;
             chestWatchGen = -1;
+            chestChangedLogged.Clear();
             chestWarned = false;
             freeAfterDeposit = int.MaxValue;
             depositLeftovers = false;
@@ -357,13 +360,18 @@ namespace AutoKeeper.Bot.Tasks
 
         // ------------------------------------------------------------------ chest watch
 
-        private readonly Dictionary<string, int> chestWatch = new Dictionary<string, int>();
+        private readonly Dictionary<string, Dictionary<string, int>> chestWatch = new Dictionary<string, Dictionary<string, int>>();
+        private readonly HashSet<string> chestChangedLogged = new HashSet<string>();
+        private Dictionary<string, int> playerWatch;
         private float chestWatchAt = -10f;
         private int chestWatchGen = -1;
 
         /// <summary>
-        /// Watch: the bot never takes items out of a chest. If a nearby chest loses items while the bot is on, it turns off
-        /// at once and logs what the bot was doing (the Action key on a chest = the game's "take all").
+        /// Watch: the bot never takes items out of a chest. The game's "take all" (Action on a chest) moves the items into the
+        /// player's inventory, so the bot turns off at once when a nearby chest loses items AND the player gains those same
+        /// items in the same check, and logs what the bot was doing. A chest that loses items without the player getting them
+        /// is someone else's doing: zombie workers take materials from the chests near their stations (0.4.1, user's test: the
+        /// bot was turned off walking past the workyard chests). That is only noted in the log file.
         /// </summary>
         private bool WatchChests()
         {
@@ -376,32 +384,64 @@ namespace AutoKeeper.Bot.Tasks
             {
                 chestWatchGen = nav.Generation; // bot turned back on: the player may have touched the chests while it was off
                 chestWatch.Clear();
+                playerWatch = null;
             }
+            Dictionary<string, int> playerNow = GameApi.SnapshotPlayerItemsForWatch();
+            Dictionary<string, int> playerBefore = playerWatch;
+            playerWatch = playerNow;
             var seen = new HashSet<string>();
             foreach (WorldObjectRef c in GameApi.FindObjects(ObjectKind.Chest, 8f))
             {
-                int total = GameApi.ChestItemTotal(c.Uid);
-                if (total < 0)
+                Dictionary<string, int> now = GameApi.ChestItemCounts(c.Uid);
+                if (now == null)
                 {
                     continue;
                 }
                 seen.Add(c.Uid);
-                if (chestWatch.TryGetValue(c.Uid, out int before) && total < before)
+                if (chestWatch.TryGetValue(c.Uid, out Dictionary<string, int> before))
                 {
-                    GameApi.ReleaseAllVirtualKeys();
-                    GameApi.StopMoving();
-                    string msg = Lang.T(
-                        $"VIGIA: o baú {c.DefId} perdeu {before - total} item(ns) com o bot ligado — objetivo {GoalText()}, passo {step}, "
-                        + $"alvo do jogo {GameApi.DescribeInteractionTarget()}, pos {GameApi.GetPlayerPosition()}. Bot desligado por segurança.",
-                        $"CHEST WATCH: chest {c.DefId} lost {before - total} item(s) while the bot was on — goal {GoalText()}, step {step}, "
-                        + $"game target {GameApi.DescribeInteractionTarget()}, pos {GameApi.GetPlayerPosition()}. Bot turned off for safety.");
-                    ModLog.Warn(msg);
-                    chestWatch.Clear();
-                    ResetGoal();
-                    Status = Lang.T("vigia do baú: desligado", "chest watch: turned off");
-                    return false;
+                    int lost = 0;
+                    int taken = 0;
+                    foreach (KeyValuePair<string, int> kv in before)
+                    {
+                        now.TryGetValue(kv.Key, out int have);
+                        int loss = kv.Value - have;
+                        if (loss <= 0)
+                        {
+                            continue;
+                        }
+                        lost += loss;
+                        if (playerBefore != null)
+                        {
+                            playerBefore.TryGetValue(kv.Key, out int hadBefore);
+                            playerNow.TryGetValue(kv.Key, out int hasNow);
+                            taken += Math.Min(loss, Math.Max(0, hasNow - hadBefore));
+                        }
+                    }
+                    if (taken > 0)
+                    {
+                        GameApi.ReleaseAllVirtualKeys();
+                        GameApi.StopMoving();
+                        string msg = Lang.T(
+                            $"VIGIA: {taken} item(ns) saíram do baú {c.DefId} para o inventário do jogador com o bot ligado — objetivo {GoalText()}, passo {step}, "
+                            + $"alvo do jogo {GameApi.DescribeInteractionTarget()}, pos {GameApi.GetPlayerPosition()}. Bot desligado por segurança.",
+                            $"CHEST WATCH: {taken} item(s) went from chest {c.DefId} into the player's inventory while the bot was on — goal {GoalText()}, step {step}, "
+                            + $"game target {GameApi.DescribeInteractionTarget()}, pos {GameApi.GetPlayerPosition()}. Bot turned off for safety.");
+                        ModLog.Warn(msg);
+                        chestWatch.Clear();
+                        playerWatch = null;
+                        ResetGoal();
+                        Status = Lang.T("vigia do baú: desligado", "chest watch: turned off");
+                        return false;
+                    }
+                    if (lost > 0 && chestChangedLogged.Add(c.Uid))
+                    {
+                        ModLog.Detail(Lang.T(
+                            $"Vigia: o baú {c.DefId} ({c.Uid.Substring(0, Math.Min(6, c.Uid.Length))}) perdeu {lost} item(ns) sem ir para o jogador (trabalhadores zumbis usam este baú) — ignorado.",
+                            $"Chest watch: chest {c.DefId} ({c.Uid.Substring(0, Math.Min(6, c.Uid.Length))}) lost {lost} item(s) that did not go to the player (zombie workers use this chest) — ignored."));
+                    }
                 }
-                chestWatch[c.Uid] = total;
+                chestWatch[c.Uid] = now;
             }
             foreach (string gone in chestWatch.Keys.Where(k => !seen.Contains(k)).ToList())
             {
@@ -688,8 +728,12 @@ namespace AutoKeeper.Bot.Tasks
             // Not in the middle of an autopsy: finish the body on the table and then store everything in one trip, unless
             // the inventory is about to fill up (0.3.36: 50 chest trips for 34 bodies, 12 of them for a single skin or bone,
             // each one breaking off the extractions).
+            // "Cramped": even after storing everything the player's own items leave fewer free slots than the threshold, so
+            // the threshold can never be reached; then the autopsy goes on down to the last free slot (0.4.1 test: 4 free
+            // slots after each deposit, threshold 6, a chest trip every 1 or 2 items).
+            bool cramped = freeAfterDeposit != int.MaxValue && freeAfterDeposit < settings.ChestFreeSlots.Value;
             bool midAutopsy = d.Kind == DecisionKind.Act && (d.Goal == Goal.ExtractOrgan || d.Goal == Goal.ExtractPocket);
-            bool due = wanted && !(midAutopsy && freeNow > MidAutopsyMinFree);
+            bool due = wanted && !(midAutopsy && freeNow > (cramped ? CrampedMidAutopsyMinFree : MidAutopsyMinFree));
             Dictionary<string, int> pending = settings.UseChest.Value && LedgerTotal() > 0 && due ? PendingDeposit() : null;
             if (pending != null && pending.Count == 0)
             {
@@ -699,8 +743,9 @@ namespace AutoKeeper.Bot.Tasks
             {
                 // Among the chests in the same area and almost as close as the nearest one that accepts something, prefer one
                 // that takes EVERYTHING (0.3.35: the nearest chest was full and took only the salt, while the morgue's other
-                // chest had 20 free slots), then one that already holds these items (before, a chest 400 m away holding bones
-                // beat the empty morgue chest), then simply the nearest.
+                // chest had 20 free slots), then any chest a bit farther that takes everything (0.4.1 test: the full morgue
+                // chest took one item and the rest went 40 m away right after, two chests per trip), then one that already
+                // holds these items (before, a chest 400 m away holding bones beat the empty morgue chest), then the nearest.
                 Func<Candidate, bool> usable = c => !failedChests.Contains(c.Obj.Uid) && GameApi.ChestCanTakeAny(c.Obj.Uid, pending.Keys);
                 Candidate? nearest = FirstFree(w.Chests, usable);
                 Candidate? chest = nearest;
@@ -712,6 +757,7 @@ namespace AutoKeeper.Bot.Tasks
                     Func<Candidate, bool> holdsSame = c => GameApi.ChestHasAny(c.Obj.Uid, pending.Keys);
                     chest = FirstFree(w.Chests, c => close(c) && takesAll(c) && holdsSame(c))
                         ?? FirstFree(w.Chests, c => close(c) && takesAll(c))
+                        ?? FirstFree(w.Chests, c => usable(c) && c.Cost <= n.Cost + ChestAllInSlack && takesAll(c))
                         ?? FirstFree(w.Chests, c => close(c) && holdsSame(c))
                         ?? nearest;
                 }
@@ -820,9 +866,52 @@ namespace AutoKeeper.Bot.Tasks
                 return Act(Goal.CollectCrematorium, crem.Value, null);
             }
 
-            // 3) Tables with a plain body.
+            // 3) Destination free (crematorium idle or open grave): feed it BEFORE starting or resuming extractions. Cremation
+            //    runs on its own, so an autopsied body left waiting while the crematorium is idle is lost time (0.4.1, user's
+            //    test: after collecting the ashes the bot went back to extract the next body's organs and left the finished
+            //    body on the other table, with the crematorium idle until the end).
+            bool destFree = (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
+            if (destFree)
+            {
+                // 3a) Finished autopsy on a table (nothing in progress and nothing wanted left to extract).
+                foreach (Candidate t in tables)
+                {
+                    string uid = t.Obj.Uid;
+                    if (!GameApi.ObjectHasPlainBody(uid) || GameApi.IsCraftActive(uid))
+                    {
+                        continue;
+                    }
+                    string body = GameApi.GetBodyUidInObject(uid);
+                    if (!HasPartsLeft(uid, body, wantsParts, organs, pockets))
+                    {
+                        return Act(Goal.TakeBody, t, body);
+                    }
+                }
+                // 3b) Autopsied bodies parked on the pallets.
+                if (wantsParts)
+                {
+                    foreach (Candidate pallet in w.Pallets)
+                    {
+                        string pb = GameApi.GetBodyUidInObject(pallet.Obj.Uid);
+                        if (GameApi.ObjectHasPlainBody(pallet.Obj.Uid) && (parkedPallets.Contains(pallet.Obj.Uid) || (pb != null && autopsyDone.Contains(pb))))
+                        {
+                            return Act(Goal.PickUpFromPallet, pallet, pb);
+                        }
+                    }
+                }
+            }
+
+            // 3c) Tables with a plain body: recipe in progress, then the next wanted part.
             Candidate? doneTable = null;   // table with a finished autopsy waiting for the destination
             string doneBody = null;
+            foreach (Candidate t in tables)
+            {
+                string uid = t.Obj.Uid;
+                if (GameApi.ObjectHasPlainBody(uid) && GameApi.IsCraftActive(uid))
+                {
+                    return Act(Goal.ExtractOrgan, t, GameApi.GetBodyUidInObject(uid));
+                }
+            }
             foreach (Candidate t in tables)
             {
                 string uid = t.Obj.Uid;
@@ -832,13 +921,7 @@ namespace AutoKeeper.Bot.Tasks
                 }
                 string body = GameApi.GetBodyUidInObject(uid);
 
-                // 3a) Recipe in progress (extraction): work on it.
-                if (GameApi.IsCraftActive(uid))
-                {
-                    return Act(Goal.ExtractOrgan, t, body);
-                }
-
-                // 3b) There is still a wanted organ / "Others" item to extract.
+                // There is still a wanted organ / "Others" item to extract.
                 if (wantsParts && body != null && !autopsyDone.Contains(body))
                 {
                     string organ = NextPart(uid, GameApi.GetExtractableOrgans(uid, false, organs), body, pocket: false);
@@ -853,12 +936,7 @@ namespace AutoKeeper.Bot.Tasks
                     }
                 }
 
-                // 3c) Autopsy done: take the body off the table only if the destination is available now.
-                bool destReady = (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
-                if (destReady)
-                {
-                    return Act(Goal.TakeBody, t, body);
-                }
+                // Autopsy done and the destination is busy (a free destination was handled in 3a): wait on the table.
                 if (!doneTable.HasValue)
                 {
                     doneTable = t;
@@ -866,27 +944,13 @@ namespace AutoKeeper.Bot.Tasks
                 }
             }
 
-            // 3c') Grave destination with no open grave: dig a grave the player already marked, if a body is waiting for burial.
+            // 3d) Grave destination with no open grave: dig a grave the player already marked, if a body is waiting for burial.
             if (dest == BodyDestination.Grave && !grave.HasValue && w.GravePlaces.Count > 0 && BodyAwaitingGrave(w, doneTable.HasValue, wantsParts))
             {
                 Candidate? place = FirstFree(w.GravePlaces, g => !GameApi.HasOtherWorker(g.Obj.Uid));
                 if (place.HasValue)
                 {
                     return Act(Goal.DigGrave, place.Value, null);
-                }
-            }
-
-            // 3d) Destination free: take the already autopsied bodies parked on the pallets.
-            bool destFree = (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && grave.HasValue);
-            if (destFree && wantsParts)
-            {
-                foreach (Candidate pallet in w.Pallets)
-                {
-                    string pb = GameApi.GetBodyUidInObject(pallet.Obj.Uid);
-                    if (GameApi.ObjectHasPlainBody(pallet.Obj.Uid) && (parkedPallets.Contains(pallet.Obj.Uid) || (pb != null && autopsyDone.Contains(pb))))
-                    {
-                        return Act(Goal.PickUpFromPallet, pallet, pb);
-                    }
                 }
             }
 
@@ -1020,6 +1084,17 @@ namespace AutoKeeper.Bot.Tasks
         }
 
         /// <summary>Next item to extract: skips those the game refused and, with "Skip low-chance extractions", the low-chance ones.</summary>
+        /// <summary>True while the body on this table still has a wanted organ or "Others" item the bot would extract now.</summary>
+        private bool HasPartsLeft(string tableUid, string body, bool wantsParts, HashSet<string> organs, HashSet<string> pockets)
+        {
+            if (!wantsParts || body == null || autopsyDone.Contains(body))
+            {
+                return false;
+            }
+            return NextPart(tableUid, GameApi.GetExtractableOrgans(tableUid, false, organs), body, pocket: false) != null
+                || NextPart(tableUid, GameApi.GetExtractablePocketItems(tableUid, pockets), body, pocket: true) != null;
+        }
+
         private string NextPart(string tableUid, List<string> candidates, string body, bool pocket)
         {
             foreach (string id in candidates)
@@ -1591,6 +1666,12 @@ namespace AutoKeeper.Bot.Tasks
             {
                 freeAfterDeposit = freeNow; // all stored: only come back when the inventory fills up further
                 depositLeftovers = false;
+                if (freeNow < settings.ChestFreeSlots.Value)
+                {
+                    ModLog.InfoOnce("InventoryCramped", Lang.T(
+                        $"Baú: guardei tudo, mas sobram só {freeNow} espaço(s) livre(s) no inventário (o resto são itens seus) — o bot vai continuar a autópsia até o último espaço antes de voltar ao baú. Libere espaço no inventário para menos idas ao baú.",
+                        $"Chest: stored everything, but only {freeNow} free inventory slot(s) are left (the rest are your items) — the bot keeps doing the autopsy down to the last slot before going back to the chest. Free up inventory space for fewer chest trips."));
+                }
             }
             else
             {

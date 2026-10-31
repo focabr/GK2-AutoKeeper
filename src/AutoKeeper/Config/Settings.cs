@@ -177,10 +177,10 @@ namespace AutoKeeper.Config
                 "Parar com insanidade acima de", "Turn off the bot above insanity",
                 "Cada ponto de insanidade tira 1 da energia máxima, e perto de 80 o jogo bloqueia autópsia e túmulos. O bot desliga ao passar deste valor.",
                 "Each insanity point lowers max energy by 1, and near 80 the game blocks autopsy and grave work. The bot turns off above this value.");
-            OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Stop,
+            OnLackOfSleep = Bind(config, SettingTab.Bot, "Bot", "OnLackOfSleep", LackOfSleepAction.Sleep,
                 "Ao ficar com Privação de Sono", "When Lack of sleep hits",
-                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: metade da energia gasta vira insanidade. Desligar o bot (padrão). Dormir e continuar: termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou (também quando a comida acaba e a energia fica baixa). Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
-                "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot (default). Sleep, then resume: finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped (also when the food runs out and energy is low). Keep working: carries on (only the insanity limit protects).");
+                "Privação de Sono é o efeito do jogo depois de 2 dias sem dormir: metade da energia gasta vira insanidade. Desligar o bot. Dormir e continuar (padrão): termina de levar o corpo que estiver carregando, vai à cama de casa, dorme e volta ao trabalho de onde parou (também quando a comida acaba e a energia fica baixa). Continuar trabalhando: segue normalmente (só o limite de insanidade protege).",
+                "Lack of sleep is the game's effect after 2 days awake: half of the energy you spend turns into insanity. Turn off the bot. Sleep, then resume (default): finishes placing any body it carries, walks to the home bed, sleeps and resumes where it stopped (also when the food runs out and energy is low). Keep working: carries on (only the insanity limit protects).");
             MigrateLackOfSleep(config);
             TravelEnabled = Toggle(config, SettingTab.Bot, "Bot", "UseDoors", true,
                 "Ir até o trabalho pelas portas", "Walk to the work (through doors)",
@@ -229,7 +229,7 @@ namespace AutoKeeper.Config
                 "Pular extrações arriscadas", "Skip low-chance extractions",
                 "Vale por cima das opções abaixo: confere a chance de sucesso de cada item (a mesma da janela de extração do jogo) e pula o que ficar abaixo do mínimo.",
                 "Overrides the options below: checks each item's success chance (the same shown in the game's extraction window) and skips anything below the minimum.");
-            MinMasteryChance = SliderInt(config, SettingTab.Autopsy, "Bodies", "MinMasteryChance", 100, 1, 100,
+            MinMasteryChance = SliderInt(config, SettingTab.Autopsy, "Bodies", "MinMasteryChance", 60, 1, 100,
                 "Chance de sucesso mínima (%)", "Minimum success chance (%)",
                 "100 = só quando o sucesso é garantido (o jogo não mostra %). Ex.: 60 aceita o cérebro a 62% mas pula as entranhas a 38%.",
                 "100 = only guaranteed success (the game shows no %). E.g. 60 accepts the brain at 62% but skips guts at 38%.");
@@ -281,7 +281,7 @@ namespace AutoKeeper.Config
                 "Tamanho do painel", "Panel size",
                 "Pequeno: metade do tamanho das janelas do jogo (nítido, ocupa menos tela). Grande: o tamanho das janelas do jogo.",
                 "Small: half the size of the game's windows (sharp, takes less screen). Large: the size of the game's windows.");
-            OverlayPosition = Bind(config, SettingTab.Overlay, "Overlay", "Position", OverlayCorner.TopLeft,
+            OverlayPosition = Bind(config, SettingTab.Overlay, "Overlay", "Position", OverlayCorner.TopRight,
                 "Posição do painel", "Panel position",
                 "Canto da tela onde o painel aparece (para não cobrir o HUD do jogo).",
                 "Screen corner for the panel (so it does not cover the game HUD).");
@@ -313,6 +313,33 @@ namespace AutoKeeper.Config
             // Reserved: not shown in the UI.
             AllowCheats = config.Bind("Safety", "AllowCheats", false,
                 "Reservado. O bot só executa ações que o jogador poderia fazer; nenhuma função de cheat existe hoje. / Reserved. The bot only performs actions the player could do; no cheat feature exists today.");
+            RemoveObsoleteKeys(config);
+        }
+
+        /// <summary>
+        /// Keys from old versions that no option reads any more ([Bodies] GraveCraftId and ExtractOrgans). BepInEx keeps them
+        /// in the .cfg as orphaned entries; this deletes them once, so the file only lists real options.
+        /// </summary>
+        private static void RemoveObsoleteKeys(ConfigFile config)
+        {
+            try
+            {
+                var orphans = HarmonyLib.Traverse.Create(config).Property("OrphanedEntries").GetValue<Dictionary<ConfigDefinition, string>>();
+                if (orphans == null)
+                {
+                    return;
+                }
+                bool removed = orphans.Remove(new ConfigDefinition("Bodies", "GraveCraftId"));
+                removed |= orphans.Remove(new ConfigDefinition("Bodies", "ExtractOrgans"));
+                if (removed)
+                {
+                    config.Save();
+                }
+            }
+            catch (Exception)
+            {
+                // Cosmetic only: the old keys are ignored either way.
+            }
         }
 
         /// <summary>Organ types selected for extraction (names from the game's ItemType enum).</summary>

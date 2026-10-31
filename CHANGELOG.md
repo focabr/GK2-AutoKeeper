@@ -4,6 +4,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-31
+**Needs game version 1.011 or newer.** Includes the 1.011 fix from 0.4.0.
+
+Fixed (from an in-game test of 0.4.0 on a save with zombie workers):
+- The chest watch turned the bot off while it walked past the workyard chests: zombie workers take materials from the
+  chests near their stations (seen: 3 stone kits taken for a building kit). It now stops only when items go from a nearby
+  chest **into the player's inventory** (what the game's "take all" does); a chest that loses items some other way is
+  only noted in the log file.
+- After collecting the crematorium, the bot went back to extracting the next body's organs and left a finished body on the
+  other table with the crematorium idle. A free crematorium (or open grave) is now fed first: a finished body on a table,
+  then a parked one on a pallet, before any extraction starts or resumes.
+- Chest trips: when the nearest chest takes only part of the items (full chest, only open stacks), the bot goes straight to
+  a chest a bit farther away (up to 60 m more) that takes everything, instead of visiting both (seen: 1 m chest, then
+  40 m to the next one, on most trips).
+- When the player's own items leave fewer free slots than "Go to the chest below free slots" even after storing everything,
+  the autopsy now goes on down to the last free slot before a chest trip (was 2), and the log says once why the bot goes
+  to the chest so often.
+
+New defaults for new installs (an existing `.cfg` keeps your values):
+- "When Lack of sleep hits": **Sleep, then resume** (was Turn off the bot), so the bot no longer stops by itself after two
+  in-game days. Tested over many hours (dozens of sleep trips without a failure).
+- "Minimum success chance": **60%** (was 100%). A lower chance never loses the organ, it only takes more strokes (more
+  energy and insanity: measured at 50%, about +8.5 insanity per body instead of about +3), so brain and guts are no longer
+  always skipped early in the game. High insanity with "Sleep, then resume" makes the bot sleep instead of turning off.
+- Status panel position: **top right** (was top left).
+- The `.cfg` no longer keeps two keys from old versions that nothing reads (`[Bodies] GraveCraftId` and `ExtractOrgans`).
+
 ## [0.4.0] - 2026-10-31
 **Needs game version 1.011 or newer.** On 1.010 and older use 0.3.44.
 - Fixed for game version 1.011: organ and pocket extractions at the autopsy table failed on 1.011 ("Method not found:
