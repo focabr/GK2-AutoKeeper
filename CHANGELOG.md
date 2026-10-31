@@ -4,6 +4,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-31
+**Needs game version 1.011 or newer.** On 1.010 and older use 0.3.44.
+- Fixed for game version 1.011: organ and pocket extractions at the autopsy table failed on 1.011 ("Method not found:
+  CraftComponent.TryContinueFromQueue()"), because the game added a parameter to that method. The mod is now built
+  against 1.011 and calls it like the game's own autopsy window does (`forceStart: false`). No behaviour change.
+- On a game older than 1.011 the log and the status panel (F9) now say the game is too old for this mod version,
+  instead of the generic "untested version" warning.
+- Checked against 1.011: every other game type, method and field the mod uses (direct and by name) is unchanged.
+- Steam Workshop: the item now follows the game's new code mod contract (1.011): `modinfo.json` and the
+  `BepInEx/plugins/AutoKeeper/` layout, so subscribing installs, updates and removes the mod with no manual steps
+  (the game ships BepInEx since 1.011).
+
 ## [0.3.44] - 2026-10-13
 - Tested on game version 1.010 (bodies from the pallets and from the ground outside the morgue, autopsy, cremation,
   storing in a chest, eating from the hotbar, doors between house, church and morgue; Player.log without errors); the

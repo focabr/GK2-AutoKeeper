@@ -86,7 +86,12 @@ namespace AutoKeeper.UI
                     c.AddMuted(pt ? "Dinheiro:" : "Money:", $"{s.Money:0}");
                 }
             }
-            if (s.GameVersion != null && s.GameVersion != Plugin.TestedGameVersion)
+            if (Plugin.IsGameTooOld(s.GameVersion))
+            {
+                c.Note = Warn(pt ? $"Jogo {s.GameVersion} antigo: o mod exige {Plugin.MinGameVersion}+"
+                                 : $"Game {s.GameVersion} too old: mod needs {Plugin.MinGameVersion}+", true);
+            }
+            else if (s.GameVersion != null && s.GameVersion != Plugin.TestedGameVersion)
             {
                 c.Note = Warn(pt ? $"Jogo {s.GameVersion} não testado (testado: {Plugin.TestedGameVersion})"
                                  : $"Game {s.GameVersion} untested (tested: {Plugin.TestedGameVersion})", true);

@@ -20,10 +20,21 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.3.44";
+        public const string Version = "0.4.0";
 
         /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
-        public const string TestedGameVersion = "1.010";
+        public const string TestedGameVersion = "1.011";
+
+        /// <summary>
+        /// Oldest game version this build works on: it is compiled against 1.011, whose
+        /// CraftComponent.TryContinueFromQueue(bool) does not exist in 1.010 and older (autopsy extractions would fail).
+        /// </summary>
+        public const string MinGameVersion = "1.011";
+
+        /// <summary>True when the game version is known and older than <see cref="MinGameVersion"/>.</summary>
+        public static bool IsGameTooOld(string gameVersion) =>
+            gameVersion != null && System.Version.TryParse(gameVersion, out var v)
+            && System.Version.TryParse(MinGameVersion, out var min) && v < min;
 
         /// <summary>Active instance (used by the optional GK2 Mod Framework bridge).</summary>
         public static Plugin Instance { get; private set; }
@@ -242,6 +253,11 @@ namespace AutoKeeper
             if (gameVersion == null)
             {
                 ModLog.Warn(Lang.T("Não consegui ler a versão do jogo (GameInfo). O mod pode estar desatualizado.", "Could not read the game version (GameInfo). The mod may be outdated."));
+            }
+            else if (IsGameTooOld(gameVersion))
+            {
+                ModLog.Warn(Lang.T($"Versão do jogo {gameVersion} é antiga: esta versão do mod exige o jogo {MinGameVersion} ou mais novo (as extrações da autópsia vão falhar). Atualize o jogo ou use o mod 0.3.44.",
+                    $"Game version {gameVersion} is too old: this mod version needs game {MinGameVersion} or newer (autopsy extractions will fail). Update the game or use mod 0.3.44."));
             }
             else if (gameVersion != TestedGameVersion)
             {
