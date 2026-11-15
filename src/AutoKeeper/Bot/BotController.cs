@@ -144,6 +144,10 @@ namespace AutoKeeper.Bot
                 return;
             }
             AbortCurrent();
+            if (GameApi.BotOwnsRest)
+            {
+                GameApi.StopResting(); // the bot sat the character on the bench: it also stands it up when it turns off
+            }
             eating = false;
             toppingUp = false;
             RestRequested = false;
@@ -228,7 +232,10 @@ namespace AutoKeeper.Bot
                 TickEating(s);
                 return;
             }
-            bool energyKnown = s.EnergyMax > 0f && s.Energy >= 0f;
+            // Seated on the campfire bench by the bot itself: energy is coming back on its own, so low energy is not handled
+            // here (eating or going to bed would only make the character stand up).
+            bool benchRest = GameApi.BotOwnsRest && GameApi.IsResting();
+            bool energyKnown = !benchRest && s.EnergyMax > 0f && s.Energy >= 0f;
             // A single stop to eat: below the limit it eats and keeps eating while the food fits whole into the energy
             // still missing (e.g. 19 → 49 → 79 of 86), instead of interrupting work at every extraction.
             if (energyKnown && (s.Energy < settings.EatBelowEnergy.Value || toppingUp) && TryStartEating(s))
@@ -321,6 +328,10 @@ namespace AutoKeeper.Bot
             if (waitForLack && !GameApi.IsCarryingAnything())
             {
                 AbortCurrent();
+                if (GameApi.BotOwnsRest)
+                {
+                    GameApi.StopResting(); // the awake timer stands still on the bench: Lack of sleep would never come
+                }
                 float left = 2f - awakeDays;
                 ModLog.InfoOnce("WaitLack", Lang.T($"Insanidade alta ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}): espero parado até a Privação de Sono ({left:0.0} dia(s) de jogo); então durmo na cama para curar (-20 de insanidade).",
                     $"High insanity ({s.Insanity:0.0} > {settings.MaxInsanity.Value:0}): waiting idle for Lack of sleep ({left:0.0} game day(s)); then I'll sleep in the bed to cure it (-20 insanity)."));

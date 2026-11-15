@@ -20,10 +20,14 @@ namespace AutoKeeper
     {
         public const string Guid = "com.focabr.gk2.autokeeper";
         public const string Name = "GK2 AutoKeeper";
-        public const string Version = "0.4.1";
+        public const string Version = "0.4.2";
 
-        /// <summary>Game version the mod was tested on (GameInfo.Version).</summary>
-        public const string TestedGameVersion = "1.011";
+        /// <summary>Game version the mod was tested on (GameInfo.Version); its patch builds ("1.012.7") count as tested.</summary>
+        public const string TestedGameVersion = "1.012";
+
+        /// <summary>True for the tested version and its patch builds (1.012, 1.012.7...).</summary>
+        public static bool IsGameTested(string gameVersion) =>
+            gameVersion != null && (gameVersion == TestedGameVersion || gameVersion.StartsWith(TestedGameVersion + "."));
 
         /// <summary>
         /// Oldest game version this build works on: it is compiled against 1.011, whose
@@ -259,7 +263,7 @@ namespace AutoKeeper
                 ModLog.Warn(Lang.T($"Versão do jogo {gameVersion} é antiga: esta versão do mod exige o jogo {MinGameVersion} ou mais novo (as extrações da autópsia vão falhar). Atualize o jogo ou use o mod 0.3.44.",
                     $"Game version {gameVersion} is too old: this mod version needs game {MinGameVersion} or newer (autopsy extractions will fail). Update the game or use mod 0.3.44."));
             }
-            else if (gameVersion != TestedGameVersion)
+            else if (!IsGameTested(gameVersion))
             {
                 ModLog.Warn(Lang.T($"Versão do jogo {gameVersion} difere da testada ({TestedGameVersion}). Se algo falhar, desligue o bot (F8) e verifique atualizações do mod.",
                     $"Game version {gameVersion} differs from the tested one ({TestedGameVersion}). If something fails, turn off the bot (F8) and check for mod updates."));

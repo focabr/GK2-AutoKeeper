@@ -12,6 +12,9 @@ namespace AutoKeeper.Bot
         /// <summary>Times the bot slept in the bed and woke up rested.</summary>
         public static int Sleeps;
 
+        /// <summary>Times the bot sat down on the campfire bench to wait for work.</summary>
+        public static int Rests;
+
         /// <summary>Real time with the bot turned on (pauses for menus, dialogues and sleep included).</summary>
         public static float OnSeconds;
 
@@ -19,6 +22,7 @@ namespace AutoKeeper.Bot
         {
             Bodies = 0;
             Sleeps = 0;
+            Rests = 0;
             OnSeconds = 0f;
         }
     }

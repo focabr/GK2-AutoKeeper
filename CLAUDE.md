@@ -3,8 +3,8 @@
 BepInEx 5 mod (Graveyard Keeper 2, Unity 6 Mono) that automates the body routine. Only player actions (no cheats, no save
 editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game language); code and dev docs in English.
 
-## State (2026-10-31)
-- Current version: **0.4.1**. Needs game **1.011+** (`Plugin.MinGameVersion`; 1.011 changed `TryContinueFromQueue`); 0.3.44
+## State (2026-11-15)
+- Current version: **0.4.2** (tested on game 1.012.7, `Plugin.TestedGameVersion` = 1.012). Needs game **1.011+** (`Plugin.MinGameVersion`; 1.011 changed `TryContinueFromQueue`); 0.3.44
   stays for 1.010 and older. Package: `dist/GK2_AutoKeeper-<version>.zip`.
 - Handoff (read first): Claude project "GK2" → `claude/status-autokeeper.md`; past decisions, tests and in-game validations:
   `claude/historico-autokeeper.md`. Do not keep volatile state here.
@@ -61,4 +61,8 @@ editing). Player/log texts: en + pt-BR via `Lang.T(pt, en)` (follows the game la
 - Panel messages re-translate on a language switch only when the logged string is the result of ONE `Lang.T` call
   (`Lang.TryPair`); pass `Lang.T(...)` straight to `ModLog`/`Stop`, do not glue translated pieces together.
 - Sleep only removes insanity (−20) when it cures Lack of sleep; max energy = 100 − insanity.
+- Campfire bench (1.012, `RestOnBench`): the exit key is read from the keyboard, not `LazyInput` → the bot stands up with
+  `GameApi.StopResting()`; `GameApi.BotOwnsRest` keeps the game's rest lock from pausing the bot; the awake timer stands
+  still while seated (never wait for Lack of sleep on the bench). Details: `docs/game-api-notes.md` §18.
+- Player inventory counts must include bags (`SnapshotPlayerItems`); the game looks inside bags for hot bar items.
 - For "it stopped/froze" reports read `Player.log` too (`%USERPROFILE%\AppData\LocalLow\Lazy Bear Games\Graveyard Keeper 2`).

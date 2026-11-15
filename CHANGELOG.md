@@ -4,6 +4,32 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-15
+**Tested on game 1.012 (1.012.7).** Still needs game 1.011 or newer; the bench option needs 1.012.
+
+New:
+- **Rest on the bench when idle** (Bodies tab, off by default; `[Bodies] RestOnBench`): with no body to process, the bot
+  walks to the campfire bench the game added in 1.012, sits down and waits there. Energy comes back without spending
+  food. While seated the game runs 50 times faster (same as sleeping), so time skips to the next delivery. When a body
+  arrives or the crematorium finishes, the bot stands up and goes back to work. It takes priority over "Wait in the
+  morgue". With Lack of sleep the bot still sleeps in the bed first (the bench does not cure it), and while the
+  crematorium is burning it waits nearby instead of walking to the bench and back. If you stand up yourself, the bot
+  waits 60 s before sitting again. If you sit on the bench yourself, the bot pauses ("resting on the bench") and never
+  stands you up.
+
+Fixed (from an in-game test of 0.4.1 on game 1.012.7: 5 bodies, no errors):
+- Food kept in a bag (e.g. the food bag) was counted as 0: every time the bot ate, the log said the hot bar food had run
+  out ("... was the last one"), and "N left" never showed. Items inside bags are now counted, like the game does.
+- The bot left the morgue for a body lying 3 m from the door, the crematorium finished at that moment and it walked back
+  in empty-handed, then out again. A new body within 25 m outside the morgue is now picked up first when a table is free.
+- Session record: an organ still on its way to the inventory when the bot went to collect the crematorium was counted
+  twice (the panel record was 1 above what went to the chest).
+- Game 1.012 refuses an unreachable walk at once instead of failing a moment later; the bot's two walk retries (second
+  one straight to the object) run again in that case instead of stopping with "the game refused the path".
+- The door scan no longer makes the game write "Can't find gd point" to `Player.log` on every pass (about 300 lines in a
+  12-minute session); the game is asked once per door.
+- The "game version untested" warning no longer shows on patch builds of the tested version (1.012.7).
+
 ## [0.4.1] - 2026-10-31
 **Needs game version 1.011 or newer.** Includes the 1.011 fix from 0.4.0.
 

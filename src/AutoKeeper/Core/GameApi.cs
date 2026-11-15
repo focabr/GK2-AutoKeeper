@@ -93,6 +93,8 @@ namespace AutoKeeper.Core
                 LoggedDockTargets.Clear();
                 LastDockSpots.Clear();
                 LoggedDockFallbacks.Clear();
+                DoorsWithoutTeleportPoint.Clear();
+                BotOwnsRest = false;
             }
             return what != null;
         }
@@ -252,6 +254,8 @@ namespace AutoKeeper.Core
             if (!pc.IsControlEnabledByType(TakenControlType.ByTeleport)) return Lang.T("teleporte", "teleport");
             if (!pc.IsControlEnabledByType(TakenControlType.ByDeath)) return Lang.T("morte", "death");
             if (!pc.IsControlEnabledByType(TakenControlType.ByBuilding)) return Lang.T("modo construção", "build mode");
+            // Campfire bench (game 1.012+): a rest the player started pauses the bot; one the bot started is its own waiting state.
+            if (!BotOwnsRest && IsResting()) return Lang.T("descansando no banco", "resting on the bench");
             if (!LazyInput.IsInputActive())
             {
                 return Lang.T("input do jogo desativado", "game input disabled");
@@ -296,6 +300,71 @@ namespace AutoKeeper.Core
         /// <summary>The character is sleeping (the game's energy system).</summary>
         public static bool IsSleeping() => Safe(() => MainGame.PlayerData.energySystem.IsSleeping, false, nameof(IsSleeping));
 
+        // ------------------------------------------------------------------ campfire bench (game 1.012+)
+
+        private static bool restApiMissing;   // game older than 1.012: EnergySystem has no IsResting / StopResting
+
+        /// <summary>
+        /// True from the moment the bot presses E on the bench until that rest ends. While it is set, the game's "resting"
+        /// control lock does not pause the bot (the body task keeps watching for work and stands up by itself).
+        /// </summary>
+        public static bool BotOwnsRest { get; private set; }
+
+        /// <summary>The bot is about to sit down (E on the bench): the rest that follows is its own.</summary>
+        public static void ClaimRest() => BotOwnsRest = true;
+
+        /// <summary>The bot gives up its rest mark without touching the game (the rest never started or already ended).</summary>
+        public static void ReleaseRest() => BotOwnsRest = false;
+
+        /// <summary>The character is resting on the campfire bench (EnergySystem.IsResting; false on a game without it).</summary>
+        public static bool IsResting()
+        {
+            if (restApiMissing || !IsInGame)
+            {
+                return false;
+            }
+            try
+            {
+                return IsRestingCore();
+            }
+            catch (MissingMemberException)
+            {
+                restApiMissing = true; // game 1.011: no bench there
+                return false;
+            }
+            catch (Exception)
+            {
+                return false; // e.g. the player data is being swapped during a load
+            }
+        }
+
+        private static bool IsRestingCore() => MainGame.PlayerData.energySystem.IsResting;
+
+        /// <summary>
+        /// Stands up from the bench: the same call the game makes when the player presses the exit key. The game reads that
+        /// key straight from the keyboard (UIRestingExitWidget, not LazyInput), so the bot's virtual keys cannot press it.
+        /// </summary>
+        public static bool StopResting()
+        {
+            BotOwnsRest = false;
+            if (restApiMissing || !IsInGame)
+            {
+                return false;
+            }
+            try
+            {
+                StopRestingCore();
+                return true;
+            }
+            catch (Exception e)
+            {
+                ModLog.WarnOnce("GameApi.StopResting", $"GameApi.StopResting falhou / failed ({e.GetType().Name}: {e.Message}).");
+                return false;
+            }
+        }
+
+        private static void StopRestingCore() => MainGame.PlayerData.energySystem.StopResting();
+
         /// <summary>In-game days since the last sleep (the debuff kicks in at 2). -1 if it cannot be read.</summary>
         public static float GetDaysWithoutSleep() => Safe(() => MainGame.PlayerData.energySystem.timeWithoutSleep, -1f, nameof(GetDaysWithoutSleep));
 
@@ -328,15 +397,9 @@ namespace AutoKeeper.Core
         /// <summary>Total count of an item in the player's main inventory (without bags/belt).</summary>
         public static int CountPlayerItem(string itemId) => Safe(() =>
         {
-            int total = 0;
-            foreach (Item item in MainGame.PlayerData.inventory.Data.Inventory)
-            {
-                if (item != null && item.id == itemId)
-                {
-                    total += item.Count;
-                }
-            }
-            return total;
+            // Bags included (food bag, universal bag...): the game itself looks inside them (Inventory.GetItemById), so an item
+            // pinned to the hot bar can live in a bag. Counting only the top level read "0" for food kept in the food bag.
+            return SnapshotPlayerItems().TryGetValue(itemId, out int total) ? total : 0;
         }, 0, nameof(CountPlayerItem));
 
         // ------------------------------------------------------------------ clock

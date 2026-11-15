@@ -37,6 +37,7 @@ namespace AutoKeeper.Bot.Tasks
             ParkOnPallet,
             DigGrave,
             Sleep,
+            Rest,
         }
 
         private enum Step
@@ -124,6 +125,7 @@ namespace AutoKeeper.Bot.Tasks
         private const float DoorBanUseSeconds = 120f;   // ... after using it led nowhere
         private const float SameRoomDistance = 20f;  // object with no known region but nearby = same room
         private const float IdleRecheckSeconds = 2f;
+        private const float BodyAtHandDistance = 25f; // a new body this close, outside the morgue, is picked up before going back in
 
         private readonly Settings settings;
         private readonly Navigator nav;
@@ -166,6 +168,17 @@ namespace AutoKeeper.Bot.Tasks
         private const int MaxSleepTries = 3;
         private const float SleepStartTimeout = 6f;
         private uint prevHere;
+
+        // Campfire bench (game 1.012+, "Rest on the bench when idle"): with nothing to do the bot sits down and keeps planning;
+        // the first real decision makes it stand up. See PlanNext / RestDecision.
+        private const float RestRecheckSeconds = 1f;      // full replanning while seated (real time; the game runs 50x)
+        private const float RestRetrySeconds = 60f;       // after a failed sit or a rest someone else ended
+        private const int MaxRestTries = 3;
+        private float restCheckedAt = -999f;
+        private float restBlockedUntil = -999f;
+        private int restTries;
+        private bool restDisabled;     // the bench did not work MaxRestTries times: no more tries until the bot is turned back on
+        private bool restNoBenchLogged;
         private readonly List<Vector3> buriedSpots = new List<Vector3>();   // graves where the bot placed a body that still need to be filled in
         private const float FillTimeout = 90f;
         private const float SameSpot = 1.6f;
@@ -341,6 +354,11 @@ namespace AutoKeeper.Bot.Tasks
             invBefore = null;
             idleCheckedAt = -999f;
             idleReason = null;
+            restCheckedAt = -999f;
+            restBlockedUntil = -999f;
+            restTries = 0;
+            restDisabled = false;
+            restNoBenchLogged = false;
             Status = "-";
         }
 
@@ -467,6 +485,10 @@ namespace AutoKeeper.Bot.Tasks
                 chestWarned = false;
                 freeAfterDeposit = int.MaxValue;
                 depositLeftovers = false;
+                restDisabled = false;
+                restTries = 0;
+                restBlockedUntil = -999f;
+                restNoBenchLogged = false;
             }
             if (w.Here != 0 && w.Here != prevHere)
             {
@@ -597,8 +619,45 @@ namespace AutoKeeper.Bot.Tasks
         /// <summary>Picks the next goal from the world state. In dryRun it only answers whether there is something to do.</summary>
         private bool PlanNext(bool dryRun)
         {
+            bool seated = GameApi.BotOwnsRest && GameApi.IsResting();
+            if (seated && Now - restCheckedAt < RestRecheckSeconds)
+            {
+                return true; // seated on the bench: the world is looked at once per second
+            }
             WorldView w = Look();
             Decision d = Decide(w);
+            if (GameApi.BotOwnsRest)
+            {
+                if (seated)
+                {
+                    restCheckedAt = Now;
+                    if (d.Kind == DecisionKind.None || (d.Kind == DecisionKind.Act && d.Goal == Goal.Rest))
+                    {
+                        if (!dryRun)
+                        {
+                            Status = Lang.T($"descansando no banco até chegar trabalho (energia {GameApi.GetEnergy():0}/{GameApi.GetEnergyMax():0})",
+                                $"resting on the bench until there is work (energy {GameApi.GetEnergy():0}/{GameApi.GetEnergyMax():0})");
+                        }
+                        return true;
+                    }
+                    if (dryRun)
+                    {
+                        return true;
+                    }
+                    string what = d.Kind == DecisionKind.Act ? GoalText(d.Goal, d.Part) : d.Text;
+                    GameApi.StopResting(); // = the player pressing the exit key
+                    ModLog.Info(Lang.T($"Banco: levantando — {what}", $"Bench: standing up — {what}"));
+                }
+                else if (!dryRun)
+                {
+                    // The bot's own rest is over without the bot ending it: the player stood up (E / Esc), or it never started.
+                    GameApi.ReleaseRest();
+                    restBlockedUntil = Now + RestRetrySeconds;
+                    ModLog.Info(Lang.T($"Banco: o descanso terminou sem o bot (você levantou?) — só volto ao banco daqui a {RestRetrySeconds:0} s.",
+                        $"Bench: the rest ended without the bot (did you stand up?) — back to the bench only in {RestRetrySeconds:0} s."));
+                    return true; // replan on the next tick, now with the wait in force
+                }
+            }
             switch (d.Kind)
             {
                 case DecisionKind.None:
@@ -702,8 +761,9 @@ namespace AutoKeeper.Bot.Tasks
             }
 
             // On arriving at the morgue: stop by the crematorium before starting (collect whatever is ready).
+            bool grabbingHere = d.Kind == DecisionKind.Act && d.Goal == Goal.PickUpBody && d.Area == w.Here; // see BodyAtHand
             if (settings.CheckCrematoriumFirst.Value && settings.Destination.Value == BodyDestination.Crematorium
-                && d.Goal != Goal.CollectCrematorium)
+                && d.Goal != Goal.CollectCrematorium && !grabbingHere)
             {
                 // The state is read from afar: only go there if something is ready to collect (no visits to an empty crematorium).
                 Candidate? crem = FirstFree(w.Crematoriums, c => !GameApi.HasOtherWorker(c.Obj.Uid)
@@ -860,6 +920,16 @@ namespace AutoKeeper.Bot.Tasks
                 return Act(Goal.FillGrave, w.GraveBodies[0], null);
             }
 
+            // 1c) Already outside the morgue next to a new body, with a table free for it: pick it up before anything calls the
+            //     bot back inside. Seen on game 1.012: the bot left the morgue for a body 3 m from the door, the crematorium
+            //     finished at that moment and it went back in empty-handed, then out again (two extra door trips). Carrying the
+            //     body, step 1 takes it to the table and the crematorium is collected right after.
+            Decision? grab = BodyAtHand(w, tables, wantsParts, freeTable.HasValue, dest, cremFree, grave.HasValue);
+            if (grab.HasValue)
+            {
+                return grab.Value;
+            }
+
             // 2) Crematorium finished: collect the result before anything else (frees it for the next body).
             if (crem.HasValue && cremState == CraftState.ReadyToCollect)
             {
@@ -998,12 +1068,41 @@ namespace AutoKeeper.Bot.Tasks
         }
 
         /// <summary>
+        /// A fresh body on the ground within a few steps while the tables are in another area (the bot came out for it),
+        /// and somewhere to put it. Null when the normal order applies.
+        /// </summary>
+        private Decision? BodyAtHand(WorldView w, List<Candidate> tables, bool wantsParts, bool hasFreeTable, BodyDestination dest, bool cremFree, bool hasGrave)
+        {
+            if (w.Here == 0 || w.GroundBodies.Count == 0 || tables.Count == 0 || tables[0].Area == w.Here || !IsRemote(w, tables[0].Area))
+            {
+                return null;
+            }
+            bool canReceive = wantsParts
+                ? hasFreeTable
+                : (dest == BodyDestination.Crematorium && cremFree) || (dest == BodyDestination.Grave && hasGrave);
+            GroundItemRef b = w.GroundBodies[0];
+            if (!canReceive || GameApi.DistanceTo(b.Position) > BodyAtHandDistance)
+            {
+                return null;
+            }
+            return new Decision { Kind = DecisionKind.Act, Goal = Goal.PickUpBody, Uid = b.Uid, Pos = b.Position, Area = w.Here, Ground = true };
+        }
+
+        /// <summary>
         /// Nothing to do here: wait for the burning crematorium (if a body is pending) or, with "Wait in the morgue", go and wait
         /// in the morgue — e.g. after waking up at home, instead of standing in the house while bodies are delivered outside.
         /// </summary>
         private Decision NothingToDo(WorldView w, Candidate? crem, CraftState cremState)
         {
             Decision d = WaitForCrematorium(w, crem, cremState);
+            if (d.Kind == DecisionKind.None)
+            {
+                d = RestDecision(w, crem, cremState);
+                if (d.Kind == DecisionKind.None && settings.RestOnBench.Value && !restDisabled && Now < restBlockedUntil)
+                {
+                    return d; // going back to the bench shortly: no walk to the morgue in between
+                }
+            }
             if (d.Kind != DecisionKind.None || !settings.WaitInMorgue.Value || w.Here == 0 || w.Tables.Count == 0)
             {
                 return d;
@@ -1012,6 +1111,37 @@ namespace AutoKeeper.Bot.Tasks
             return morgue != 0 && morgue != w.Here && w.Routes.ContainsKey(morgue)
                 ? WaitAt(morgue, Lang.T("aguardando corpos no necrotério", "waiting for bodies in the morgue"))
                 : d;
+        }
+
+        /// <summary>
+        /// "Rest on the bench when idle" (game 1.012+): with nothing at all to do, sit on the campfire bench. Energy comes back
+        /// for free and the game runs 50x while seated, so the next delivery arrives sooner. The bench does not cure Lack of
+        /// sleep (the bed does, and <see cref="Decide"/> sends the bot there first) and the awake timer stands still on it.
+        /// </summary>
+        private Decision RestDecision(WorldView w, Candidate? crem, CraftState cremState)
+        {
+            if (!settings.RestOnBench.Value || restDisabled || w.Here == 0 || Now < restBlockedUntil || GameApi.IsCarryingAnything())
+            {
+                return default;
+            }
+            if (crem.HasValue && cremState == CraftState.Running && !(GameApi.BotOwnsRest && GameApi.IsResting()))
+            {
+                // The ashes will be ready shortly: stay close instead of walking to the bench and straight back.
+                return WaitAt(crem.Value.Area, Lang.T("aguardando o crematório terminar (depois descanso no banco)",
+                    "waiting for the crematorium to finish (then I rest on the bench)"));
+            }
+            Candidate? bench = FirstFree(Collect(ObjectKind.RestBench, w), c => true);
+            if (!bench.HasValue)
+            {
+                if (!restNoBenchLogged)
+                {
+                    restNoBenchLogged = true;
+                    ModLog.Info(Lang.T("Banco: não achei o banco da fogueira alcançável (precisa do jogo 1.012 ou mais novo) — espero em pé.",
+                        "Bench: no reachable campfire bench found (needs game 1.012 or newer) — waiting on foot."));
+                }
+                return default;
+            }
+            return Act(Goal.Rest, bench.Value, null);
         }
 
         /// <summary>Body on the pallet that has not been through the table yet (those parked by the bot are left out).</summary>
@@ -1206,7 +1336,7 @@ namespace AutoKeeper.Bot.Tasks
             {
                 return Fail(Lang.T($"alvo {WorldObjectRef.ShortUid(uid)} sumiu", $"target {WorldObjectRef.ShortUid(uid)} is gone")) != TaskResult.Failed;
             }
-            if ((g == Goal.Bury || g == Goal.FillGrave || g == Goal.DigGrave || g == Goal.Sleep) && standFacing == Vector2.zero)
+            if ((g == Goal.Bury || g == Goal.FillGrave || g == Goal.DigGrave || g == Goal.Sleep || g == Goal.Rest) && standFacing == Vector2.zero)
             {
                 // Graves have no work spot: stop beside it, on the player's side, facing it.
                 standSpot = GameApi.GetNearestWalkablePoint(GameApi.GetApproachSpot(pos, 1.0f));
@@ -1441,6 +1571,11 @@ namespace AutoKeeper.Bot.Tasks
                     {
                         sleepTries++;
                     }
+                    if (goal == Goal.Rest)
+                    {
+                        restTries++;
+                        GameApi.ClaimRest(); // the rest that starts now is the bot's: it does not pause the bot
+                    }
                     GameApi.PressInteract();
                 }
                 GoTo(Step.AwaitInteract);
@@ -1537,6 +1672,35 @@ namespace AutoKeeper.Bot.Tasks
                     {
                         return TaskResult.Running;
                     }
+                    break;
+                case Goal.Rest:
+                    done = GameApi.IsResting();
+                    if (!done && Now - stepStartedAt > SleepStartTimeout)
+                    {
+                        GameApi.ReleaseRest();
+                        restBlockedUntil = Now + RestRetrySeconds;
+                        if (restTries >= MaxRestTries)
+                        {
+                            restDisabled = true;
+                            ModLog.Warn(Lang.T($"Banco: apertei E no banco {MaxRestTries} vezes e o personagem não sentou — não tento mais até religar o bot.",
+                                $"Bench: pressed E on the bench {MaxRestTries} times and the character did not sit — no more tries until the bot is turned back on."));
+                        }
+                        else
+                        {
+                            ModLog.Warn(Lang.T($"Banco: apertei E no banco e o personagem não sentou (tentativa {restTries}/{MaxRestTries}).",
+                                $"Bench: pressed E on the bench and the character did not sit (attempt {restTries}/{MaxRestTries})."));
+                        }
+                        return Replan(null);
+                    }
+                    if (!done)
+                    {
+                        return TaskResult.Running;
+                    }
+                    restTries = 0;
+                    restCheckedAt = Now;
+                    SessionStats.Rests++;
+                    ModLog.Info(Lang.T("Banco: sentado — descanso aqui até chegar trabalho (o tempo do jogo corre 50x).",
+                        "Bench: seated — resting here until there is work (game time runs 50x)."));
                     break;
                 case Goal.UseDoor:
                     // Normally the game takes control away (fade) and the bot pauses before this; this is the no-fade case.
@@ -1745,6 +1909,20 @@ namespace AutoKeeper.Bot.Tasks
                     ledger.TryGetValue(kv.Key, out int have);
                     ledger[kv.Key] = have + gained;
                     budget -= gained;
+                    // These units are accounted for: a window whose snapshot was taken before they landed (e.g. the
+                    // crematorium's "any new item", opened while the last organ was still flying to the player) must not
+                    // count them again. A snapshot taken after they landed already includes them and stays as it is.
+                    int explained = before + gained;
+                    foreach (PendingCredit other in pendingCredits)
+                    {
+                        other.Before.TryGetValue(kv.Key, out int ob);
+                        other.Before[kv.Key] = Math.Max(ob, explained);
+                    }
+                    if (invBefore != null)
+                    {
+                        invBefore.TryGetValue(kv.Key, out int ib);
+                        invBefore[kv.Key] = Math.Max(ib, explained);
+                    }
                     ModLog.Debug(Lang.T($"Registro: +{gained} {kv.Key} (recolhido pelo bot; total {ledger[kv.Key]})",
                         $"Ledger: +{gained} {kv.Key} (collected by the bot; total {ledger[kv.Key]})"));
                     if (budget <= 0)
@@ -2098,6 +2276,7 @@ namespace AutoKeeper.Bot.Tasks
                 case Goal.FillGrave: return Lang.T("fechar o túmulo", "fill in the grave");
                 case Goal.DigGrave: return Lang.T("cavar o túmulo marcado", "dig the marked grave");
                 case Goal.Sleep: return Lang.T("dormir na cama de casa", "sleep in the home bed");
+                case Goal.Rest: return Lang.T("descansar no banco da fogueira", "rest on the campfire bench");
                 case Goal.ParkOnPallet: return Lang.T("deixar corpo no palete (crematório ocupado)", "leave body on the pallet (crematorium busy)");
                 case Goal.DepositChest: return Lang.T("guardar itens no baú", "store items in the chest");
                 default: return "-";

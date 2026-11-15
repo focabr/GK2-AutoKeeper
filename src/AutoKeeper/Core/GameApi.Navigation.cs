@@ -117,10 +117,31 @@ namespace AutoKeeper.Core
                 {
                     continue; // destination not built or in another scene
                 }
-                result.Add(new DoorRef(w.UniqueId.Id, w.id, w.Position, dest.GetTeleportPointPosition(), destId));
+                result.Add(new DoorRef(w.UniqueId.Id, w.id, w.Position, LandingOf(dest), destId));
             }
             return result;
         }, new List<DoorRef>(), nameof(FindDoors));
+
+        /// <summary>Doors whose destination has no "tp_point_" GD point: the game falls back to the door position.</summary>
+        private static readonly HashSet<string> DoorsWithoutTeleportPoint = new HashSet<string>();
+
+        /// <summary>
+        /// Where a door drops the player. The game's lookup logs "Can't find gd point" every time the point does not exist,
+        /// and the doors are re-read every few seconds (about 300 lines per 12 minutes in Player.log): ask once per door.
+        /// </summary>
+        private static Vector3 LandingOf(WgoData dest)
+        {
+            if (DoorsWithoutTeleportPoint.Contains(dest.id))
+            {
+                return dest.Position;
+            }
+            Vector3 landing = dest.GetTeleportPointPosition();
+            if (landing == dest.Position)
+            {
+                DoorsWithoutTeleportPoint.Add(dest.id);
+            }
+            return landing;
+        }
 
         private static string TeleportDestination(CustomInteraction ci)
         {

@@ -273,3 +273,31 @@ The original plan below still applies to the grave (0.3).
   the town, turns on `townSubZoneParent` (a second line with the sub-zone) under `worldZoneLabel` (TMP).
 - `GameApi.GetZoneLabelRect()` unions the visible `Graphic`s under it (alpha incl. CanvasGroups; TMP by `textBounds`) into
   an IMGUI-style screen rect; the F9 panel in a top corner moves below it when they overlap sideways.
+
+## 18. Game 1.012 (IL diff 1.011 → 1.012.7 + F10 dumps of 2026-11-15)
+- Nothing the mod references was removed or renumbered (enums only gained values). Autopsy, crematorium, chest, inventory
+  and `LazyInput` are unchanged.
+- `MovementComponent.StartPath`: an unreachable Recast destination now returns `StartPathResult.FailedToFindPath` (3) at once
+  (`StartCalculatedPath` → `OnDestinationReachFailed`, completion = failed, `OnPathComplete` called). Before, it returned
+  `Started` and the status fell back to `None`. `GameApi.StartMoveTo` maps the new value to the old behaviour.
+- `PlayerWorkComponent`: while working the game now makes the body kinematic (`HoldWorkBody` / `HoldAtDock`,
+  `PlayerDynamicType.ByWork`) and releases it in `StopInteraction` (`ReleaseWorkBody`, which logs "Setting linear velocity
+  of a kinematic body" once per work - the game's own noise). `IsOnWorkingSpot`: < 0.1 m on XZ and |y| <= 0.75.
+- `CraftComponent.TryContinueFromQueue(bool)` is a shell around `ContinueFromQueue` (+ `IsWorkPausedByMove`); same logic
+  for a station without a zombie operator. `TryStartCurCraft(bool)` became `(bool, IWorker)` (not used by the mod).
+- Deliveries: new bodies were seen as `body_corpse` drops on the ground next to `tp_RT_morgue_enter` (yard, navmesh region
+  of the yard), with the morgue pallets empty, at about 06:00 game time.
+- **Campfire bench**: WGO `rest_bench` (custom tag `rest_bench`, interaction `Script`, like the bed), in the yard region
+  (no door between it and the morgue entrance). E on it runs a flow graph → `Flow_StartResting` →
+  `EnergySystem.StartResting()`: takes control with `TakenControlType.ByRest` (13), sets the game speed to
+  `GetSleepTimeMultiplier()` (**50x**, same as sleep) and shows `UIRestingExitWidget`. `RestoreEnergyWhileResting`: +400 x
+  day delta until full. It never ends by itself. `TrackTimeWithoutSleep` returns early while resting (the awake timer
+  stands still; the bench does not cure Lack of sleep).
+- Standing up: `UIRestingExitWidget.LateUpdate` reads `UnityEngine.Input.GetKeyDown(E / Escape)` directly (only a gamepad
+  goes through `LazyInput`, `GameKey.Back`), so the mod's virtual input cannot press it. The mod calls
+  `EnergySystem.StopResting()` (public, exactly what the key does). `Player.log`: "[EnergySystem]: player started
+  resting" / "player stopped resting".
+- `Inventory.GetItemById` → `Item.TryGetItemInInventory` searches inside `IsBag` items too: hot bar food can live in the
+  food bag (dump: `bag_food` with `cook_croissant` stacks).
+- `WgoData.GetTeleportPointPosition` logs "Can't find gd point with Id [tp_point_...]" whenever the door has no GD point
+  and falls back to the door position.

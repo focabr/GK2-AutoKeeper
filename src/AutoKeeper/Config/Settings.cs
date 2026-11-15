@@ -137,6 +137,7 @@ namespace AutoKeeper.Config
         public ConfigEntry<float> SearchRadius { get; }
         public ConfigEntry<bool> FetchRemoteBodies { get; }
         public ConfigEntry<bool> WaitInMorgue { get; }
+        public ConfigEntry<bool> RestOnBench { get; }
         public ConfigEntry<bool> CheckCrematoriumFirst { get; }
         public ConfigEntry<bool> UseChest { get; }
         public ConfigEntry<int> ChestFreeSlots { get; }
@@ -212,6 +213,10 @@ namespace AutoKeeper.Config
                 "Esperar no necrotério", "Wait in the morgue",
                 "Sem trabalho (por exemplo, ao acordar em casa), o bot vai até o necrotério pelas portas e espera lá os próximos corpos. Desligado, ele fica onde está.",
                 "With nothing to do (e.g. after waking up at home), the bot walks to the morgue through the doors and waits there for the next bodies. Off: it stays where it is.");
+            RestOnBench = Toggle(config, SettingTab.Bodies, "Bodies", "RestOnBench", false,
+                "Descansar no banco sem corpos", "Rest on the bench when idle",
+                "Sem nenhum corpo para processar, o bot anda até o banco da fogueira (jogo 1.012+), senta e espera lá: a energia volta sem gastar comida. ATENÇÃO: sentado o jogo corre 50 vezes mais rápido, como ao dormir, então o tempo pula até a próxima entrega. Quando chega um corpo (ou o crematório termina) ele levanta e volta ao trabalho. Tem prioridade sobre \"Esperar no necrotério\".",
+                "With no body to process, the bot walks to the campfire bench (game 1.012+), sits down and waits there: energy comes back without spending food. NOTE: while seated the game runs 50 times faster, like sleeping, so time skips to the next delivery. When a body arrives (or the crematorium finishes) it stands up and goes back to work. Takes priority over \"Wait in the morgue\".");
             CheckCrematoriumFirst = Toggle(config, SettingTab.Bodies, "Bodies", "CheckCrematoriumFirst", true,
                 "Recolher o crematório primeiro", "Collect the crematorium first",
                 "Ao chegar no necrotério, o bot recolhe o que já estiver pronto no crematório antes de começar (só vai lá se houver algo).",

@@ -22,6 +22,8 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
   result when it is done.
 - **Keeps the tables free:** while the crematorium burns, autopsied bodies wait on an empty pallet.
 - **Fetches bodies left outside** (e.g. delivered to another area) through the game's doors.
+- **Optional, game 1.012+:** with no bodies, rests on the campfire bench and stands up when work arrives (the game runs
+  50 times faster while seated, like sleeping).
 - **Respects the success chance:** extracts item by item only above the minimum chance you choose.
 - **Walks by itself** through the game's own doors (house → yard → morgue) and works from the same spot the game uses.
 
@@ -53,7 +55,7 @@ Adjust what it extracts, when it eats and what it does when tired in **F11**; fo
 With **GK2 Mod Framework** installed, the same settings also appear under **Mods** in the main and pause menus.
 
 ## Requirements
-- Graveyard Keeper 2 (Steam, Windows) — version **1.011 or newer** (tested on 1.011; for older game versions use 0.3.44)
+- Graveyard Keeper 2 (Steam, Windows) — version **1.011 or newer** (tested on 1.012; for older game versions use 0.3.44)
 - [BepInExPack 5.4.2305](https://thunderstore.io/c/graveyard-keeper-2/p/BepInEx/BepInExPack/) (BepInEx 5.4.23.x)
 
 ## Installation

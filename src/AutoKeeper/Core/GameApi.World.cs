@@ -17,6 +17,7 @@ namespace AutoKeeper.Core
         GraveBody,
         GravePlace,
         Bed,
+        RestBench,
     }
 
     /// <summary>Summarized craft state of an object (without exposing the game's enum to the bot).</summary>
@@ -211,6 +212,8 @@ namespace AutoKeeper.Core
                     return w.id == "grave_body"; // grave with a body, still to be closed (shovel work)
                 case ObjectKind.Bed:
                     return w.CustomTag == "bed_home"; // the bed in the player's house (dump: id "bed", Script interaction)
+                case ObjectKind.RestBench:
+                    return w.CustomTag == "rest_bench" || w.id == "rest_bench"; // campfire bench, game 1.012+ (dump: Script interaction)
                 case ObjectKind.GravePlace:
                     return w.id == "grave_empty_place"; // grave marked by the builder, still to be dug (shovel → grave_empty)
                 case ObjectKind.Chest:
@@ -531,6 +534,13 @@ namespace AutoKeeper.Core
                 moveRequested = false;
                 return true;
             }
+            if ((int)r == StartPathFailedToFindPath)
+            {
+                // Game 1.012+: an unreachable destination is refused at once (older versions answered Started and failed a few
+                // frames later). Report it the old way (GetMoveState = Failed) so the walk retries still run.
+                ModLog.Debug(Lang.T("Movimento: o jogo não achou caminho até o destino", "Movement: the game found no path to the destination"));
+                return true;
+            }
             if (r != MovementComponent.StartPathResult.Started)
             {
                 moveRequested = false;
@@ -541,6 +551,9 @@ namespace AutoKeeper.Core
             mc.SetOnPathLengthReady(len => lastPathLength = len);
             return true;
         }, false, nameof(StartMoveTo));
+
+        /// <summary>MovementComponent.StartPathResult.FailedToFindPath (added in game 1.012; by value so 1.011 still loads).</summary>
+        private const int StartPathFailedToFindPath = 3;
 
         private static float lastPathLength = -1f;
 

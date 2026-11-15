@@ -91,7 +91,7 @@ namespace AutoKeeper.UI
                 c.Note = Warn(pt ? $"Jogo {s.GameVersion} antigo: o mod exige {Plugin.MinGameVersion}+"
                                  : $"Game {s.GameVersion} too old: mod needs {Plugin.MinGameVersion}+", true);
             }
-            else if (s.GameVersion != null && s.GameVersion != Plugin.TestedGameVersion)
+            else if (s.GameVersion != null && !Plugin.IsGameTested(s.GameVersion))
             {
                 c.Note = Warn(pt ? $"Jogo {s.GameVersion} não testado (testado: {Plugin.TestedGameVersion})"
                                  : $"Game {s.GameVersion} untested (tested: {Plugin.TestedGameVersion})", true);
@@ -145,6 +145,10 @@ namespace AutoKeeper.UI
             if (SessionStats.Sleeps > 0)
             {
                 parts.Add(pt ? $"dormiu {SessionStats.Sleeps}×" : $"slept {SessionStats.Sleeps}×");
+            }
+            if (SessionStats.Rests > 0)
+            {
+                parts.Add(pt ? $"banco {SessionStats.Rests}×" : $"bench {SessionStats.Rests}×");
             }
             parts.Add(pt ? $"{time} ligado" : $"on for {time}");
             return string.Join(Muted(" · "), parts);
